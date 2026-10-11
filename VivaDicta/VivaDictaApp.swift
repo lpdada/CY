@@ -708,6 +708,8 @@ struct VivaDictaApp: App {
         "com.apple.MailCompositionService", // Mail compose sheet hosted in another app
         "com.apple.DocumentManagerUICore.SaveToFiles", // "Save to Files" sheet
         "com.t3tools.t3code.swiftui.dev.AUW3D5DD4J", // third-party dev build of the T3 Code fork; no verifiable mapping
+        "com.superhuman.Superhuman",    // Superhuman Mail - AASA catch-all, but the root is the inbox and would pull the user out of the draft
+        "com.harklabs.hark",            // Hark Pro - AASA path /chat likely opens a new chat (same reason Claude stays unmapped)
 
         // Share and compose extensions. The surface the user typed into is torn
         // down on return, and the parent app is not where they were.
@@ -968,7 +970,6 @@ struct VivaDictaApp: App {
 
             // 2026-10-10. Scheme read from the app's own source, or a universal
             // link confirmed in the app's AASA file at the root or a catch-all path.
-            "com.superhuman.Superhuman": "https://mail.superhuman.com/",    // Superhuman Mail; AASA catch-all "*"
             "app.getbb.mobile": "bb://",                                     // bb; apps/mobile/app.json in get-bb/bb (Expo "scheme"); not on the App Store, TestFlight build
 
             // 2026-09-27. Weaker: the AASA lists the bundle ID but only for a
@@ -994,7 +995,6 @@ struct VivaDictaApp: App {
             "com.taimi.ios": "https://taimi.com/applink",     // Taimi; 2026-10-10, AASA lists /applink only, no root path
             "com.toggl.daneel": "https://track.toggl.com/timer/", // Toggl Track; 2026-10-10, AASA path /timer/* (the Track web home); toggl.com has no AASA
             "co.switch.Switch": "https://dialpad.com/app/",   // Dialpad (ex-Switch); 2026-10-10, AASA path /app/*
-            "com.harklabs.hark": "https://hark.com/chat",     // Hark Pro; 2026-10-10, AASA path /chat; harklabs.com serves no AASA
             "com.picsart.studio": "https://picsart.com/open", // Picsart; 2026-10-10, AASA path /open (exact, no trailing slash)
             "com.teslamotors.TeslaApp": "https://www.tesla.com/1/app/home", // Tesla; 2026-10-10, AASA path /1/app/home ("Open Tesla App"), read via Apple's CDN mirror
             "de.barmergek.serviceapp": "https://link-registry.bconnect.barmer.de/barmer/foreground", // Meine BARMER; 2026-10-10, AASA path /barmer/foreground
