@@ -162,7 +162,7 @@ struct AIServiceConfigurationTests {
     }
 
     @Test func currentModeSupportsResponseStreaming_openAIOAuth_returnsTrue() {
-        let mode = makeMode(aiProvider: .openAI, aiModel: "gpt-5.4-mini")
+        let mode = makeMode(aiProvider: .openAI, aiModel: "gpt-5.5")
         let sut = makeService(withModes: [mode])
         sut.selectedModeName = mode.name
         sut.isOpenAISignedIn = true
