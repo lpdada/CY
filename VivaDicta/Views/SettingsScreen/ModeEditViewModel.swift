@@ -343,6 +343,14 @@ class ModeEditViewModel {
                 aiModel = configuredModel
                 logger.logInfo("Custom OpenAI model updated to configured: '\(configuredModel)'")
             }
+        } else if provider == .openAI && (aiService.isOpenAISignedIn || VivAgentsClient.isCodexCliActive) {
+            // ChatGPT sign-in serves a narrower list than the API-key catalog. A mode
+            // saved with an id Codex no longer serves would otherwise keep showing it
+            // while every request silently runs on the default model.
+            if let current = aiModel, !OpenAIOAuthClient.supportedModels.contains(current) {
+                aiModel = OpenAIOAuthClient.defaultModel
+                logger.logInfo("OpenAI model '\(current)' not served over ChatGPT sign-in, reset to '\(OpenAIOAuthClient.defaultModel)'")
+            }
         } else if provider == .local {
             // On-device: if the selected model was deleted, fall back to another
             // downloaded one; if none remain, disable AI Processing for this mode
