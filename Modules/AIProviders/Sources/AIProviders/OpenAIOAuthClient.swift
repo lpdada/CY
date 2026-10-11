@@ -33,7 +33,8 @@ public enum OpenAIOAuthClient {
     /// an outdated CLI reports that same 400 for a model this client can use.
     ///
     /// This is deliberately *not* derived from `AIProvider.openAI.availableModels`.
-    /// Codex serves the 5.4 generation upward and nothing else: gpt-5.4-nano,
+    /// Codex serves the 5.5 generation upward and nothing else: gpt-5.4 and
+    /// gpt-5.4-mini (400 "not supported with a ChatGPT account" as of 2026-10-11), gpt-5.4-nano,
     /// gpt-5-nano, gpt-4.1, gpt-4.1-mini, gpt-4o and gpt-4o-mini are all in the
     /// API-key catalog and all rejected here. So is gpt-5.3-codex-spark, despite
     /// being a Codex-only coding tier.
@@ -50,9 +51,7 @@ public enum OpenAIOAuthClient {
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",
-        "gpt-5.5",
-        "gpt-5.4",
-        "gpt-5.4-mini"
+        "gpt-5.5"
     ]
 
     /// Returns the model to use for the Codex endpoint.
