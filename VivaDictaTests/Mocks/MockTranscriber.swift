@@ -35,6 +35,18 @@ final class MockTranscriber: Transcriber {
         return stubbedText
     }
 
+    func transcribe(
+        audioURL: URL,
+        languageOverride: String?,
+        progressHandler: TranscriptionProgressHandler?
+    ) async throws -> String {
+        languageOverrides.append(languageOverride)
+        return try await transcribe(audioURL: audioURL, progressHandler: progressHandler)
+    }
+
+    /// One entry per override-aware call, `nil` when no override was passed.
+    private(set) var languageOverrides: [String?] = []
+
     func postProcessStreamedText(_ text: String, startTime: Date) -> String {
         postProcessStreamedCallCount += 1
         return text

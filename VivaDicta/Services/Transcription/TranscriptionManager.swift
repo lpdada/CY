@@ -76,7 +76,7 @@ class TranscriptionManager: Transcriber {
 
     var selectedLanguage: String {
         get {
-            UserDefaultsStorage.shared.string(forKey: AppGroupCoordinator.kSelectedLanguageKey) ?? "en"
+            UserDefaultsStorage.shared.string(forKey: AppGroupCoordinator.kSelectedLanguageKey) ?? "auto"
         }
         set {
             UserDefaultsStorage.shared.set(newValue, forKey: AppGroupCoordinator.kSelectedLanguageKey)
@@ -155,6 +155,18 @@ class TranscriptionManager: Transcriber {
         audioURL: URL,
         progressHandler: TranscriptionProgressHandler? = nil
     ) async throws -> String {
+        try await transcribe(audioURL: audioURL, languageOverride: nil, progressHandler: progressHandler)
+    }
+
+    /// Same as ``transcribe(audioURL:progressHandler:)``, but `languageOverride`
+    /// replaces the mode's language for this one call (the Share/Action
+    /// Extension picker). Nothing is written back to the shared language key,
+    /// so the next dictation uses the mode's own language again.
+    public func transcribe(
+        audioURL: URL,
+        languageOverride: String?,
+        progressHandler: TranscriptionProgressHandler? = nil
+    ) async throws -> String {
         guard let model = getCurrentTranscriptionModel() else {
             throw TranscriptionError.transcriptionFailed
         }
@@ -167,14 +179,19 @@ class TranscriptionManager: Transcriber {
             providerDisplayName: model.provider.displayName
         )
 
-        let provider = try await makeProvider(for: model)
+        let provider = try await makeProvider(for: model, languageOverride: languageOverride)
         let transcriptionResult = try await engine.transcribe(
             audioURL: audioURL,
             using: provider,
             progress: progressHandler
         )
 
-        return postProcess(transcriptionResult, model: model, startTime: startTime)
+        return postProcess(
+            transcriptionResult,
+            model: model,
+            startTime: startTime,
+            transcriptionLanguage: languageOverride ?? currentMode.transcriptionLanguage
+        )
     }
 
     /// Runs the same post-processing the file-based path applies, for text that
@@ -183,13 +200,19 @@ class TranscriptionManager: Transcriber {
     /// the completion analytics must not diverge between the two paths.
     public func postProcessStreamedText(_ text: String, startTime: Date) -> String {
         guard let model = getCurrentTranscriptionModel() else { return text }
-        return postProcess(.plain(text), model: model, startTime: startTime)
+        return postProcess(
+            .plain(text),
+            model: model,
+            startTime: startTime,
+            transcriptionLanguage: currentMode.transcriptionLanguage
+        )
     }
 
     private func postProcess(
         _ transcriptionResult: TranscriptionServiceResult,
         model: any TranscriptionModel,
-        startTime: Date
+        startTime: Date,
+        transcriptionLanguage: String?
     ) -> String {
         // When inline translation is active (e.g. Soniox Spanish → Russian) the
         // output text is in the TARGET language, so the filler set must match the
@@ -198,7 +221,7 @@ class TranscriptionManager: Transcriber {
         var result = TranscriptionOutputFilter.filter(
             transcriptionResult.text,
             language: Self.outputLanguage(
-                transcriptionLanguage: currentMode.transcriptionLanguage,
+                transcriptionLanguage: transcriptionLanguage,
                 translationTargetLanguage: currentMode.translationTargetLanguage
             ),
             removeFillers: UserDefaults.standard.object(forKey: UserDefaultsStorage.Keys.isFillerRemovalEnabled) as? Bool ?? true
@@ -267,9 +290,12 @@ class TranscriptionManager: Transcriber {
     /// engine and the underlying services stay agnostic of user-facing
     /// toggles.
     private func makeProvider(
-        for model: any TranscriptionModel
+        for model: any TranscriptionModel,
+        languageOverride: String? = nil
     ) async throws -> TranscriptionProvider {
-        let selectedLanguage = UserDefaultsStorage.shared.string(forKey: AppGroupCoordinator.kSelectedLanguageKey) ?? "auto"
+        let selectedLanguage = languageOverride
+            ?? UserDefaultsStorage.shared.string(forKey: AppGroupCoordinator.kSelectedLanguageKey)
+            ?? "auto"
         let isVADEnabled = UserDefaultsStorage.shared.object(forKey: AppGroupCoordinator.kIsVADEnabled) as? Bool ?? true
         let diarizationEnabled = currentMode.speakerLabelsEnabled
         let translationTarget = UserDefaultsStorage.shared.string(forKey: AppGroupCoordinator.kTranslationTargetLanguageKey) ?? ""

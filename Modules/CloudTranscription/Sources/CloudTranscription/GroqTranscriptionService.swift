@@ -5,8 +5,8 @@ import Networking
 import os
 import TranscriptionCore
 
-/// Pre-configured Groq STT client. Vocabulary terms (if any) are folded into
-/// the OpenAI-compatible `prompt` field at request time.
+/// Pre-configured Groq STT client. Vocabulary terms (if any) are sent as a
+/// plain list in the OpenAI-compatible `prompt` field when a language is set.
 public struct GroqTranscriptionService: TranscriptionService, Sendable {
     private let logger = Logger(cloudTranscriptionCategory: "GroqTranscription")
 
@@ -123,10 +123,18 @@ public struct GroqTranscriptionService: TranscriptionService, Sendable {
         return body
     }
 
+    /// Whisper treats `prompt` as preceding transcript, not as an instruction,
+    /// so it has to be a bare term list: an English sentence here pulls
+    /// non-English speech towards English. With auto-detect the audio
+    /// language is unknown, so no prompt is sent at all - a list of mostly
+    /// English terms is enough to tip detection the wrong way.
     private func buildPromptWithVocabulary() -> String {
         guard !config.vocabulary.isEmpty else { return "" }
-        let preferredSpellings = config.vocabulary.joined(separator: ", ")
-        return "Prefer these spellings if they are heard in the audio: \(preferredSpellings)."
+        guard config.language != "auto", !config.language.isEmpty else {
+            logger.logInfo("Skipping vocabulary prompt: language is auto-detect")
+            return ""
+        }
+        return config.vocabulary.joined(separator: ", ")
     }
 
     private struct TranscriptionResponse: Decodable {

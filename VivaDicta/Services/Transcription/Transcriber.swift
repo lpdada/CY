@@ -28,8 +28,28 @@ protocol Transcriber {
     /// pipeline, and return the final text.
     func transcribe(audioURL: URL, progressHandler: TranscriptionProgressHandler?) async throws -> String
 
+    /// Transcribe with a one-off language instead of the mode's (Share/Action
+    /// Extension picker). Must not change the language later calls use.
+    func transcribe(
+        audioURL: URL,
+        languageOverride: String?,
+        progressHandler: TranscriptionProgressHandler?
+    ) async throws -> String
+
     /// Apply the same post-processing pipeline to text that arrived over the
     /// realtime WebSocket rather than from an upload, so both paths produce
     /// identically filtered and formatted output.
     func postProcessStreamedText(_ text: String, startTime: Date) -> String
+}
+
+extension Transcriber {
+    /// Test doubles have no per-call language to honour, so by default the
+    /// override is dropped and the plain call runs.
+    func transcribe(
+        audioURL: URL,
+        languageOverride: String?,
+        progressHandler: TranscriptionProgressHandler?
+    ) async throws -> String {
+        try await transcribe(audioURL: audioURL, progressHandler: progressHandler)
+    }
 }

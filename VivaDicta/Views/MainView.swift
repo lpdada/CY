@@ -1035,10 +1035,10 @@ struct MainView: View {
             // Update TranscriptionManager with the reloaded mode
             appState.transcriptionManager.setCurrentMode(appState.aiService.selectedMode)
 
-            // Apply language override from Share Extension if present
-            if let languageOverride = AppGroupCoordinator.shared.getAndConsumePendingLanguageOverride() {
-                appState.transcriptionManager.selectedLanguage = languageOverride
-            }
+            // Language picked in the Share Extension applies to this file only.
+            // Writing it to selectedLanguage used to stick until the next mode
+            // switch and leak into later in-app dictations.
+            let languageOverride = AppGroupCoordinator.shared.getAndConsumePendingLanguageOverride()
 
             // Consume source tag from extension (shareExtension or actionExtension)
             let sourceTag = AppGroupCoordinator.shared.getAndConsumePendingSourceTag()
@@ -1047,7 +1047,8 @@ struct MainView: View {
             vm.transcribingSpeechTask = vm.transcribeSpeechTask(
                 recordURL: destinationURL,
                 modelContext: modelContext,
-                sourceTag: sourceTag
+                sourceTag: sourceTag,
+                languageOverride: languageOverride
             )
         } catch {
             logger.logError("Failed to copy shared audio file: \(error.localizedDescription)")

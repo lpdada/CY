@@ -71,6 +71,11 @@ struct PromptsTemplatesTests {
         #expect(result.contains("preserve every label"))
     }
 
+    @Test func systemPrompt_containsPreserveLanguageRule() {
+        #expect(PromptsTemplates.systemPrompt(with: "test").contains("Keep the original language"))
+        #expect(PromptsTemplates.compactSystemPrompt(with: "test").contains("never translate"))
+    }
+
     // MARK: - Prompt Template Cases
 
     @Test func allCases_haveNonEmptyPrompts_exceptCustom() {

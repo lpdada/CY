@@ -168,6 +168,24 @@ struct RecordViewModelTests {
     }
 
     @MainActor
+    @Test func transcribeSpeechTask_passesShareExtensionLanguageOverrideToThatCallOnly() async throws {
+        let transcriber = MockTranscriber(currentMode: parakeetMode(), stubbedText: "привет")
+        let ai = MockAIProcessingService()
+        ai.stubIsProperlyConfigured = false
+        let (sut, container) = try makeSUT(transcriber: transcriber, aiService: ai, appGroup: MockAppGroupBridge())
+
+        await sut.transcribeSpeechTask(
+            recordURL: try makeDummyAudioFile(),
+            modelContext: container.mainContext,
+            languageOverride: "ru"
+        ).value
+        await sut.transcribeSpeechTask(recordURL: try makeDummyAudioFile(), modelContext: container.mainContext).value
+
+        // The override belongs to the shared file; the next dictation is back on the mode's language.
+        #expect(transcriber.languageOverrides == ["ru", nil])
+    }
+
+    @MainActor
     @Test func transcribeSpeechTask_whenNotConfigured_persistsTranscriptWithoutEnhancing() async throws {
         let transcriber = MockTranscriber(currentMode: parakeetMode(), stubbedText: "just a note")
         let ai = MockAIProcessingService()
