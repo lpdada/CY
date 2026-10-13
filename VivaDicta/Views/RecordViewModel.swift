@@ -626,7 +626,8 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
         recordURL: URL,
         modelContext: ModelContext,
         sourceTag: String? = nil,
-        destination: RecordingDestination = .newNote
+        destination: RecordingDestination = .newNote,
+        languageOverride: String? = nil
     ) -> Task<Void, Never> {
         Task {
             // Begin background task to allow transcription to complete if user switches apps
@@ -707,6 +708,7 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
                 } else {
                     transcribedText = try await transcriptionManager.transcribe(
                         audioURL: audioURLToTranscribe,
+                        languageOverride: languageOverride,
                         progressHandler: { progress in
                             await MainActor.run {
                                 self.transcriptionProgress = progress

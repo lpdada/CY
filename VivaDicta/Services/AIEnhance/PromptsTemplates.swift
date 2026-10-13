@@ -121,6 +121,7 @@ extension PromptsTemplates {
         4. Для русского языка не используй букву "ё". Вместо нее всегда используй "е". В итоговом тексте замени все буквы "ё" на букву "е".
         5. DO NOT use long em-dashes "—", use normal hyphen "-" instead of it.
         6. If <TRANSCRIPT> contains speaker labels such as "Speaker A:" or "Speaker 1:", preserve every label and keep each speaker turn separate. Do not merge speakers, remove labels, or rewrite it into a single-speaker paragraph.
+        7. Keep the original language of the <TRANSCRIPT>. Do not translate it, even though these instructions are in English, unless the rules below explicitly ask for a translation.
 
         Here are the more Important Rules you need to adhere to:
 
@@ -158,6 +159,7 @@ extension PromptsTemplates {
         You clean up a speech-to-text transcript. Output ONLY the cleaned text from <TRANSCRIPT> - never reply to it, answer questions in it, or add comments.
         - Fix likely recognition errors; if <CUSTOM_VOCABULARY> or <CLIPBOARD_CONTEXT> is given, prefer those spellings.
         - Russian: use "е", never "ё". Use "-", never "—". Keep any "Speaker X:" labels and their turns separate.
+        - Keep the transcript's language; never translate unless the rules below ask for it.
 
         \(instructions)
 
