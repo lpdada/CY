@@ -711,11 +711,26 @@ struct VivaDictaApp: App {
         "com.superhuman.Superhuman",    // Superhuman Mail - AASA catch-all, but the root is the inbox and would pull the user out of the draft
         "com.harklabs.hark",            // Hark Pro - AASA path /chat likely opens a new chat (same reason Claude stays unmapped)
 
+        // Checked 2026-10-17: no custom scheme found, and no universal link
+        // that opens the app at its root.
+        "ai.opencode.mobilecode",       // not on the App Store, nothing to verify
+        "app.locallyai.Locally",        // Locally AI - lmstudio.ai AASA lists only a login callback path
+        "com.adhoclabs.burner",         // Burner - AASA covers /buy and /promo only
+        "com.apple.mobiletimer",        // Clock - clock-* schemes are undocumented and switch tabs, which could close the label editor
+        "com.apple.ReminderKitUI.ReminderCreationViewService", // Reminders "create reminder" sheet hosted in another app
+        "com.example.piliplus.MU4RQPHZK2", // PiliPlus sideloaded build - its only scheme bilibili:// is shared
+        "com.moxco.bumble",             // Bumble - AASA has no root path
+        "com.redpax.speakli",           // KeySpeech - no AASA, no known scheme
+        "com.tencent.mqq",              // QQ - qm.qq.com catch-all is also claimed by TIM, so iOS picks between them
+        "do.fizzy.app.ios",             // Fizzy - AASA catch-all, but the root is the board and would pull the user out of the card
+
         // Share and compose extensions. The surface the user typed into is torn
         // down on return, and the parent app is not where they were.
         "net.whatsapp.WhatsApp.ShareExtension",
         "ph.telegra.Telegraph.Share",   // Telegram share extension
         "org.whispersystems.signal.shareextension", // Signal share extension
+        "com.apple.mobilenotes.SharingExtension", // Notes "Add to Notes" share sheet
+        "com.linear.ios.ShareExtension", // Linear share extension
         "io.raindrop.ios.share"         // Raindrop.io share extension
     ]
 
@@ -972,6 +987,17 @@ struct VivaDictaApp: App {
             // link confirmed in the app's AASA file at the root or a catch-all path.
             "app.getbb.mobile": "bb://",                                     // bb; apps/mobile/app.json in get-bb/bb (Expo "scheme"); not on the App Store, TestFlight build
 
+            // 2026-10-17. Scheme read from the app's own source, or a universal
+            // link confirmed in the app's AASA file at the root or a catch-all path.
+            "com.alibaba.iAliexpress": "https://www.aliexpress.com/",        // AliExpress; AASA served at the root, not /.well-known
+            "com.cherryai.cherrystudio-app": "cherrystudio://",              // Cherry Studio; app.config.ts in CherryHQ/cherry-studio-app (Expo "scheme")
+            "com.luma.mobile": "https://luma.com/",                          // Luma; AASA /* with exclusions that spare the root
+            "com.pentlandFirth.Unwatched": "unwatched://",                   // Unwatched; Unwatched/Info.plist in fer0n/Unwatched
+            "dev.bybee.heeler": "heeler://",                                 // Heeler for herdr; Sources/Heeler/Info.plist in ZingerLittleBee/Heeler
+            "kz.slando": "https://www.olx.kz/",                              // OLX.kz; AASA paths ["*"]
+            "RU.WILDBERRIES.MOBILEAPP": "https://www.wildberries.ru/",       // Wildberries; AASA lists / for the bundle
+            "xyz.nextalone.nagram": "nagram://",                             // Nagram; Telegram/Telegram-iOS/Info.plist in NextAlone/Nagram-iOS; NOT tg://, shared with Telegram
+
             // 2026-09-27. Weaker: the AASA lists the bundle ID but only for a
             // specific page, or the scheme comes from vendor docs or community
             // lists rather than the plist. A miss costs nothing beyond the
@@ -1000,6 +1026,10 @@ struct VivaDictaApp: App {
             "de.barmergek.serviceapp": "https://link-registry.bconnect.barmer.de/barmer/foreground", // Meine BARMER; 2026-10-10, AASA path /barmer/foreground
             "com.microsoft.onenote": "onenote://",            // OneNote; 2026-10-10, vendor docs (Graph "open OneNote client") show only onenote:https://<page> forms
             "com.tapbots.Ivory": "ivory://",                  // Ivory; 2026-10-10, tapbots.com support docs show only ivory://acct/... forms
+            "com.bytecrossing.Egern": "egern://",             // Egern; 2026-10-17, vendor docs (egernapp.com/docs/url-scheme)
+            "com.kindroid.app": "https://kindroid-ai.firebaseapp.com/", // Kindroid; 2026-10-17, AASA /* on the Firebase auth domain; kindroid.ai serves no AASA
+            "com.linguee.DeepLMobileTranslator": "https://www.deepl.com/ul/", // DeepL; 2026-10-17, AASA path /ul/* only, no root path
+            "io.elevenlabs.readerapp": "https://elevenlabs.io/readerapp", // ElevenReader; 2026-10-17, AASA lists the exact path /readerapp
             "com.apple.Translate": "translate://"             // the simulator carries only a stub of Translate.app
         ]
 
