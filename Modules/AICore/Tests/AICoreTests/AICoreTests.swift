@@ -103,7 +103,12 @@ struct AIProviderTests {
         #expect(AIProvider.normalizedModel("llama3.1-8b", for: .cerebras) == "gpt-oss-120b")
         #expect(AIProvider.normalizedModel("gemma-4-31b", for: .cerebras) == "qwen-3.8-27b")
         #expect(AIProvider.normalizedModel("qwen/qwen3.6-27b", for: .groq) == "qwen/qwen3.8-27b")
-        #expect(AIProvider.normalizedModel("big-pickle", for: .opencodeZen) == "deepseek-v4.1-flash")
+        for retired in ["big-pickle", "deepseek-v4-flash-free", "nemotron-3-ultra-free", "mimo-v2.5-free", "north-mini-code-free"] {
+            #expect(AIProvider.normalizedModel(retired, for: .opencodeZen) == "deepseek-v4.1-flash")
+        }
+        // A cached free id the catalog filter hides also moves to the paid default.
+        #expect(AIProvider.normalizedModel("glm-5.3-flash-free", for: .opencodeZen) == "deepseek-v4.1-flash")
+        #expect(AIProvider.normalizedModel("qwen3.8-flash", for: .opencodeZen) == "qwen3.8-flash")
         // Unknown ids pass through untouched.
         #expect(AIProvider.normalizedModel("gpt-5.6-terra", for: .openAI) == "gpt-5.6-terra")
         // Retirement is provider-scoped: another provider legitimately serving
@@ -157,7 +162,9 @@ struct AIProviderTests {
     }
 
     @Test func reminderExtractorExcludesOpencodeZen() {
-        // Zen's free-tier models reject json_schema response formats.
+        // Zen was excluded when its free-tier models rejected json_schema; the
+        // free tier is gone (2026-10-18) and the paid catalog is unverified
+        // for json_schema, so it stays out until someone checks.
         #expect(!AIProvider.reminderExtractorCloudProviders.contains(.opencodeZen))
     }
 

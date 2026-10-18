@@ -11,7 +11,7 @@ struct ReasoningConfigTests {
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-2.5-flash") == "none")
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-2.5-pro") == "minimal")
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-3.6-flash") == "minimal")
-        // 3.7 and 3.8 Flash reject "minimal" with a validation error - "low" is their floor.
+        // 3.7/3.8 Flash and 4 Argon reject "minimal" with a validation error - "low" is their floor.
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-3.7-flash") == "low")
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-3.8-flash") == "low")
         #expect(ReasoningConfig.getReasoningParameter(for: "gemini-4-argon") == "low")

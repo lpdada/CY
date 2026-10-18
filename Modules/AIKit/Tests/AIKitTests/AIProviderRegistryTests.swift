@@ -131,6 +131,23 @@ struct AIProviderRegistryTests {
         #expect(net.capturedRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer GEM_TOK")
     }
 
+    @Test func geminiOAuthRouteReplacesRetiredModel() async throws {
+        // The OAuth body keys its thinkingConfig off the exact id, so a retired
+        // id saved on an OAuth mode must be mapped like the API-key route.
+        let oauth = MockOAuthManager()
+        oauth.stubValidAccessTokenResponse = .success((token: "GEM_TOK", accountId: nil, projectId: "proj"))
+        let net = MockNetworkService()
+        net.stubSendResponse = .failure(URLError(.badServerResponse))
+        let sut = makeSUT(oauth: oauth, net: net)
+
+        let provider = try await sut.makeTextProvider(for: .geminiOAuth, model: "gemini-2.5-flash-lite")
+        _ = try? await provider.enhance(systemMessage: "S", userMessage: "U")
+
+        let body = try #require(net.capturedRequest?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["model"] as? String == "gemini-3.5-flash-lite")
+    }
+
     @Test func openAIOAuthRouteRetrievesTokenForOpenAIProvider() async throws {
         let oauth = MockOAuthManager()
         oauth.stubValidAccessTokenResponse = .success((token: "OAI_TOK", accountId: "acct", projectId: nil))

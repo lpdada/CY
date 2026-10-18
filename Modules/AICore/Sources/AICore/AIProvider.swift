@@ -557,7 +557,15 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Maps a retired model id on `provider` to its replacement; unknown ids
     /// and providers without retirements pass through.
     public static func normalizedModel(_ model: String, for provider: AIProvider) -> String {
-        retiredModelReplacements[provider]?[model] ?? model
+        if let replacement = retiredModelReplacements[provider]?[model] {
+            return replacement
+        }
+        // Any Zen id the catalog filter hides (e.g. a cached `glm-5.3-flash-free`)
+        // would keep failing with 403, so carry it to the paid default too.
+        if provider == .opencodeZen, !isOpencodeZenCatalogModelUsable(model) {
+            return provider.defaultModel
+        }
+        return model
     }
 
     public var availableModels: [String] {
@@ -894,8 +902,8 @@ public extension AIProvider {
     /// "No payment method. Add a payment method here ..." (verified 2026-06-19).
     /// Token pricing passes through the provider's list price with zero markup.
     ///
-    /// Catalog last refreshed 2026-06-25 from the published Zen model list
-    /// (added `glm-5.2`). The published catalog also lists more GPT/Claude/Qwen
+    /// Catalog last refreshed 2026-10-17 (added `deepseek-v4.1-flash` and
+    /// `qwen3.8-flash`, both measured live that day). The published catalog also lists more GPT/Claude/Qwen
     /// variants (e.g. `gpt-5.5-pro`, `claude-opus-4.6`, `qwen3.7-max`); those are
     /// intentionally not exposed here - keep this list curated, and live-verify
     /// (200 vs 403) any new addition before shipping it.
@@ -942,8 +950,9 @@ public extension AIProvider {
     /// Whether a model id from Zen's live `/models` listing can be offered.
     /// The listing still carries the OpenCode-only free models (`-free`
     /// suffix, plus `big-pickle`), which reject third-party apps with 403.
+    /// The free allowlist still wins, so a model re-added there shows up.
     static func isOpencodeZenCatalogModelUsable(_ model: String) -> Bool {
-        !model.hasSuffix("-free") && model != "big-pickle"
+        isOpencodeZenModelFree(model) || (!model.hasSuffix("-free") && model != "big-pickle")
     }
 }
 

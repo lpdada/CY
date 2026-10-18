@@ -58,6 +58,7 @@ public struct AIProviderRegistry {
         case .cloud(let provider): AIProvider.normalizedModel(model, for: provider)
         case .openAIOAuth: AIProvider.normalizedModel(model, for: .openAI)
         case .grokOAuth: AIProvider.normalizedModel(model, for: .grok)
+        case .geminiOAuth: AIProvider.normalizedModel(model, for: .gemini)
         default: model
         }
         switch route {
