@@ -36,6 +36,44 @@ struct AIServiceNetworkingTests {
         #expect(sut.networkService is DefaultNetworkService)
     }
 
+    @Test(arguments: ["big-pickle", "glm-5.3-flash-free"])
+    func unavailableZenChatSelectionsFailBeforeNetwork(model: String) async {
+        let networkService = MockNetworkService()
+        let sut = AIService(userDefaults: makeDefaults(), networkService: networkService)
+        do {
+            _ = try await sut.makeChatRequest(provider: .opencodeZen, model: model, systemMessage: "S", messages: [])
+            Issue.record("Unavailable Zen selection must fail locally")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        do {
+            _ = try await sut.makeChatStreamingRequest(provider: .opencodeZen, model: model, systemMessage: "S", messages: [], onPartialResponse: { _ in })
+            Issue.record("Unavailable Zen selection must fail locally")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        do {
+            _ = try await sut.makeCrossNoteSearchToolDecision(provider: .opencodeZen, model: model, systemMessage: "S", messages: [])
+            Issue.record("Unavailable Zen selection must fail locally")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        do {
+            _ = try await sut.makeWebSearchToolDecision(provider: .opencodeZen, model: model, systemMessage: "S", messages: [])
+            Issue.record("Unavailable Zen selection must fail locally")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        let extractor = CloudReminderExtractionProvider(aiService: sut, networkService: networkService)
+        do {
+            _ = try await extractor.extract(noteText: "Remind me tomorrow", provider: .opencodeZen, model: model, now: Date(), timeZone: .current, language: nil, includeEvents: false)
+            Issue.record("Unavailable Zen selection must fail locally")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        #expect(networkService.capturedRequest == nil)
+    }
+
     // MARK: - Dynamic catalog: fetched list wins, static list is the fallback
 
     @Test func getAvailableModelsPrefersFetchedOpencodeZenCatalogOverStatic() {
