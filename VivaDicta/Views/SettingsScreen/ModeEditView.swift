@@ -638,7 +638,9 @@ struct ModeEditView: View {
                                         AddAPIKeyView(
                                             provider: provider,
                                             aiService: viewModel.aiService, onSave: { provider in
-                                                viewModel.updateModel(provider.defaultModel)
+                                                if viewModel.aiModel?.isEmpty != false {
+                                                    viewModel.updateModel(provider.defaultModel)
+                                                }
                                             })
                                     } label: {
                                         HStack {

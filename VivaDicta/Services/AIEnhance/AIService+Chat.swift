@@ -61,6 +61,9 @@ extension AIService {
         messages: [[String: String]],
         onPartialResponse: @escaping @MainActor (String) -> Void
     ) async throws -> String {
+        if provider == .opencodeZen, !AIProvider.isOpencodeZenCatalogModelUsable(model) {
+            throw EnhancementError.customError(AIProvider.opencodeZenUnavailableModelMessage)
+        }
         let route = chatStreamingRoute(for: provider, model: model)
 
         switch route {
@@ -430,6 +433,9 @@ extension AIService {
     }
 
     private func chatRequestConfig(for provider: AIProvider, model: String) async throws -> (URL, [String: String]) {
+        if provider == .opencodeZen, !AIProvider.isOpencodeZenCatalogModelUsable(model) {
+            throw EnhancementError.customError(AIProvider.opencodeZenUnavailableModelMessage)
+        }
         switch provider {
         case .copilot:
             let token = try await copilotOAuthManager.validCopilotToken()

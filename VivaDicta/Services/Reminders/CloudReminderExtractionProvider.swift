@@ -150,6 +150,9 @@ final class CloudReminderExtractionProvider {
             return ReminderDraftsResponse(reminders: [])
         }
 
+        if provider == .opencodeZen, !AIProvider.isOpencodeZenCatalogModelUsable(model) {
+            throw EnhancementError.customError(AIProvider.opencodeZenUnavailableModelMessage)
+        }
         switch provider {
         case .anthropic:
             if VivAgentsClient.isEnabled && VivAgentsClient.isAnthropicCliActive {
