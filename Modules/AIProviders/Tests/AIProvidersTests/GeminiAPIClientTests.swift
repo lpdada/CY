@@ -169,6 +169,41 @@ struct GeminiAPIClientTests {
         #expect(systemParts.first?["text"] as? String == "you are a helper")
     }
 
+    /// The OAuth body must carry ReasoningConfig's level natively: Gemini 3+
+    /// takes `thinkingLevel`, 2.5 rejects it and takes `thinkingBudget`.
+    @Test(arguments: [
+        (model: "gemini-4-argon", level: "low", budget: nil),
+        (model: "gemini-3.5-flash", level: "minimal", budget: nil),
+        (model: "gemini-3.1-pro-preview", level: "low", budget: nil),
+        (model: "gemini-2.5-flash", level: nil, budget: 0),
+        (model: "gemini-2.5-pro", level: nil, budget: 128)
+    ] as [(model: String, level: String?, budget: Int?)])
+    func enhanceSendsThinkingConfigFromReasoningConfig(model: String, level: String?, budget: Int?) async throws {
+        let networkService = MockNetworkService()
+        networkService.stubSendResponse = .success(
+            (wrappedSuccessBody(text: "ok"), makeHTTPResponse(200))
+        )
+
+        _ = try await GeminiAPIClient.enhance(
+            text: "raw",
+            systemPrompt: "system",
+            model: model,
+            accessToken: "ya29.token",
+            projectId: nil,
+            networkService: networkService
+        )
+
+        let httpBody = try #require(networkService.capturedRequest?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: httpBody) as? [String: Any])
+        let nestedRequest = try #require(json["request"] as? [String: Any])
+        let generationConfig = try #require(nestedRequest["generationConfig"] as? [String: Any])
+        #expect(generationConfig["maxOutputTokens"] as? Int == 8192)
+        let thinking = try #require(generationConfig["thinkingConfig"] as? [String: Any])
+        #expect(thinking.count == 1)
+        #expect(thinking["thinkingLevel"] as? String == level)
+        #expect(thinking["thinkingBudget"] as? Int == budget)
+    }
+
     @Test func enhanceOmitsProjectWhenProjectIdNil() async throws {
         let networkService = MockNetworkService()
         networkService.stubSendResponse = .success(

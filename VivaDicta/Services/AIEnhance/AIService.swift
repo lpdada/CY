@@ -1949,6 +1949,8 @@ class AIService {
             return await verifyCerebrasAPIKey(key)
         case .vercelAIGateway:
             return await verifyVercelAIGatewayAPIKey(key)
+        case .opencodeZen:
+            return await verifyOpencodeZenAPIKey(key)
         default:
             // OpenAI-compatible providers fall through to the chat-completions
             // probe. Today that covers OpenAI, Groq, OpenRouter, Z.AI, Kimi,
@@ -1985,6 +1987,19 @@ class AIService {
         )
     }
     
+    /// Zen has no free model a third-party app can call (403 FreeTierError
+    /// since 2026-10-18) and the paid ones need a payment method, so a chat
+    /// probe would reject a real key on a workspace without billing. The model
+    /// listing answers 401 for a bad key and 200 for any real one.
+    private func verifyOpencodeZenAPIKey(_ key: String) async -> Bool {
+        let service = OpenAICompatibleService(networkService: networkService, logger: logger)
+        return await service.verifyGETEndpoint(
+            key,
+            url: URL(string: "https://opencode.ai/zen/v1/models")!,
+            providerName: AIProvider.opencodeZen.rawValue
+        )
+    }
+
     private func verifyCerebrasAPIKey(_ key: String) async -> Bool {
         let service = OpenAICompatibleService(networkService: networkService, logger: logger)
         return await service.verifyGETEndpoint(
@@ -2199,7 +2214,10 @@ class AIService {
             // The free/paid sections are still classified by the static
             // `opencodeZenFreeModels` / `opencodeZenPaidModels` sets in AICore,
             // so they keep working whether the list is fetched or static.
-            return opencodeZenModels.isEmpty ? provider.availableModels : opencodeZenModels
+            // A catalog cached before 2026-10-18 can still hold the
+            // OpenCode-only free models, so filter on read as well as fetch.
+            let fetched = opencodeZenModels.filter(AIProvider.isOpencodeZenCatalogModelUsable)
+            return fetched.isEmpty ? provider.availableModels : fetched
         }
         if provider == .opencodeGo {
             // Live catalog once fetched, falling back to the curated static list.
@@ -2459,7 +2477,9 @@ class AIService {
                 return
             }
 
-            let models = dataArray.compactMap { $0["id"] as? String }
+            let models = dataArray
+                .compactMap { $0["id"] as? String }
+                .filter(AIProvider.isOpencodeZenCatalogModelUsable)
             guard !models.isEmpty else {
                 logger.logWarning("OpenCode Zen returned no models; keeping existing list.")
                 return

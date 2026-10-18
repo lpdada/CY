@@ -431,9 +431,10 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
             // match Vercel's actual naming convention.
             return "anthropic/claude-sonnet-4.6"
         case .opencodeZen:
-            // A free model so a brand-new key (no payment method) verifies and
-            // works out of the box. See `opencodeZenFreeModels`.
-            return "big-pickle"
+            // Zen has no free tier for third-party apps any more (see
+            // `opencodeZenFreeModels`), so the default is the cheapest fast
+            // paid model. Key checks use the model listing, not this model.
+            return "deepseek-v4.1-flash"
         case .opencodeGo:
             // Fast, and answers on a fresh key. The DeepSeek v4 builds that used
             // to sit here now return 403 RegionError until the workspace opts
@@ -537,6 +538,15 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
         // cannot unwrap because they are siblings rather than one enclosing tag.
         .gemini: [
             "gemini-2.5-flash-lite": "gemini-3.5-flash-lite"
+        ],
+        // Zen's free models are OpenCode-only since 2026-10 (403 FreeTierError
+        // or gone); carry saved selections to the new paid default.
+        .opencodeZen: [
+            "big-pickle": "deepseek-v4.1-flash",
+            "deepseek-v4-flash-free": "deepseek-v4.1-flash",
+            "nemotron-3-ultra-free": "deepseek-v4.1-flash",
+            "mimo-v2.5-free": "deepseek-v4.1-flash",
+            "north-mini-code-free": "deepseek-v4.1-flash"
         ],
         // Ollama publishes the nano build tagged; the bare name 404s.
         .ollamaCloud: [
@@ -704,7 +714,7 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .vercelAIGateway:
             return []
         case .opencodeZen:
-            // Curated OpenCode Zen catalog: the always-free models first, then
+            // Curated OpenCode Zen catalog: free models first (none today), then
             // the pay-as-you-go models. Tier classification lives in
             // `opencodeZenFreeModels` / `opencodeZenPaidModels` below.
             return Self.opencodeZenFreeModels + Self.opencodeZenPaidModels
@@ -869,21 +879,15 @@ public extension AIProvider {
     /// OpenCode Zen models usable with the API key alone, at no cost (no payment
     /// method required).
     ///
-    /// Verified against the live Zen API on 2026-06-19: each model returned
-    /// HTTP 200 with `"cost": "0"` and no "No payment method" error. `big-pickle`
-    /// is Zen's promoted anonymous free model (currently routes to
-    /// deepseek-v4-flash). See https://opencode.ai/zen.
-    ///
-    /// Note: the catalog also lists `minimax-m3-free` and `qwen3.6-plus-free`,
-    /// but their free promotion has ended - both now return "Free promotion has
-    /// ended ... subscribe to OpenCode Go", so they are intentionally omitted.
-    static let opencodeZenFreeModels: [String] = [
-        "big-pickle",
-        "deepseek-v4-flash-free",
-        "nemotron-3-ultra-free",
-        "mimo-v2.5-free",
-        "north-mini-code-free"
-    ]
+    /// Empty since 2026-10-18: Zen closed its free tier to third-party apps.
+    /// Probed live that day, `big-pickle` and `nemotron-3-ultra-free` answer
+    /// 403 FreeTierError ("OpenCode's free tier can only be used from within
+    /// OpenCode"), `deepseek-v4-flash-free` and `north-mini-code-free` 400
+    /// "Model is unavailable", and `mimo-v2.5-free` 410. The live catalog still
+    /// lists `-free` ids, so `isOpencodeZenCatalogModelUsable` drops them from
+    /// the fetched list. Re-add a model here only after a live 200 from a key
+    /// without a payment method.
+    static let opencodeZenFreeModels: [String] = []
 
     /// OpenCode Zen models that bill pay-as-you-go and require a workspace with a
     /// payment method. Selecting one without billing set up returns
@@ -933,6 +937,13 @@ public extension AIProvider {
     /// growing, so anything not explicitly free is treated as pay-as-you-go.
     static func isOpencodeZenModelFree(_ model: String) -> Bool {
         opencodeZenFreeModels.contains(model)
+    }
+
+    /// Whether a model id from Zen's live `/models` listing can be offered.
+    /// The listing still carries the OpenCode-only free models (`-free`
+    /// suffix, plus `big-pickle`), which reject third-party apps with 403.
+    static func isOpencodeZenCatalogModelUsable(_ model: String) -> Bool {
+        !model.hasSuffix("-free") && model != "big-pickle"
     }
 }
 

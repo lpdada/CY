@@ -46,9 +46,10 @@ struct AIServiceNetworkingTests {
         // Before a fetch: the curated static list.
         #expect(sut.getAvailableModels(for: .opencodeZen) == AIProvider.opencodeZen.availableModels)
 
-        // After a fetch: the live catalog wins.
-        sut.opencodeZenModels = ["big-pickle", "claude-opus-4-8"]
-        #expect(sut.getAvailableModels(for: .opencodeZen) == ["big-pickle", "claude-opus-4-8"])
+        // After a fetch: the live catalog wins, minus the OpenCode-only free
+        // models a cached catalog may still hold.
+        sut.opencodeZenModels = ["big-pickle", "claude-opus-4-8", "glm-5.3-flash-free", "qwen3.8-flash"]
+        #expect(sut.getAvailableModels(for: .opencodeZen) == ["claude-opus-4-8", "qwen3.8-flash"])
     }
 
     @Test func getAvailableModelsPrefersFetchedOpencodeGoCatalogOverStatic() {
