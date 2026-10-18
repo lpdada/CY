@@ -763,7 +763,13 @@ struct VivaDictaApp: App {
 
             // `claude://` lands on a new chat rather than the conversation the
             // keyboard was typing into.
-            Entry(bundleId: "com.anthropic.claude", displayName: "Claude")
+            Entry(bundleId: "com.anthropic.claude", displayName: "Claude"),
+
+            // `orca://` is the app's only scheme (no universal links), and
+            // Expo Router turns any incoming URL into navigation: the bare
+            // scheme routes to the home screen, out of the agent chat the user
+            // was in. No URL resumes the current screen (stablyai/orca, mobile/).
+            Entry(bundleId: "com.stably.orca.mobile", displayName: "Orca")
         ]
 
         static let bundleIds: Set<String> = Set(entries.map(\.bundleId))
