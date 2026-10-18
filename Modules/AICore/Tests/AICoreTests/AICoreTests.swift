@@ -103,6 +103,12 @@ struct AIProviderTests {
         #expect(AIProvider.normalizedModel("llama3.1-8b", for: .cerebras) == "gpt-oss-120b")
         #expect(AIProvider.normalizedModel("gemma-4-31b", for: .cerebras) == "qwen-3.8-27b")
         #expect(AIProvider.normalizedModel("qwen/qwen3.6-27b", for: .groq) == "qwen/qwen3.8-27b")
+        for retired in ["big-pickle", "deepseek-v4-flash-free", "nemotron-3-ultra-free", "mimo-v2.5-free", "north-mini-code-free"] {
+            #expect(AIProvider.normalizedModel(retired, for: .opencodeZen) == retired)
+        }
+        // Persisted free selections must never silently opt into paid usage.
+        #expect(AIProvider.normalizedModel("glm-5.3-flash-free", for: .opencodeZen) == "glm-5.3-flash-free")
+        #expect(AIProvider.normalizedModel("qwen3.8-flash", for: .opencodeZen) == "qwen3.8-flash")
         // Unknown ids pass through untouched.
         #expect(AIProvider.normalizedModel("gpt-5.6-terra", for: .openAI) == "gpt-5.6-terra")
         // Retirement is provider-scoped: another provider legitimately serving
@@ -156,7 +162,9 @@ struct AIProviderTests {
     }
 
     @Test func reminderExtractorExcludesOpencodeZen() {
-        // Zen's free-tier models reject json_schema response formats.
+        // Zen was excluded when its free-tier models rejected json_schema; the
+        // free tier is gone (2026-10-18) and the paid catalog is unverified
+        // for json_schema, so it stays out until someone checks.
         #expect(!AIProvider.reminderExtractorCloudProviders.contains(.opencodeZen))
     }
 
@@ -175,12 +183,20 @@ struct AIProviderTests {
     }
 
     @Test func opencodeZenFreeClassificationUsesAllowlist() {
-        #expect(AIProvider.isOpencodeZenModelFree("big-pickle"))
+        // Zen's free tier is OpenCode-only now (403 FreeTierError).
+        #expect(!AIProvider.isOpencodeZenModelFree("big-pickle"))
         #expect(!AIProvider.isOpencodeZenModelFree("claude-opus-4-8"))
         // Unknown models are treated as paid (Zen's free set is a fixed promotion).
         #expect(!AIProvider.isOpencodeZenModelFree("some-future-model"))
-        // The default model must be free so a brand-new key verifies and works.
-        #expect(AIProvider.isOpencodeZenModelFree(AIProvider.opencodeZen.defaultModel))
+        // The default must be a curated model the app can actually call.
+        #expect(AIProvider.opencodeZenPaidModels.contains(AIProvider.opencodeZen.defaultModel))
+    }
+
+    @Test func opencodeZenCatalogDropsOpenCodeOnlyFreeModels() {
+        #expect(!AIProvider.isOpencodeZenCatalogModelUsable("big-pickle"))
+        #expect(!AIProvider.isOpencodeZenCatalogModelUsable("glm-5.3-flash-free"))
+        #expect(AIProvider.isOpencodeZenCatalogModelUsable("deepseek-v4.1-flash"))
+        #expect(AIProvider.isOpencodeZenCatalogModelUsable("claude-opus-4-8"))
     }
 
     // MARK: - OpenCode Go

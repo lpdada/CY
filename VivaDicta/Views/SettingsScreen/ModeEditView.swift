@@ -1405,6 +1405,14 @@ private struct ModelPickerSheet: View {
         let free = filteredModels.filter(config.isFree)
         let paid = filteredModels.filter { !config.isFree($0) }
         return List {
+            if provider == .opencodeZen, let selectedModel,
+               !AIProvider.isOpencodeZenCatalogModelUsable(selectedModel) {
+                Section("Unavailable selection") {
+                    Text(selectedModel)
+                    Text(AIProvider.opencodeZenUnavailableModelMessage)
+                        .foregroundStyle(.secondary)
+                }
+            }
             if !free.isEmpty {
                 Section {
                     ForEach(free, id: \.self) { modelRow($0) }

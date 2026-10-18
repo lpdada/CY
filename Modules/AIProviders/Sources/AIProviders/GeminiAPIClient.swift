@@ -32,6 +32,37 @@ public enum GeminiAPIClient {
     private static let endpoint = "https://cloudcode-pa.googleapis.com/v1internal:generateContent"
     private static let streamingEndpoint = "https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse"
 
+    /// Generation settings for a Cloud Code Assist request.
+    ///
+    /// The API-key path sends `ReasoningConfig`'s level as `reasoning_effort`;
+    /// this native body has to carry it as `thinkingConfig` or the model thinks
+    /// at its default level (gemini-4-argon took ~10 s instead of ~2 s).
+    static func generationConfig(for model: String) -> [String: Any] {
+        var config: [String: Any] = ["maxOutputTokens": 8192]
+        if let thinking = thinkingConfig(for: model) {
+            config["thinkingConfig"] = thinking
+        }
+        return config
+    }
+
+    /// Maps `ReasoningConfig`'s level onto the native `thinkingConfig` shape.
+    /// Gemini 2.5 rejects `thinkingLevel` ("Thinking level is not supported for
+    /// this model"), so it gets a token budget instead: 0 turns thinking off,
+    /// 128 is the floor 2.5 Pro accepts. Verified on generateContent 2026-10-18.
+    static func thinkingConfig(for model: String) -> [String: Any]? {
+        guard model.hasPrefix("gemini-"),
+              let level = ReasoningConfig.getReasoningParameter(for: model) else { return nil }
+        if model.hasPrefix("gemini-2.5") {
+            switch level {
+            case "none": return ["thinkingBudget": 0]
+            case "minimal": return ["thinkingBudget": 128]
+            default: return nil
+            }
+        }
+        guard level != "none" else { return nil }
+        return ["thinkingLevel": level]
+    }
+
     /// Returns the model to use. Falls back to default if empty.
     public static func resolveModel(_ requestedModel: String) -> String {
         if requestedModel.isEmpty { return defaultModel }
@@ -76,9 +107,7 @@ public enum GeminiAPIClient {
                 "systemInstruction": [
                     "parts": [["text": systemPrompt]]
                 ],
-                "generationConfig": [
-                    "maxOutputTokens": 8192
-                ]
+                "generationConfig": generationConfig(for: effectiveModel)
             ]
         ]
 
@@ -171,9 +200,7 @@ public enum GeminiAPIClient {
                 "systemInstruction": [
                     "parts": [["text": systemPrompt]]
                 ],
-                "generationConfig": [
-                    "maxOutputTokens": 8192
-                ]
+                "generationConfig": generationConfig(for: effectiveModel)
             ]
         ]
 
@@ -338,9 +365,7 @@ public enum GeminiAPIClient {
                 "systemInstruction": [
                     "parts": [["text": systemMessage]]
                 ],
-                "generationConfig": [
-                    "maxOutputTokens": 8192
-                ]
+                "generationConfig": generationConfig(for: effectiveModel)
             ]
         ]
 

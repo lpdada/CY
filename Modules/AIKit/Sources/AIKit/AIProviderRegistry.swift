@@ -48,6 +48,10 @@ public struct AIProviderRegistry {
     /// when a required API key is missing, or rethrows an OAuth error when a token
     /// cannot be obtained.
     public func makeTextProvider(for route: AIProviderRoute, model: String) async throws -> any AITextProvider {
+        if case .cloud(.opencodeZen) = route,
+           !AIProvider.isOpencodeZenCatalogModelUsable(model) {
+            throw EnhancementError.customError(AIProvider.opencodeZenUnavailableModelMessage)
+        }
         // Saved mode selections can outlive a provider's model lineup; map
         // retired ids to their replacements so those modes keep working.
         // Only routes bound to a known provider catalog are normalized -
@@ -58,6 +62,7 @@ public struct AIProviderRegistry {
         case .cloud(let provider): AIProvider.normalizedModel(model, for: provider)
         case .openAIOAuth: AIProvider.normalizedModel(model, for: .openAI)
         case .grokOAuth: AIProvider.normalizedModel(model, for: .grok)
+        case .geminiOAuth: AIProvider.normalizedModel(model, for: .gemini)
         default: model
         }
         switch route {

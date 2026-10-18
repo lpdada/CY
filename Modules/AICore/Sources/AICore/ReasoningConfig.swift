@@ -18,14 +18,15 @@ public struct ReasoningConfig {
     // validation error, so the usual minimal-effort default would 400 every
     // enhancement call.
     static let geminiLowReasoningModels: Set<String> = [
+        "gemini-4-argon",
         "gemini-3.8-flash",
-        "gemini-3.7-flash"
+        "gemini-3.7-flash",
+        "gemini-3.1-pro-preview"
     ]
 
     // These can't fully disable thinking - "minimal" is as low as they go
     static let geminiMinimalReasoningModels: Set<String> = [
         "gemini-2.5-pro",
-        "gemini-3.1-pro-preview",
         "gemini-3.6-flash",
         "gemini-3.5-flash",
         "gemini-3-flash-preview",
