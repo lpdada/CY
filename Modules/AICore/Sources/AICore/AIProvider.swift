@@ -539,15 +539,6 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
         .gemini: [
             "gemini-2.5-flash-lite": "gemini-3.5-flash-lite"
         ],
-        // Zen's free models are OpenCode-only since 2026-10 (403 FreeTierError
-        // or gone); carry saved selections to the new paid default.
-        .opencodeZen: [
-            "big-pickle": "deepseek-v4.1-flash",
-            "deepseek-v4-flash-free": "deepseek-v4.1-flash",
-            "nemotron-3-ultra-free": "deepseek-v4.1-flash",
-            "mimo-v2.5-free": "deepseek-v4.1-flash",
-            "north-mini-code-free": "deepseek-v4.1-flash"
-        ],
         // Ollama publishes the nano build tagged; the bare name 404s.
         .ollamaCloud: [
             "nemotron-3-nano": "nemotron-3-nano:30b"
@@ -559,11 +550,6 @@ public enum AIProvider: String, CaseIterable, Identifiable, Codable, Sendable {
     public static func normalizedModel(_ model: String, for provider: AIProvider) -> String {
         if let replacement = retiredModelReplacements[provider]?[model] {
             return replacement
-        }
-        // Any Zen id the catalog filter hides (e.g. a cached `glm-5.3-flash-free`)
-        // would keep failing with 403, so carry it to the paid default too.
-        if provider == .opencodeZen, !isOpencodeZenCatalogModelUsable(model) {
-            return provider.defaultModel
         }
         return model
     }
@@ -946,6 +932,8 @@ public extension AIProvider {
     static func isOpencodeZenModelFree(_ model: String) -> Bool {
         opencodeZenFreeModels.contains(model)
     }
+
+    static let opencodeZenUnavailableModelMessage = "OpenCode Zen’s free models are no longer available in third-party apps. Choose another provider or explicitly select a paid Zen model. No paid model was selected automatically."
 
     /// Whether a model id from Zen's live `/models` listing can be offered.
     /// The listing still carries the OpenCode-only free models (`-free`

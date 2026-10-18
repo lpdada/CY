@@ -104,10 +104,10 @@ struct AIProviderTests {
         #expect(AIProvider.normalizedModel("gemma-4-31b", for: .cerebras) == "qwen-3.8-27b")
         #expect(AIProvider.normalizedModel("qwen/qwen3.6-27b", for: .groq) == "qwen/qwen3.8-27b")
         for retired in ["big-pickle", "deepseek-v4-flash-free", "nemotron-3-ultra-free", "mimo-v2.5-free", "north-mini-code-free"] {
-            #expect(AIProvider.normalizedModel(retired, for: .opencodeZen) == "deepseek-v4.1-flash")
+            #expect(AIProvider.normalizedModel(retired, for: .opencodeZen) == retired)
         }
-        // A cached free id the catalog filter hides also moves to the paid default.
-        #expect(AIProvider.normalizedModel("glm-5.3-flash-free", for: .opencodeZen) == "deepseek-v4.1-flash")
+        // Persisted free selections must never silently opt into paid usage.
+        #expect(AIProvider.normalizedModel("glm-5.3-flash-free", for: .opencodeZen) == "glm-5.3-flash-free")
         #expect(AIProvider.normalizedModel("qwen3.8-flash", for: .opencodeZen) == "qwen3.8-flash")
         // Unknown ids pass through untouched.
         #expect(AIProvider.normalizedModel("gpt-5.6-terra", for: .openAI) == "gpt-5.6-terra")

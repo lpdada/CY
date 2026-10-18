@@ -105,6 +105,21 @@ struct AIProviderRegistryTests {
         #expect(json["model"] as? String == "openai/gpt-oss-120b")
     }
 
+    @Test(arguments: ["big-pickle", "deepseek-v4-flash-free", "nemotron-3-ultra-free", "mimo-v2.5-free", "north-mini-code-free", "glm-5.3-flash-free"])
+    func unavailableZenSelectionFailsBeforeAnyPaidRequest(model: String) async {
+        let keychain = MockKeychainService()
+        seed(keychain, "ZEN_KEY", forKey: "opencodeZenAPIKey")
+        let net = MockNetworkService()
+        let sut = makeSUT(keychain: keychain, net: net)
+        do {
+            _ = try await sut.makeTextProvider(for: .cloud(.opencodeZen), model: model)
+            Issue.record("Unavailable free selection must not create a paid provider")
+        } catch {
+            #expect(error.localizedDescription == AIProvider.opencodeZenUnavailableModelMessage)
+        }
+        #expect(net.capturedRequest == nil)
+    }
+
     @Test func missingAPIKeyThrowsNotConfigured() async {
         // Fresh keychain: no stub, no stored value -> getString returns nil.
         let sut = makeSUT()
