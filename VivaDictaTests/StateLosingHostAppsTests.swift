@@ -13,6 +13,7 @@ struct StateLosingHostAppsTests {
 
     @Test func declinesReturnURLForAListedHost() {
         #expect(sut.shouldDeclineReturnURL(hostId: "com.apple.mobilesafari", isSkipEnabled: true))
+        #expect(sut.shouldDeclineReturnURL(hostId: "com.stably.orca.mobile", isSkipEnabled: true))
     }
 
     @Test func keepsReturnURLForAListedHostWhenTheSettingIsOff() {
