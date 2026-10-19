@@ -54,27 +54,31 @@ final class BackgroundTaskManager {
         onExpiration: @escaping @Sendable () -> Void
     ) -> UIBackgroundTaskIdentifier {
         let lock = NSLock()
-        var taskID: UIBackgroundTaskIdentifier = .invalid
-        var ended = false
-        taskID = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
+        // The expiration handler is handed over before `beginBackgroundTask`
+        // returns the identifier, so the ID and the ended flag have to live
+        // behind a reference: a `@Sendable` closure cannot capture a local `var`
+        // under Swift 6 concurrency.
+        let state = BackgroundTaskState()
+        state.taskID = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
             onExpiration()
             // iOS expects the task to be ended inside the expiration handler
             lock.lock()
-            if !ended {
-                ended = true
-                UIApplication.shared.endBackgroundTask(taskID)
+            if !state.ended {
+                state.ended = true
+                UIApplication.shared.endBackgroundTask(state.taskID)
                 lock.unlock()
-                self?.logger.logInfo("Background task ended by expiration (id: \(taskID.rawValue))")
+                self?.logger.logInfo("Background task ended by expiration (id: \(state.taskID.rawValue))")
             } else {
                 lock.unlock()
             }
         }
+        let taskID = state.taskID
         if taskID == .invalid {
             logger.logWarning("Failed to begin background task: \(name)")
         } else {
             logger.logInfo("Began background task: \(name) (id: \(taskID.rawValue))")
             // Store the lock+ended flag for endBackgroundTask to use
-            backgroundTaskLocks[taskID] = (lock, { ended }, { ended = true })
+            backgroundTaskLocks[taskID] = (lock, { state.ended }, { state.ended = true })
         }
         return taskID
     }
@@ -272,4 +276,15 @@ final class BackgroundTaskManager {
         descriptor.fetchLimit = 1
         return (try? context.fetchCount(descriptor)) ?? 0 > 0
     }
+}
+
+/// Identifier and ended flag for a single UIKit background task.
+///
+/// The expiration handler is created before `beginBackgroundTask` returns, so the
+/// handler and the caller have to share mutable state; capturing a local `var` in
+/// a `@Sendable` closure is an error under Swift 6. Every access happens under the
+/// `NSLock` created alongside this box, hence the unchecked conformance.
+private final class BackgroundTaskState: @unchecked Sendable {
+    var taskID: UIBackgroundTaskIdentifier = .invalid
+    var ended = false
 }
