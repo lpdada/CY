@@ -12,7 +12,9 @@ public enum UserDefaultsStorage {
     /// For data that MUST be shared between app and extensions
     /// Examples: Flow modes, API keys, transcription settings, selected modes
     public static var shared: UserDefaults {
-        UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId)!
+        // 自签包没有 App Group 权限，UserDefaults(suiteName:) 会返回 nil；
+        // 降级到 App 自己的 defaults，避免启动/读设置闪退（扩展共享功能在自签环境下不可用）
+        UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId) ?? .standard
     }
 
     /// For app-private data that extensions don't need

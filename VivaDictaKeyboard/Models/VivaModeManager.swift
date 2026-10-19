@@ -13,7 +13,7 @@ import AICore
 @Observable
 final class VivaModeManager {
     private let logger = Logger(category: .vivaModeManager)
-    private let userDefaults = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId)!
+    private let userDefaults = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId) ?? .standard
 
     // MARK: - Properties
     public private(set) var availableVivaModes: [VivaMode] = []
