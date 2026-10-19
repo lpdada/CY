@@ -33,14 +33,19 @@ jobs:
             -workspace ./VivaDicta.xcodeproj/project.xcworkspace \
             -scheme VivaDicta
 
-      - name: Build for device without signing
+      # `build` into the products dir only assembles resources for a device
+      # destination here: the .app came out without Info.plist, binary or
+      # PlugIns. `archive` always assembles the complete bundle, and with
+      # signing disabled it still does so without a team certificate.
+      - name: Archive without signing
         run: |
-          xcodebuild build \
+          set -o pipefail
+          xcodebuild archive \
+            -project VivaDicta.xcodeproj \
             -scheme VivaDicta \
-            -workspace ./VivaDicta.xcodeproj/project.xcworkspace \
-            -destination 'generic/platform=iOS' \
             -configuration "${{ inputs.configuration }}" \
-            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/VivaDicta.xcarchive \
             -skipMacroValidation \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
@@ -48,23 +53,30 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS="" \
             | tee build.log | xcbeautify
-          # Keep the tail of the log for the artifact: when a build fails, the
-          # interesting part is the error, not the 20k lines before it.
           tail -n 400 build.log > build-tail.log
 
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
-          PRODUCTS="build/Build/Products/${{ inputs.configuration }}-iphoneos"
-          APP=$(find "$PRODUCTS" -maxdepth 1 -name '*.app' -not -name '*Tests.app' | head -1)
-          if [ -z "$APP" ]; then
-            echo "No .app produced in $PRODUCTS" >&2
-            ls -la "$PRODUCTS" >&2 || true
+          APP="build/VivaDicta.xcarchive/Products/Applications/VivaDicta.app"
+          if [ ! -d "$APP" ]; then
+            echo "No app bundle inside the archive" >&2
+            find build/VivaDicta.xcarchive -maxdepth 4 -name '*.app' >&2 || true
             exit 1
           fi
+          # An .app missing any of these is not installable; fail loudly instead
+          # of uploading a broken IPA.
+          for f in Info.plist VivaDicta PlugIns; do
+            if [ ! -e "$APP/$f" ]; then
+              echo "Archive is missing $f in $APP" >&2
+              ls -la "$APP" >&2
+              exit 1
+            fi
+          done
           echo "App bundle: $APP"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" || true
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" || true
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
+          echo "Extensions:"; ls "$APP/PlugIns"
           rm -rf Payload
           mkdir -p Payload
           cp -R "$APP" Payload/
