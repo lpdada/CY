@@ -365,6 +365,14 @@ struct TranscriptionDetailView: View {
     }
 
     var body: some View {
+        finalLayer
+    }
+
+    // The screen is spread over three computed properties on purpose: as one
+    // `body` expression it is more than the Swift type checker can solve in
+    // reasonable time, and it fails intermittently on CI ("unable to type-check
+    // this expression"). Splitting only changes where each modifier chain ends.
+    private var contentLayer: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Fixed header section
             VStack(alignment: .leading, spacing: 8) {
@@ -403,6 +411,11 @@ struct TranscriptionDetailView: View {
                     .padding(.horizontal)
             }
         }
+    }
+
+    /// The floating reminder and streaming controls pinned to the bottom.
+    private var insetsLayer: some View {
+        contentLayer
         .safeAreaInset(edge: .bottom) {
             if pendingReminderDraftCount > 0 {
                 HStack {
@@ -453,6 +466,11 @@ struct TranscriptionDetailView: View {
                 bottomActionBar
             }
         }
+    }
+
+    /// The sheets and the full-screen chat cover.
+    private var sheetsLayer: some View {
+        insetsLayer
         .sheet(isPresented: $showMetaInfo) {
             MetaInfoSheet(
                 transcription: transcription,
@@ -526,6 +544,12 @@ struct TranscriptionDetailView: View {
                 ChatView(viewModel: vm)
             }
         }
+    }
+
+    /// Interaction: the chat cover trigger, toolbar, lifecycle hooks and the
+    /// processing-state animations.
+    private var interactionLayer: some View {
+        sheetsLayer
         .onChange(of: showChat) { _, isShowing in
             if isShowing, chatViewModel == nil {
                 let conversation = findOrCreateConversation(for: transcription)
@@ -588,6 +612,11 @@ struct TranscriptionDetailView: View {
         }
         .animation(.easeInOut, value: processingState)
         .allowsHitTesting(processingState == .idle)
+    }
+
+    /// The glow, processing HUD and streaming-cancel overlays.
+    private var overlayLayer: some View {
+        interactionLayer
         .overlay {
             if shouldShowProcessingGlowOverlay {
                 GeometryReader { geometry in
@@ -635,6 +664,11 @@ struct TranscriptionDetailView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+    }
+
+    /// Alerts, the file exporter and the final animation hook.
+    private var finalLayer: some View {
+        overlayLayer
         .animation(.default, value: processingState)
         .alert(
             "AI Safety Guardrail Triggered",
