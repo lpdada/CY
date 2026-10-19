@@ -78,7 +78,11 @@ struct VivaDictaApp: App {
 
         // Initialize Persistence
         let modelContainer: ModelContainer
-        let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: AppGroupCoordinator.shared.appGroupId)!
+        // 自签包没有原开发者的 App Group（group.com.antonnovoselov.VivaDicta），
+        // containerURL 会返回 nil。这里降级到本地 Documents，保证 App 能启动；
+        // 键盘扩展共享功能在自签环境下不可用，但主 App 录音转写不受影响。
+        let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: AppGroupCoordinator.shared.appGroupId)
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let isICloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsStorage.Keys.isICloudSyncEnabled)
 
         do {
