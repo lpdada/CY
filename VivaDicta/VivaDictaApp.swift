@@ -83,15 +83,19 @@ struct VivaDictaApp: App {
         // 键盘扩展共享功能在自签环境下不可用，但主 App 录音转写不受影响。
         let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: AppGroupCoordinator.shared.appGroupId)
             ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let isICloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsStorage.Keys.isICloudSyncEnabled)
-
+        // CloudKit mirroring needs the iCloud entitlement, and this fork ships as an
+        // unsigned IPA that gets re-signed with a free Apple ID - no iCloud entitlement at
+        // all. CoreData then traps inside CloudKit while setting up
+        // NSCloudKitMirroringDelegate (EXC_BREAKPOINT on com.apple.coredata.cloudkit.queue
+        // shortly after launch), which is why mirroring is off here. A build signed with
+        // the original team can put this back:
+        //   cloudKitDatabase: UserDefaults.standard.bool(forKey: UserDefaultsStorage.Keys.isICloudSyncEnabled)
+        //       ? .private("iCloud.com.antonnovoselov.VivaDicta") : .none
         do {
             let sharedStoreURL = appGroupURL.appendingPathComponent("VivaDicta.sqlite")
             let config = ModelConfiguration(
                 url: sharedStoreURL,
-                cloudKitDatabase: isICloudSyncEnabled
-                    ? .private("iCloud.com.antonnovoselov.VivaDicta")
-                    : .none
+                cloudKitDatabase: .none
             )
             modelContainer = try ModelContainer(
                 for: Transcription.self, VocabularyWord.self, WordReplacement.self, TranscriptionVariation.self, ExtractedReminderDraft.self, ExtractedCalendarEventDraft.self, CustomRewritePreset.self, RewritePreset.self, TranscriptionTag.self, TranscriptionTagAssignment.self, ChatMessage.self, ChatConversation.self, MultiNoteConversation.self, SmartSearchConversation.self,
