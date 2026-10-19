@@ -81,9 +81,9 @@ struct ChatContextManager {
     static func contextLimit(for provider: AIProvider, model: String) -> Int {
         switch provider {
         case .apple:
-            if #available(iOS 26, *) {
-                return SystemLanguageModel.default.contextSize
-            }
+            // `SystemLanguageModel.contextSize` needs a newer SDK than the Xcode
+            // 26.3 toolchain this fork builds with, so the known Apple FM window
+            // is used instead of asking the model.
             return 4_096
         default:
             return .max

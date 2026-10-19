@@ -81,22 +81,9 @@ final class SmartSearchChatViewModel {
     }
 
     private func updateAppleFMFillRatio() async {
-        if #available(iOS 26.4, *) {
-            guard let session = appleFMSession else {
-                contextFillRatio = 0
-                return
-            }
-            do {
-                let entries = Array(session.transcript)
-                let usedTokens = try await SystemLanguageModel.default.tokenCount(for: entries)
-                let contextSize = SystemLanguageModel.default.contextSize
-                contextFillRatio = contextSize > 0 ? min(Double(usedTokens) / Double(contextSize), 1.0) : 0
-                return
-            } catch {
-                logger.logWarning("Smart Search - Failed to get token count: \(error.localizedDescription)")
-            }
-        }
-
+        // The exact count needs `SystemLanguageModel.tokenCount(for:)` and
+        // `.contextSize`, which the Xcode 26.3 SDK does not expose; the estimate
+        // below is what every build of this fork uses.
         guard let model = selectedModel else { return }
         contextFillRatio = SmartSearchContextManager.fillRatio(
             messages: messages,

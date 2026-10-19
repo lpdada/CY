@@ -110,23 +110,9 @@ final class ChatViewModel {
     }
 
     private func updateAppleFMFillRatio() async {
-        if #available(iOS 26.4, *) {
-            guard let session = appleFMSession else {
-                contextFillRatio = 0
-                return
-            }
-            do {
-                let entries = Array(session.transcript)
-                let usedTokens = try await SystemLanguageModel.default.tokenCount(for: entries)
-                let contextSize = SystemLanguageModel.default.contextSize
-                contextFillRatio = contextSize > 0 ? min(Double(usedTokens) / Double(contextSize), 1.0) : 0
-                return
-            } catch {
-                logger.logWarning("Chat - Failed to get token count: \(error.localizedDescription)")
-            }
-        }
-
-        // Fallback to character-based estimation for iOS 26.0-26.3
+        // The exact count needs `SystemLanguageModel.tokenCount(for:)` and
+        // `.contextSize`, which the Xcode 26.3 SDK does not expose; the
+        // character-based estimate below is what every build of this fork uses.
         guard let model = selectedModel else { return }
         contextFillRatio = ChatContextManager.fillRatio(
             noteText: assembledNoteText,
@@ -543,39 +529,12 @@ final class ChatViewModel {
         return (noteTokens + systemTokens) > Int(Double(limit) * 0.80)
     }
 
-    /// Refines `noteExceedsAppleFMContext` with real token count on iOS 26.4+.
-    /// If the sync estimate was too conservative, clears the error and initializes the session.
-    private func refineNoteExceedsCheck() async {
-        guard #available(iOS 26.4, *) else { return }
-
-        let entries: [Transcript.Entry] = [
-            .instructions(.init(
-                segments: [.text(.init(content: ChatContextManager.chatSystemPrompt))],
-                toolDefinitions: []
-            )),
-            .prompt(.init(segments: [.text(.init(content: assembledNoteText))]))
-        ]
-
-        do {
-            let usedTokens = try await SystemLanguageModel.default.tokenCount(for: entries)
-            let contextSize = SystemLanguageModel.default.contextSize
-            let exceeds = contextSize > 0 ? Double(usedTokens) / Double(contextSize) > 0.80 : true
-
-            if noteExceedsAppleFMContext && !exceeds {
-                logger.logInfo("Chat - Real token count shows note fits (\(usedTokens)/\(contextSize)), clearing error")
-                noteExceedsAppleFMContext = false
-                errorMessage = nil
-                initializeAppleFMSession()
-                updateContextFillRatio()
-            } else if !noteExceedsAppleFMContext && exceeds {
-                logger.logInfo("Chat - Real token count shows note too large (\(usedTokens)/\(contextSize))")
-                noteExceedsAppleFMContext = true
-                errorMessage = "This note is too long for Apple Foundation Models. Select a different mode with a cloud provider."
-            }
-        } catch {
-            logger.logWarning("Chat - Failed to refine note size check: \(error.localizedDescription)")
-        }
-    }
+    /// Refines `noteExceedsAppleFMContext` with a real token count.
+    ///
+    /// Upstream does that with `SystemLanguageModel.tokenCount(for:)` on iOS 26.4+,
+    /// which the Xcode 26.3 SDK does not expose. The synchronous estimate behind
+    /// `noteExceedsAppleFMContext` is what stays in charge here.
+    private func refineNoteExceedsCheck() async {}
 
     // MARK: - Apple FM Session Management
 
