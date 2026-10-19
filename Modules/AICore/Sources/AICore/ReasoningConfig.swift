@@ -165,7 +165,19 @@ public struct ReasoningConfig {
         return String(id[id.index(after: lastSlash)...])
     }
 
-    public static func getReasoningParameter(for modelName: String) -> String? {
+    /// The reasoning level to send for this model, or `nil` to send nothing.
+    ///
+    /// `thinkingEnabled` is the Settings toggle ("Let the Model Think"): when it
+    /// is on, no reasoning parameter goes into the body at all and every model
+    /// falls back to its own default. When it is off - the default - the
+    /// per-family floor above applies, which is what keeps an enhancement call
+    /// quick. The parameter is explicit (defaulting to the stored preference) so
+    /// tests can pin both branches without touching user defaults.
+    public static func getReasoningParameter(
+        for modelName: String,
+        thinkingEnabled: Bool = ModelThinkingPreference.isEnabled
+    ) -> String? {
+        guard !thinkingEnabled else { return nil }
         if geminiNoneReasoningModels.contains(modelName) { return "none" }
         else if geminiLowReasoningModels.contains(modelName) { return "low" }
         else if geminiMinimalReasoningModels.contains(modelName) { return "minimal" }
@@ -181,7 +193,15 @@ public struct ReasoningConfig {
     }
 
     // For models that need custom params instead of reasoning_effort
-    public static func getExtraBodyParameters(for modelName: String) -> [String: Any]? {
+    /// Body parameters that stand in for `reasoning_effort` on models with their
+    /// own switch. Suppressed by `thinkingEnabled` for the same reason as the
+    /// level above: forcing `disable_reasoning` is the opposite of letting the
+    /// model use its default.
+    public static func getExtraBodyParameters(
+        for modelName: String,
+        thinkingEnabled: Bool = ModelThinkingPreference.isEnabled
+    ) -> [String: Any]? {
+        guard !thinkingEnabled else { return nil }
         if cerebrasDisableReasoningModels.contains(modelName) {
             return ["disable_reasoning": true]
         }

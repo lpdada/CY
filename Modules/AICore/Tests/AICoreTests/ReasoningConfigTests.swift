@@ -65,4 +65,21 @@ struct ReasoningConfigTests {
         #expect(zai?["disable_reasoning"] as? Bool == true)
         #expect(ReasoningConfig.getExtraBodyParameters(for: "gpt-5.5") == nil)
     }
+
+    /// The Settings toggle ("Let the Model Think") wins over every per-family
+    /// floor: with it on, nothing about reasoning goes into the request body, so
+    /// each model keeps whichever default it ships with.
+    @Test func thinkingToggleSuppressesEveryReasoningParameter() {
+        #expect(ReasoningConfig.getReasoningParameter(for: "gpt-5.5", thinkingEnabled: true) == nil)
+        #expect(ReasoningConfig.getReasoningParameter(for: "gemini-2.5-pro", thinkingEnabled: true) == nil)
+        #expect(ReasoningConfig.getReasoningParameter(for: "gpt-oss-120b", thinkingEnabled: true) == nil)
+        // The Cerebras/GLM models use their own body parameter instead of an
+        // effort level; that one has to disappear too.
+        #expect(ReasoningConfig.getExtraBodyParameters(for: "zai-glm-4.7", thinkingEnabled: true) == nil)
+
+        // Off keeps the existing floors, and still leaves unknown models alone.
+        #expect(ReasoningConfig.getReasoningParameter(for: "gpt-5.5", thinkingEnabled: false) == "none")
+        #expect(ReasoningConfig.getReasoningParameter(for: "some-unknown-model", thinkingEnabled: false) == nil)
+        #expect(ReasoningConfig.getExtraBodyParameters(for: "zai-glm-4.7", thinkingEnabled: false)?["disable_reasoning"] as? Bool == true)
+    }
 }

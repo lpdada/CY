@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage(UserDefaultsStorage.Keys.isAutoCopyAfterRecordingEnabled)
     private var isAutoCopyAfterRecordingEnabled = false
     @AppStorage("preferredChineseScript") private var chineseScriptPreference: ChineseScriptPreference = .auto
+    @AppStorage(ModelThinkingPreference.userDefaultsKey) private var isModelThinkingEnabled = false
     @AppStorage(UserDefaultsStorage.Keys.preferredMicrophone, store: UserDefaultsStorage.shared)
     private var preferredMicrophone: PreferredMicrophone = .default
     @AppStorage(UserDefaultsStorage.Keys.audioSessionTimeout)
@@ -222,6 +223,18 @@ struct SettingsView: View {
                         .onChange(of: chineseScriptPreference) { _, _ in
                             HapticManager.selectionChanged()
                         }
+                    }
+                    Toggle(isOn: $isModelThinkingEnabled) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Let the Model Think")
+                                .font(.body)
+                            Text("Off is faster: AI processing asks reasoning models to keep thinking to a minimum. Turn on to send no reasoning setting at all, so each model uses its own default - slower, and possibly better on tricky text.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: isModelThinkingEnabled) { _, _ in
+                        HapticManager.selectionChanged()
                     }
                     NavigationLink(value: SettingsDestination.chatTools) {
                         HStack {
