@@ -211,6 +211,25 @@ struct KeyboardCustomView: View {
                         )
 
                     case .notReady, .ready:
+                        if dictationState.isPinyinMode {
+                            // 拼音九宫格模式：共用同一条工具栏，下方换成 T9 输入面
+                            VStack(spacing: 0) {
+                                VivaDictaKeyboardToolbarView(
+                                    controller: keyboardVC,
+                                    hasFullAccess: hasFullAccess,
+                                    onShowFullAccessPrompt: {
+                                        withAnimation(.spring(duration: 0.35)) {
+                                            showFullAccessPrompt = true
+                                        }
+                                    }
+                                )
+                                .environment(dictationState)
+                                PinyinT9View(
+                                    proxy: controller.textDocumentProxy,
+                                    onSwitchToAlphabet: { dictationState.isPinyinMode = false }
+                                )
+                            }
+                        } else {
                         // Show normal keyboard for idle and ready states
                         VStack(spacing: 0) {
                             KeyboardView(
@@ -252,6 +271,7 @@ struct KeyboardCustomView: View {
                                 case .russian: return RussianCallouts.actionsBuilder(params)
                                 }
                             }
+                        }
                         }
                     }
                 }

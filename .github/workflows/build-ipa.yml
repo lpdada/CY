@@ -77,6 +77,12 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
           echo "Extensions:"; ls "$APP/PlugIns"
+          # 自签瘦身：免费账号签不了 Watch / Widget / 分享 / 操作扩展，
+          # 留在包里会让 Sideloadly 重签失败或装到一半报错。只保留主 App
+          # 本体 + 键盘扩展，Watch App 的目录一并剔除。
+          find "$APP/PlugIns" -maxdepth 1 -mindepth 1 -type d ! -name 'VivaDictaKeyboard.appex' -exec rm -rf {} +
+          rm -rf "$APP/Watch"
+          echo "Extensions after slimming:"; ls "$APP/PlugIns"
           rm -rf Payload
           mkdir -p Payload
           cp -R "$APP" Payload/

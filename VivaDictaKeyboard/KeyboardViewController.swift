@@ -356,6 +356,18 @@ struct VivaDictaKeyboardToolbarView: View {
             HStack(spacing: 24) {
                 KeyboardTabToggle(dictationState: dictationState)
                 ModeCycleSelector(dictationState: dictationState)
+                // 拼音九宫格 ⇄ KeyboardKit 键盘切换（标题显示将切到的那一面）
+                Button {
+                    dictationState.isPinyinMode.toggle()
+                    HapticManager.selectionChanged()
+                } label: {
+                    Text(dictationState.isPinyinMode ? "英" : "拼")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color.secondary.opacity(0.15), in: Capsule())
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer()

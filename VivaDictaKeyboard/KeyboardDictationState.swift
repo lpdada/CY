@@ -32,6 +32,16 @@ final class KeyboardDictationState {
         case recentNotes = 2
     }
 
+    /// 拼音九宫格是否为当前输入模式。与 KeyboardKit 的语言布局并存：
+    /// 开 = 显示 T9 九宫格，关 = 显示 KeyboardKit 键盘（英/法/德等）。
+    /// 默认开（中文用户的默认输入面），选择持久化到本地 defaults。
+    var isPinyinMode: Bool {
+        didSet {
+            AppGroupCoordinator.shared.clientDefaults
+                .set(isPinyinMode, forKey: "vdPinyinModeEnabled")
+        }
+    }
+
     var activeTab: KeyboardTab = .keyboard {
         didSet {
             AppGroupCoordinator.shared.clientDefaults
@@ -82,6 +92,8 @@ final class KeyboardDictationState {
         self.isRecording = AppGroupCoordinator.shared.isRecording
         self.isSessionActive = AppGroupCoordinator.shared.isKeyboardSessionActive
         self.transcriptionStatus = AppGroupCoordinator.shared.transcriptionStatus
+        self.isPinyinMode = AppGroupCoordinator.shared.clientDefaults
+            .object(forKey: "vdPinyinModeEnabled") as? Bool ?? true
 
         // Restore last active tab
         let savedTab = AppGroupCoordinator.shared.clientDefaults.integer(forKey: "keyboardActiveTab")
