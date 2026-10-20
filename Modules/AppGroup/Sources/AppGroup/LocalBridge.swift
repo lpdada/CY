@@ -125,6 +125,23 @@ public final class BridgeStateServer: @unchecked Sendable {
     private let configProvider: () -> [String: Any]
     private let logger = Logger(appGroupCategory: "BridgeStateServer")
 
+    // 结果槽：主 App 完成一次转写/文本处理后，除了写本地存储与剪贴板，
+    // 还把结果原件暂存一份在这里，供扩展经 /vd/result 拉取。
+    // 为什么不让端点直接读 UserDefaults 的结果键：主 App 自己也监听了
+    // 完成通知，它的 handler 会抢先 getAndConsume 把结果键删掉，端点
+    // 现读大概率扑空。槽只按种类覆盖最新一份、从不被消费删除，
+    // 扩展靠完成时刻去重（fork5 修听写不回插：命名剪贴板自签环境
+    // 跨进程读不到，剪贴板那条腿实际是断的）。
+    private let resultLock = NSLock()
+    private var resultSlots: [String: (value: String, at: Double)] = [:]
+
+    /// 主 App 进程：暂存一份刚完成的结果（kind 用 BridgePayloadKind 的 rawValue）。
+    public func stashResult(kind: String, value: String) {
+        resultLock.lock()
+        resultSlots[kind] = (value, Date().timeIntervalSince1970)
+        resultLock.unlock()
+    }
+
     public init(
         stateProvider: @escaping () -> [String: Any],
         configProvider: @escaping () -> [String: Any]
@@ -178,7 +195,16 @@ public final class BridgeStateServer: @unchecked Sendable {
 
     private func respond(_ connection: NWConnection, request: String) {
         let firstLine = request.components(separatedBy: "\r\n").first ?? ""
-        let path = firstLine.components(separatedBy: " ").dropFirst().first ?? ""
+        let rawPath = firstLine.components(separatedBy: " ").dropFirst().first ?? ""
+        let pathParts = rawPath.split(separator: "?", maxSplits: 1)
+        let path = pathParts.first.map(String.init) ?? ""
+        var query: [String: String] = [:]
+        if pathParts.count > 1 {
+            for pair in pathParts[1].split(separator: "&") {
+                let kv = pair.split(separator: "=", maxSplits: 1)
+                if kv.count == 2 { query[String(kv[0])] = String(kv[1]) }
+            }
+        }
 
         let bodyObject: [String: Any]
         switch path {
@@ -188,6 +214,20 @@ public final class BridgeStateServer: @unchecked Sendable {
             bodyObject = configProvider()
         case "/vd/health":
             bodyObject = ["ok": true]
+        case "/vd/result":
+            // 扩展拉取某一类最近结果：{"value": ..., "at": 完成时刻}；槽空返回 {"ok": true}
+            if let kind = query["kind"] {
+                resultLock.lock()
+                let slot = resultSlots[kind]
+                resultLock.unlock()
+                if let slot {
+                    bodyObject = ["ok": true, "value": slot.value, "at": slot.at]
+                } else {
+                    bodyObject = ["ok": true]
+                }
+            } else {
+                bodyObject = ["ok": true]
+            }
         default:
             let body = Data("not found".utf8)
             let head = "HTTP/1.1 404 Not Found\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n"
@@ -233,6 +273,15 @@ public enum BridgeStateClient {
     /// 拉取配置快照（模式、预设、设置项），交给调用方写入缓存。
     public static func pullConfig() async -> [String: Any]? {
         await fetch(path: "/vd/config")
+    }
+
+    /// 拉取主 App 暂存的某一类最近结果（转写文本/处理结果/错误）。
+    /// 剪贴板那条腿读不到时的主通道；返回 (值, 完成时刻)，槽空返回 nil。
+    public static func pullResult(kind: BridgePayloadKind) async -> (value: String, at: Double)? {
+        guard let object = await fetch(path: "/vd/result?kind=\(kind.rawValue)"),
+              let value = object["value"] as? String,
+              let at = object["at"] as? Double else { return nil }
+        return (value, at)
     }
 
     /// 把快照字典里的分型键值写入指定 defaults。

@@ -327,23 +327,29 @@ public final class AppGroupCoordinator: @unchecked Sendable {
         }
     }
 
-    /// 扩展进程：把主 App 经剪贴板回传的结果落地到本地缓存。
-    /// 在结果类通知的 handler 开头调用，随后原有的 getAndConsume* 照常工作。
-    private func ingestBridgeResults() {
+    /// 扩展进程：把主 App 回传的某一类结果落地到本地缓存。
+    /// 两条腿：先试命名剪贴板（原通道），没货再经本地 HTTP 拉结果槽
+    /// （fork5 主通道——自签环境下命名剪贴板跨进程读不到，剪贴板
+    /// 这一路到不了，听写结果到不了输入框）。结果槽里的原件按完成
+    /// 时刻去重：本类已消费水位存在本地存储里，同一份不会落地两次；
+    /// 剪贴板有货时同样把水位推到当下，挡住 HTTP 再送同一份。
+    private func ingestBridgeResult(
+        kind: BridgePayloadKind,
+        defaultsKey: String,
+        field: String
+    ) async {
         guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
               let defaults = sharedDefaults else { return }
-        if let fields = BridgePasteboard.consume(kind: .transcribedText) {
-            defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.transcribedText)
+        let waterKey = "vdBridgeConsumedAt.\(kind.rawValue)"
+        if let fields = BridgePasteboard.consume(kind: kind) {
+            defaults.set(fields[field] ?? "", forKey: defaultsKey)
+            defaults.set(Date().timeIntervalSince1970, forKey: waterKey)
+            return
         }
-        if let fields = BridgePasteboard.consume(kind: .transcriptionError) {
-            defaults.set(fields["message"] ?? "", forKey: UserDefaultsKeys.transcriptionErrorMessage)
-        }
-        if let fields = BridgePasteboard.consume(kind: .textResult) {
-            defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.textProcessingResult)
-        }
-        if let fields = BridgePasteboard.consume(kind: .textError) {
-            defaults.set(fields["message"] ?? "", forKey: UserDefaultsKeys.textProcessingErrorMessage)
-        }
+        guard let pulled = await BridgeStateClient.pullResult(kind: kind),
+              pulled.at > defaults.double(forKey: waterKey) else { return }
+        defaults.set(pulled.value, forKey: defaultsKey)
+        defaults.set(pulled.at, forKey: waterKey)
     }
 
     // MARK: - App Launch State Management
@@ -642,9 +648,11 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTextProcessingResult(_ text: String) {
         sharedDefaults?.set(text, forKey: UserDefaultsKeys.textProcessingResult)
         sharedDefaults?.synchronize()
-        // 桥模式：结果同步经剪贴板回传（赶在完成通知之前）
+        // 桥模式：结果经剪贴板回传 + 暂存进本地服务的结果槽（赶在完成通知之前）。
+        // 槽是 fork5 的主通道：剪贴板在自签环境跨进程读不到。
         if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
             BridgePasteboard.send(kind: .textResult, fields: ["text": text])
+            bridgeServer?.stashResult(kind: BridgePayloadKind.textResult.rawValue, value: text)
         }
         postDarwinNotification(NotificationNames.textProcessingCompleted)
         logger.logError("📝 Shared text processing result, length: \(text.count)")
@@ -654,9 +662,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTextProcessingError(_ message: String) {
         sharedDefaults?.set(message, forKey: UserDefaultsKeys.textProcessingErrorMessage)
         sharedDefaults?.synchronize()
-        // 桥模式：错误同步经剪贴板回传（赶在错误通知之前）
+        // 桥模式：错误经剪贴板回传 + 暂存结果槽（同 shareTextProcessingResult）
         if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
             BridgePasteboard.send(kind: .textError, fields: ["message": message])
+            bridgeServer?.stashResult(kind: BridgePayloadKind.textError.rawValue, value: message)
         }
         postDarwinNotification(NotificationNames.textProcessingError)
         logger.logError("📝 Shared text processing error: \(message)")
@@ -709,9 +718,12 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTranscribedText(_ text: String) {
         sharedDefaults?.set(text, forKey: UserDefaultsKeys.transcribedText)
         updateTranscriptionStatus(.completed)
-        // 桥模式：转写文本同步经剪贴板回传（赶在完成通知之前）
+        // 桥模式：转写文本经剪贴板回传 + 暂存进本地服务的结果槽（赶在完成通知之前）。
+        // 槽是 fork5 的主通道：命名剪贴板在自签环境跨进程读不到，曾导致
+        // 主 App 里有转写记录、宿主输入框里永远没字。
         if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
             BridgePasteboard.send(kind: .transcribedText, fields: ["text": text])
+            bridgeServer?.stashResult(kind: BridgePayloadKind.transcribedText.rawValue, value: text)
         }
         postDarwinNotification(NotificationNames.transcriptionCompleted)
         logger.logError("📝 Shared transcribed text: \(text.prefix(50))...")
@@ -780,9 +792,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     /// Convenience to set an error message and notify listeners of an error state.
     public func updateTranscriptionError(_ message: String) {
         sharedDefaults?.set(message, forKey: UserDefaultsKeys.transcriptionErrorMessage)
-        // 桥模式：错误信息同步经剪贴板回传（赶在状态通知之前）
+        // 桥模式：错误信息经剪贴板回传 + 暂存结果槽（赶在状态通知之前）
         if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
             BridgePasteboard.send(kind: .transcriptionError, fields: ["message": message])
+            bridgeServer?.stashResult(kind: BridgePayloadKind.transcriptionError.rawValue, value: message)
         }
         updateTranscriptionStatus(.error)
     }
@@ -1547,16 +1560,16 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTranscriptionCompletedNotification() {
-        ingestBridgeResults()
         Task { @MainActor in
+            await ingestBridgeResult(kind: .transcribedText, defaultsKey: UserDefaultsKeys.transcribedText, field: "text")
             let text = getAndConsumeTranscribedText() ?? ""
             onTranscriptionCompleted?(text)
         }
     }
 
     private func handleTranscriptionErrorNotification() {
-        ingestBridgeResults()
         Task { @MainActor in
+            await ingestBridgeResult(kind: .transcriptionError, defaultsKey: UserDefaultsKeys.transcriptionErrorMessage, field: "message")
             let message = getAndConsumeTranscriptionErrorMessage() ?? ""
             onTranscriptionError?()
             if !message.isEmpty {
@@ -1630,8 +1643,8 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTextProcessingCompletedNotification() {
-        ingestBridgeResults()
         Task { @MainActor in
+            await ingestBridgeResult(kind: .textResult, defaultsKey: UserDefaultsKeys.textProcessingResult, field: "text")
             // Only consume the result if a callback is set — prevents the main app
             // from racing with the keyboard extension and deleting the result first.
             guard let callback = onTextProcessingCompleted else { return }
@@ -1641,8 +1654,8 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTextProcessingErrorNotification() {
-        ingestBridgeResults()
         Task { @MainActor in
+            await ingestBridgeResult(kind: .textError, defaultsKey: UserDefaultsKeys.textProcessingErrorMessage, field: "message")
             guard let callback = onTextProcessingError else { return }
             let message = getAndConsumeTextProcessingError() ?? "Text processing failed"
             callback(message)
