@@ -84,3 +84,9 @@ have no such knob and are unaffected.
 打包前剔除 PlugIns 里除 VivaDictaKeyboard.appex 外的全部扩展与
 Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple ID
 可直接签装。iCloud 同步/推送在自签下不可用，其余主 App 功能不变。
+
+## fork4（2026-10-21）：界面中文化 + 思考开关修复
+
+- 界面中文化：设置与主界面 650 条文案（1054 处替换，84 个文件）译为简体中文，品牌名 VivaDicta 一律改「畅言」；另把 23 条用户可见的错误/状态提示（API Key 无效、转写超时等，约 66 处）一并中文化。保留英文的只有：给 AI 模型看的内部描述、服务商名（OpenAI/Gemini 等）和格式占位串。
+- 思考开关修复：「让模型思考」开关原来只对写死的模型名单发降档参数，deepseek/glm/kimi 等名单外模型什么都不发、开关关了也带着思考链慢慢想（用户实测反馈润色慢）。开关关闭时，对名单外的 deepseek/glm/kimi/moonshot 模型补发 thinking.type=disabled（OpenCode 网关上实测过：思考 token 219→0）。
+- 本地模型（Parakeet/Whisper）下载：模型在 HuggingFace 上，国内网络直连不通且 hf-mirror 会把文件请求跳回主站，App 内下载注定失败；后续走「电脑下载模型包拷进 App Documents」方案，不在本版内。
