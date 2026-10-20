@@ -205,6 +205,19 @@ public struct ReasoningConfig {
         if cerebrasDisableReasoningModels.contains(modelName) {
             return ["disable_reasoning": true]
         }
+        // fork 补丁：名单外的国产推理模型（deepseek / glm / kimi）不在
+        // reasoning_effort 名单里，原逻辑什么都不发，网关按模型默认走，
+        // deepseek 会带着思考链慢慢想——开关关了也慢（用户实测反馈）。
+        // 这三家禁思考的字段都是 thinking.type = "disabled"（畅言在
+        // OpenCode 网关上实测过：思考 token 219 → 0）。只在模型没有拿到
+        // reasoning_effort 时补，避免和名单内模型的降档参数打架。
+        if getReasoningParameter(for: modelName, thinkingEnabled: thinkingEnabled) == nil {
+            let id = bareModelID(modelName)
+            if id.contains("deepseek") || id.hasPrefix("glm-") || id.hasPrefix("glm")
+                || id.contains("kimi") || id.contains("moonshot") {
+                return ["thinking": ["type": "disabled"]]
+            }
+        }
         return nil
     }
 }
