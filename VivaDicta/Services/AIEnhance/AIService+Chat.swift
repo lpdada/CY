@@ -123,7 +123,7 @@ extension AIService {
         case .customOpenAI:
             let endpointURL = customOpenAIRequestURL
             guard !endpointURL.isEmpty, let url = URL(string: endpointURL) else {
-                throw EnhancementError.customError("Custom AI endpoint URL is not configured")
+                throw EnhancementError.customError("自定义 AI 接口 URL 未配置")
             }
             var headers: [String: String] = [:]
             if let apiKey = AIProvider.customOpenAI.apiKey, !apiKey.isEmpty {

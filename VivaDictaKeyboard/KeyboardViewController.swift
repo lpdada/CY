@@ -287,7 +287,7 @@ struct ModeCycleSelector: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Previous mode")
+            .accessibilityLabel("上一个模式")
             .accessibilityHint("Tap to switch to previous mode")
 
             // Mode name
@@ -296,7 +296,7 @@ struct ModeCycleSelector: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .frame(maxWidth: 100)
-            .accessibilityLabel("Current mode: \(selectedMode.name)")
+            .accessibilityLabel("当前模式：\(selectedMode.name)")
             .accessibilityValue("\(currentIndex + 1) of \(modes.count)")
             
 
@@ -311,7 +311,7 @@ struct ModeCycleSelector: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Next mode")
+            .accessibilityLabel("下一个模式")
             .accessibilityHint("Tap to switch to next mode")
         }
         .padding(.horizontal, 4)
@@ -460,7 +460,7 @@ private struct KeyboardMicButton: View {
                 .padding(16)
                 .background(background)
         }
-        .accessibilityLabel("Record")
+        .accessibilityLabel("录音")
     }
 
     private var icon: some View {

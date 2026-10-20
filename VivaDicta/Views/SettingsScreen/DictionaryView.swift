@@ -45,7 +45,7 @@ struct WordsDictionaryView: View {
         .toolbar {
             if editMode {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("完成") {
                         HapticManager.lightImpact()
                         selectedWords.removeAll()
                         editMode = false
@@ -53,7 +53,7 @@ struct WordsDictionaryView: View {
                 }
             } else {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Edit") {
+                    Button("编辑") {
                         HapticManager.lightImpact()
                         editMode = true
                     }
@@ -61,7 +61,7 @@ struct WordsDictionaryView: View {
                 }
             }
         }
-        .navigationTitle("Spelling Corrections")
+        .navigationTitle("拼写纠正")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $wordToEdit) { item in
             EditVocabularySheet(word: item.word) { editedWord in
@@ -75,18 +75,18 @@ struct WordsDictionaryView: View {
             }
             .presentationDetents(.sizeToFit)
         }
-        .alert("Delete Words", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("删除词语", isPresented: $showDeleteAlert) {
+            Button("删除", role: .destructive) {
                 deleteSelectedWords()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete \(selectedWords.count) word\(selectedWords.count == 1 ? "" : "s")? This action cannot be undone.")
+            Text("确定要删除这 \(selectedWords.count) 个词语吗？此操作无法撤销。")
         }
     }
 
     private var enableToggle: some View {
-        Toggle("Enable Spelling Corrections", isOn: $isSpellingCorrectionsEnabled)
+        Toggle("启用拼写纠正", isOn: $isSpellingCorrectionsEnabled)
             .padding(.horizontal)
             .padding(.vertical, 8)
             .onChange(of: isSpellingCorrectionsEnabled) { _, isEnabled in
@@ -99,13 +99,13 @@ struct WordsDictionaryView: View {
 
     private var parakeetVocabularyToggle: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Toggle("Use with Parakeet Transcription", isOn: $isParakeetVocabularyBoostingEnabled)
+            Toggle("配合 Parakeet 转写使用", isOn: $isParakeetVocabularyBoostingEnabled)
                 .disabled(!isSpellingCorrectionsEnabled)
                 .onChange(of: isParakeetVocabularyBoostingEnabled) { _, _ in
                     HapticManager.selectionChanged()
                 }
 
-            Text("Experimental. Uses the words from this list as custom vocabulary for local Parakeet transcription. May download extra model files and use more memory. Off by default.")
+            Text("实验功能。把这个列表里的词语用作本地 Parakeet 转写的自定义词汇。可能会下载额外的模型文件并占用更多内存。默认关闭。")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -115,9 +115,9 @@ struct WordsDictionaryView: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView {
-            Label("No Words", systemImage: "text.book.closed")
+            Label("没有词语", systemImage: "text.book.closed")
         } description: {
-            Text("Add words that should be recognized correctly during transcription")
+            Text("添加转写时应正确识别的词语")
         }
         .frame(maxHeight: .infinity)
     }
@@ -137,7 +137,7 @@ struct WordsDictionaryView: View {
             Spacer()
 
             if !selectedWords.isEmpty {
-                Button("Delete", role: .destructive) {
+                Button("删除", role: .destructive) {
                     HapticManager.warning()
                     showDeleteAlert = true
                 }
@@ -179,14 +179,14 @@ struct WordsDictionaryView: View {
                             HapticManager.mediumImpact()
                             modelContext.delete(word)
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("删除", systemImage: "trash")
                         }
 
                         Button {
                             HapticManager.lightImpact()
                             wordToEdit = word
                         } label: {
-                            Label("Edit", systemImage: "pencil")
+                            Label("编辑", systemImage: "pencil")
                         }
                         .tint(.blue)
                     }
@@ -220,7 +220,7 @@ struct WordsDictionaryView: View {
     private var addWordBar: some View {
         VStack(spacing: 4) {
             HStack {
-                TextField("Enter word", text: $newWord)
+                TextField("输入词语", text: $newWord)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .padding(8)
@@ -237,7 +237,7 @@ struct WordsDictionaryView: View {
                         }
                     }
 
-                Button("Add", action: addWord)
+                Button("添加", action: addWord)
                     .buttonStyle(.borderedProminent)
                     .disabled(newWord.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -296,11 +296,11 @@ private struct EditVocabularySheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Edit Word")
+            Text("编辑词语")
                 .font(.headline)
 
             VStack(alignment: .trailing, spacing: 4) {
-                TextField("Word", text: $editedText)
+                TextField("词语", text: $editedText)
                     .focused($isTextFieldFocused)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -318,7 +318,7 @@ private struct EditVocabularySheet: View {
                     .foregroundStyle(editedText.count >= CustomVocabularyService.maxWordLength ? .orange : .secondary)
             }
 
-            Button("Save changes") {
+            Button("保存修改") {
                 HapticManager.mediumImpact()
                 onSave(editedText)
             }

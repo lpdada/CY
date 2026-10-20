@@ -38,7 +38,7 @@ struct KeyboardLanguagesSettingsView: View {
             }
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Languages")
+                Text("语言")
                     .font(.body)
                 Text(summaryText)
                     .font(.caption)

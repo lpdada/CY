@@ -24,7 +24,7 @@ struct AddToRecentTranscriptionIntent: AppIntent {
             try? recentTranscription.modelContext?.save()
             return .result(dialog: "Done")
         } else {
-            return .result(dialog: "You haven't recorded any notes yet.")
+            return .result(dialog: "你还没有录过任何笔记。")
         }
     }
 }

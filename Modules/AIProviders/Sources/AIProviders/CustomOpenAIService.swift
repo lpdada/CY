@@ -60,7 +60,7 @@ public struct CustomOpenAIService: Sendable {
 
         guard let url = URL(string: endpointURL) else {
             logger.logError("Custom OpenAI test - invalid URL: '\(endpointURL)'")
-            return .failure(message: "Invalid endpoint URL format")
+            return .failure(message: "接口 URL 格式无效")
         }
 
         var request = URLRequest(url: url)
@@ -97,7 +97,7 @@ public struct CustomOpenAIService: Sendable {
             case 200:
                 return .success(message: "Connected successfully")
             case 401:
-                return .failure(message: "Authentication failed. Check your API key.")
+                return .failure(message: "认证失败。请检查你的 API Key。")
             case 404:
                 return .failure(message: "Endpoint not found. Check the URL.")
             case 400:

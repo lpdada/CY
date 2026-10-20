@@ -71,7 +71,7 @@ struct RecordingStateView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundStyle(.white)
 
-                                Text("Stop")
+                                Text("停止")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(.white)
                             }

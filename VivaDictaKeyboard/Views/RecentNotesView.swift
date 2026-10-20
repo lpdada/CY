@@ -117,7 +117,7 @@ struct RecentNotesView: View {
 
                 // Footer: open app for all notes
                 VStack(spacing: 6) {
-                    Text("To see all notes, open VivaDicta")
+                    Text("打开畅言查看全部笔记")
                         .font(.system(size: 12))
                         .foregroundStyle(.tertiary)
 
@@ -125,7 +125,7 @@ struct RecentNotesView: View {
                         HapticManager.lightImpact()
                         onOpenApp()
                     } label: {
-                        Label("Open VivaDicta", systemImage: "arrow.up.forward.app")
+                        Label("打开畅言", systemImage: "arrow.up.forward.app")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.orange)
                     }
@@ -151,11 +151,11 @@ struct RecentNotesView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(.tertiary)
 
-            Text("No recent notes")
+            Text("没有最近的笔记")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Text("Record a transcription to see it here")
+            Text("录一段转写，就能在这里看到")
                 .font(.system(size: 13))
                 .foregroundStyle(.tertiary)
 

@@ -29,7 +29,7 @@ struct GrokConfigurationView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text(aiService.isGrokSignedIn ? "Subscription Connected" : "API Key Configured")
+                            Text(aiService.isGrokSignedIn ? "Subscription Connected" : "API Key 已配置")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -68,17 +68,17 @@ private struct GrokSubscriptionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Grok Subscription")
+            Text("Grok 订阅")
                 .font(.headline)
 
-            Text("Use your SuperGrok or X Premium subscription instead of an API key.")
+            Text("用你的 SuperGrok 或 X Premium 订阅代替 API Key。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             // Set expectations before the user signs in: xAI gates which plans
             // may connect an app, so a valid subscription can still be refused.
             Label {
-                Text("xAI limits which plans can connect an app, so this may not work on every subscription. An API key always works.")
+                Text("xAI 限制了哪些套餐可以连接 App，所以不是每个订阅都能用。API Key 则始终可用。")
             } icon: {
                 Image(systemName: "info.circle")
             }
@@ -102,8 +102,8 @@ private struct GrokSubscriptionSection: View {
         .onDisappear {
             signInTask?.cancel()
         }
-        .alert("Sign-In Error", isPresented: $showError) {
-            Button("OK") {}
+        .alert("登录错误", isPresented: $showError) {
+            Button("好") {}
         } message: {
             Text(errorMessage)
         }
@@ -114,7 +114,7 @@ private struct GrokSubscriptionSection: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Signed in")
+                Text("已登录")
                     .font(.callout)
                 if let email = aiService.grokEmail {
                     Text(email)
@@ -123,7 +123,7 @@ private struct GrokSubscriptionSection: View {
                 }
             }
             Spacer()
-            Button("Sign Out", role: .destructive) {
+            Button("退出登录", role: .destructive) {
                 aiService.signOutFromGrok()
             }
             .controlSize(.small)
@@ -132,7 +132,7 @@ private struct GrokSubscriptionSection: View {
 
     private func pendingAuthorization(_ code: DeviceCodeResponse) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Approve this code at x.ai:")
+            Text("在 x.ai 批准这个代码：")
                 .font(.callout)
 
             Text(code.userCode)
@@ -144,7 +144,7 @@ private struct GrokSubscriptionSection: View {
             // The opened URI usually carries the code already, so copying is an
             // explicit action - it clobbers the clipboard and shows the system
             // paste banner, which is rude to do on the user's behalf.
-            Button("Copy Code", systemImage: "doc.on.doc") {
+            Button("复制代码", systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = code.userCode
                 HapticManager.success()
             }
@@ -153,7 +153,7 @@ private struct GrokSubscriptionSection: View {
 
             if let url = URL(string: code.browserURI) {
                 Link(destination: url) {
-                    Label("Open x.ai to approve", systemImage: "arrow.up.right.square")
+                    Label("打开 x.ai 批准", systemImage: "arrow.up.right.square")
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
@@ -161,12 +161,12 @@ private struct GrokSubscriptionSection: View {
             HStack {
                 ProgressView()
                     .controlSize(.small)
-                Text("Waiting for approval...")
+                Text("等待批准…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Button("Cancel") {
+            Button("取消") {
                 signInTask?.cancel()
                 deviceCode = nil
             }
@@ -183,7 +183,7 @@ private struct GrokSubscriptionSection: View {
                     ProgressView()
                         .controlSize(.small)
                 }
-                Text("Sign in with Grok")
+                Text("用 Grok 登录")
                     .font(.headline.weight(.medium))
             }
         }
@@ -241,7 +241,7 @@ private struct GrokAPIKeySection: View {
             Text("API Key")
                 .font(.headline)
 
-            Text("Billed per token by xAI. Works on any account and unlocks the full model list.")
+            Text("由 xAI 按 token 计费。任何账号都能用，解锁完整模型列表。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -249,7 +249,7 @@ private struct GrokAPIKeySection: View {
                 Button {
                     UIApplication.shared.open(apiKeyURL)
                 } label: {
-                    Label("Get API Key", systemImage: "key")
+                    Label("获取 API Key", systemImage: "key")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.blue)
                 }
@@ -284,7 +284,7 @@ private struct GrokAPIKeySection: View {
                             ProgressView()
                                 .controlSize(.small)
                         }
-                        Text("Save API Key")
+                        Text("保存 API Key")
                             .font(.headline.weight(.medium))
                     }
                     .padding(.vertical, 8)
@@ -300,7 +300,7 @@ private struct GrokAPIKeySection: View {
                 Button {
                     pasteAndSave()
                 } label: {
-                    Text("Paste")
+                    Text("粘贴")
                         .font(.headline.weight(.medium))
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
@@ -317,7 +317,7 @@ private struct GrokAPIKeySection: View {
                     showDeleteConfirmation = true
                     HapticManager.warning()
                 } label: {
-                    Text("Delete API Key")
+                    Text("删除 API Key")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.red)
                 }
@@ -338,13 +338,13 @@ private struct GrokAPIKeySection: View {
         .onAppear {
             apiKey = AIProvider.grok.apiKey ?? ""
         }
-        .alert("Delete API Key", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
+        .alert("删除 API Key", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
                 deleteAPIKey()
             }
         } message: {
-            Text("Are you sure you want to delete the API key for \(AIProvider.grok.displayName)? This action cannot be undone.")
+            Text("确定要删除 \(AIProvider.grok.displayName) 的 API Key 吗？此操作无法撤销。")
         }
     }
 
@@ -360,7 +360,7 @@ private struct GrokAPIKeySection: View {
                 hasExistingKey = true
                 HapticManager.success()
             } else {
-                verificationError = "Invalid API key"
+                verificationError = "API Key 无效"
                 HapticManager.error()
             }
         }
@@ -394,7 +394,7 @@ private struct GrokFallbackNote: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Fallback Chain", systemImage: "arrow.triangle.branch")
+            Label("降级链", systemImage: "arrow.triangle.branch")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
@@ -410,18 +410,18 @@ private struct GrokFallbackNote: View {
             // Be precise about which failure falls back: a broken token quietly
             // switches to the key, but xAI refusing the plan is reported instead
             // of silently spending API credits.
-            Text("If the sign-in cannot be used - the token fails to refresh, for example - the API key is used automatically.")
+            Text("如果登录不可用——比如令牌刷新失败——会自动改用 API Key。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
-            Text("If xAI refuses the subscription itself, that is reported rather than switched to the API key.")
+            Text("如果 xAI 拒绝的是订阅本身，会直接报错，而不是改用 API Key。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
             // Transcription deliberately breaks that rule: the audio is already
             // recorded, so losing it to a refused plan is worse than spending
             // API credits on the retry.
-            Text("xAI Speech-to-Text uses the same credentials. There a refused subscription does retry with the API key, so a finished recording is not lost.")
+            Text("xAI 语音转文字用同一套凭据。那里如果订阅被拒，会用 API Key 重试，所以已录完的音频不会丢。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }

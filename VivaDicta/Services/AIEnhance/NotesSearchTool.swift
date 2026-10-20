@@ -77,7 +77,7 @@ struct NotesSearchTool: Tool {
     func call(arguments: Arguments) async throws -> some PromptRepresentable {
         let query = arguments.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
-            return NotesSearchToolRuntime.formatError("Notes search query cannot be empty.")
+            return NotesSearchToolRuntime.formatError("笔记搜索词不能为空。")
         }
 
         let logger = Logger(category: .chatViewModel)
@@ -129,7 +129,7 @@ enum NotesSearchToolRuntime {
                 query: trimmedQuery,
                 status: .error,
                 results: [],
-                message: "Notes search query cannot be empty."
+                message: "笔记搜索词不能为空。"
             )
         }
 
@@ -167,7 +167,7 @@ enum NotesSearchToolRuntime {
                     query: trimmedQuery,
                     status: .empty,
                     results: [],
-                    message: "No matching notes found outside the note or notes already in the conversation."
+                    message: "在对话已包含的笔记之外，没有找到匹配的笔记。"
                 )
             }
 
@@ -200,7 +200,7 @@ enum NotesSearchToolRuntime {
                     query: trimmedQuery,
                     status: .empty,
                     results: [],
-                    message: "No matching notes found outside the note or notes already in the conversation."
+                    message: "在对话已包含的笔记之外，没有找到匹配的笔记。"
                 )
             }
 

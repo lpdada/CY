@@ -22,14 +22,14 @@ struct SmartSearchSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Enable Smart Search", isOn: $isSmartSearchEnabled)
+                Toggle("启用智能搜索", isOn: $isSmartSearchEnabled)
             } footer: {
-                Text("AI-powered semantic search across your notes in the search bar, Smart Chat, and the cross-note search tool. When disabled, Smart Search stops indexing your notes, removes the local semantic index, and hides those surfaces.")
+                Text("在搜索栏、智能对话和跨笔记搜索里，用 AI 语义搜索你的笔记。关闭后，智能搜索会停止为笔记建索引、删除本地语义索引，并隐藏这些入口。")
             }
 
             Section {
                 HStack {
-                    Text("Indexed Notes")
+                    Text("已索引笔记")
                     Spacer()
                     if service.isIndexing || isReindexing {
                         ProgressView()
@@ -53,7 +53,7 @@ struct SmartSearchSettingsView: View {
                     }
                 } label: {
                     HStack {
-                        Text("Re-index All Notes")
+                        Text("重新索引全部笔记")
                         Spacer()
                         if isReindexing {
                             ProgressView()
@@ -63,16 +63,16 @@ struct SmartSearchSettingsView: View {
                 }
                 .disabled(!isSmartSearchEnabled || isReindexing || service.isIndexing)
             } footer: {
-                Text("Rebuilds the search index from scratch. Use this if search results seem incorrect.")
+                Text("从头重建搜索索引。如果搜索结果看起来不对，用这个。")
             }
 
             Section {
-                Text("Smart Search uses an on-device AI model to understand your notes semantically in the search bar, Smart Chat, and the cross-note search tool. The model is downloaded automatically on first use.")
+                Text("智能搜索用设备端 AI 模型在搜索栏、智能对话和跨笔记搜索里按语义理解你的笔记。模型会在第一次使用时自动下载。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Smart Search")
+        .navigationTitle("智能搜索")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: isSmartSearchEnabled) { _, isEnabled in
             logger.logInfo("Smart Search settings toggled enabled=\(isEnabled) indexedNotes=\(service.indexedTranscriptionCount)")

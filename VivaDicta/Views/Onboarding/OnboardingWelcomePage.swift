@@ -24,19 +24,19 @@ struct OnboardingWelcomePage: View {
 
                 // Title
                 VStack(spacing: 4) {
-                    Text("Welcome to")
+                    Text("欢迎使用")
                         .font(.largeTitle.weight(.bold))
                         .fontDesign(.rounded)
                         .foregroundStyle(.primary)
 
-                    Text("VivaDicta")
+                    Text("畅言")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(meshGradient(t: t))
                 }
                 .padding(.bottom, 16)
 
                 // Subtitle
-                Text("Transform your voice into perfect text with AI-powered transcription")
+                Text("用 AI 转写，把你的语音变成完美的文字")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

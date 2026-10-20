@@ -128,8 +128,8 @@ public final class AppleFoundationModelService {
                 logger.logWarning("Model refused to respond")
                 throw AppleFoundationModelError.refusal("The model declined to process this content")
             case .exceededContextWindowSize:
-                logger.logWarning("Context window size exceeded")
-                throw AppleFoundationModelError.generationFailed("Context window size exceeded")
+                logger.logWarning("超出上下文窗口大小")
+                throw AppleFoundationModelError.generationFailed("超出上下文窗口大小")
             default:
                 throw AppleFoundationModelError.generationFailed(error.localizedDescription)
             }
@@ -196,8 +196,8 @@ public final class AppleFoundationModelService {
                 logger.logWarning("Model refused to respond")
                 throw AppleFoundationModelError.refusal("The model declined to process this content")
             case .exceededContextWindowSize:
-                logger.logWarning("Context window size exceeded")
-                throw AppleFoundationModelError.generationFailed("Context window size exceeded")
+                logger.logWarning("超出上下文窗口大小")
+                throw AppleFoundationModelError.generationFailed("超出上下文窗口大小")
             default:
                 throw AppleFoundationModelError.generationFailed(error.localizedDescription)
             }

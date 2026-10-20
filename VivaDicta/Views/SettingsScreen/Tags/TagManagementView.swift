@@ -21,7 +21,7 @@ struct TagManagementView: View {
                 ContentUnavailableView(
                     "No Tags",
                     systemImage: "tag",
-                    description: Text("Create tags to organize your transcriptions.")
+                    description: Text("创建标签来整理你的转写。")
                 )
             } else {
                 ForEach(tags) { tag in
@@ -35,10 +35,10 @@ struct TagManagementView: View {
                 .onDelete(perform: deleteTags)
             }
         }
-        .navigationTitle("Tags")
+        .navigationTitle("标签")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Add Tag", systemImage: "plus") {
+                Button("添加标签", systemImage: "plus") {
                     showCreateSheet = true
                 }
             }
@@ -105,7 +105,7 @@ private struct TagRowView: View {
                     .font(.body)
 
                 if tag.isExcludedFromAutoDelete {
-                    Label("Kept from auto-delete", systemImage: "pin.fill")
+                    Label("已设为不自动删除", systemImage: "pin.fill")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -48,7 +48,7 @@ struct TranscriptionTagChipsView: View {
                 Button {
                     showTagPicker = true
                 } label: {
-                    Label("Tag", systemImage: "plus")
+                    Label("标签", systemImage: "plus")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

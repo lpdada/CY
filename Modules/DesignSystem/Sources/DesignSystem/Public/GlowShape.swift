@@ -98,11 +98,11 @@ public extension Array where Element == Gradient.Stop {
 
 #Preview("Glow background") {
     VStack(spacing: 30) {
-        Text("Some text here")
+        Text("一些文本")
             .padding(22)
             .glowBackground(in: .capsule)
 
-        Text("Some text here")
+        Text("一些文本")
             .padding(22)
             .glowOverlay(in: .capsule)
     }

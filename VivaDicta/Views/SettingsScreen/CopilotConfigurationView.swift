@@ -32,7 +32,7 @@ struct CopilotConfigurationView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text("Connected")
+                            Text("已连接")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -50,8 +50,8 @@ struct CopilotConfigurationView: View {
         .onDisappear {
             pollingTask?.cancel()
         }
-        .alert("Sign-In Error", isPresented: $showError) {
-            Button("OK") {}
+        .alert("登录错误", isPresented: $showError) {
+            Button("好") {}
         } message: {
             Text(errorMessage)
         }
@@ -61,10 +61,10 @@ struct CopilotConfigurationView: View {
 
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("GitHub Account")
+            Text("GitHub 账号")
                 .font(.headline)
 
-            Text("Access Anthropic, GPT, Gemini models via your Copilot account.")
+            Text("通过你的 Copilot 账号使用 Anthropic、GPT、Gemini 模型。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -73,7 +73,7 @@ struct CopilotConfigurationView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Signed in")
+                        Text("已登录")
                             .font(.callout)
                         if let username = aiService.copilotUsername {
                             Text("@\(username)")
@@ -82,7 +82,7 @@ struct CopilotConfigurationView: View {
                         }
                     }
                     Spacer()
-                    Button("Sign Out", role: .destructive) {
+                    Button("退出登录", role: .destructive) {
                         aiService.signOutFromCopilot()
                     }
                     .controlSize(.small)
@@ -90,7 +90,7 @@ struct CopilotConfigurationView: View {
             } else if let code = deviceCode {
                 // Device code displayed — waiting for user to authorize
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Enter this code at GitHub:")
+                    Text("在 GitHub 输入这个代码：")
                         .font(.callout)
 
                     Text(code.userCode)
@@ -102,7 +102,7 @@ struct CopilotConfigurationView: View {
                         Link(destination: url) {
                             HStack {
                                 Image(systemName: "arrow.up.right.square")
-                                Text("Open github.com/login/device")
+                                Text("打开 github.com/login/device")
                             }
                             .frame(maxWidth: .infinity, alignment: .center)
                         }
@@ -111,12 +111,12 @@ struct CopilotConfigurationView: View {
                     HStack {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Waiting for authorization...")
+                        Text("等待授权…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
-                    Button("Cancel") {
+                    Button("取消") {
                         pollingTask?.cancel()
                         deviceCode = nil
                     }
@@ -132,7 +132,7 @@ struct CopilotConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Sign in with GitHub")
+                            Text("用 GitHub 登录")
                                 .font(.headline.weight(.medium))
                         }
                     }
@@ -150,7 +150,7 @@ struct CopilotConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Sign in with GitHub")
+                            Text("用 GitHub 登录")
                                 .font(.headline.weight(.medium))
                                 .foregroundStyle(.primary)
                         }

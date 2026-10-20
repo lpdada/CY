@@ -39,7 +39,7 @@ struct TemplateSelectionView: View {
             }
             .buttonStyle(.plain)
         }
-        .navigationTitle("Select Template")
+        .navigationTitle("选择模板")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.visible)
         .fullScreenCover(item: $selectedTemplate) { template in
@@ -54,16 +54,16 @@ struct TemplateSelectionView: View {
                 )
             }
         }
-        .alert("Enter your full name for email prompt", isPresented: $showEmailNameAlert) {
-            TextField("Full Name", text: $emailUserName)
+        .alert("输入你的全名，用于邮件提示词", isPresented: $showEmailNameAlert) {
+            TextField("全名", text: $emailUserName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
-            Button("Cancel", role: .cancel) {
+            Button("取消", role: .cancel) {
                 emailUserName = ""
                 selectedTemplate = pendingEmailTemplate
                 pendingEmailTemplate = nil
             }
-            Button("OK") {
+            Button("好") {
                 selectedTemplate = pendingEmailTemplate
                 pendingEmailTemplate = nil
             }

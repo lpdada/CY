@@ -382,7 +382,7 @@ struct ErrorStateView: View {
                 .padding(.bottom, 10)
 
             // Error message
-            Text("Error")
+            Text("错误")
                 .font(.system(size: 24, weight: .semibold))
 
             Text(errorMessage)
@@ -393,7 +393,7 @@ struct ErrorStateView: View {
 
             // Dismiss button
             Button(action: onDismiss) {
-                Text("Dismiss")
+                Text("忽略")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(.white)
                     .frame(width: 120, height: 44)

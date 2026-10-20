@@ -86,7 +86,7 @@ struct CloudModelCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if model.recommended {
-                        Text("Recommended")
+                        Text("推荐")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundStyle(.blue)
@@ -187,31 +187,31 @@ struct CloudModelCard: View {
                     HapticManager.lightImpact()
                     onConfigure(model)
                 } label: {
-                    Label("Edit API Key", systemImage: "key.fill")
+                    Label("编辑 API Key", systemImage: "key.fill")
                 }
 
                 Button(role: .destructive) {
                     HapticManager.warning()
                     showDeleteAlert = true
                 } label: {
-                    Label("Delete API Key", systemImage: "key.slash")
+                    Label("删除 API Key", systemImage: "key.slash")
                 }
             } else {
                 Button {
                     HapticManager.lightImpact()
                     onConfigure(model)
                 } label: {
-                    Label("Add API Key", systemImage: "key.fill")
+                    Label("添加 API Key", systemImage: "key.fill")
                 }
             }
         }
-        .alert("Delete Model", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("删除模型", isPresented: $showDeleteAlert) {
+            Button("删除", role: .destructive) {
                 deleteAPIKey()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete the API key for \(model.provider.rawValue.capitalized)? This action cannot be undone.")
+            Text("确定要删除 \(model.provider.rawValue.capitalized) 的 API Key 吗？此操作无法撤销。")
         }
     }
 

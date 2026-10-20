@@ -573,7 +573,7 @@ struct TranscriptionDetailView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {
-                    Button("Info", systemImage: "info.circle") {
+                    Button("信息", systemImage: "info.circle") {
                         showMetaInfo = true
                     }
                     shareMenu
@@ -671,18 +671,18 @@ struct TranscriptionDetailView: View {
         overlayLayer
         .animation(.default, value: processingState)
         .alert(
-            "AI Safety Guardrail Triggered",
+            "触发了 AI 安全限制",
             isPresented: $showGuardrailAlert
         ) {
-            Button("OK", role: .cancel) {}
+            Button("好", role: .cancel) {}
         } message: {
-            Text("Apple's on-device AI blocked this content due to safety guidelines. Consider using a cloud AI provider for this type of content.")
+            Text("Apple 的设备端 AI 因安全准则拦截了这段内容。这类内容可以考虑改用云端 AI 服务商。")
         }
         .alert(
-            "AI Processing Failed",
+            "AI 处理失败",
             isPresented: $showEnhancementErrorAlert
         ) {
-            Button("OK", role: .cancel) {}
+            Button("好", role: .cancel) {}
         } message: {
             Text(enhancementErrorMessage)
         }
@@ -695,13 +695,13 @@ struct TranscriptionDetailView: View {
         } onCancellation: {
             exportItems = []
         }
-        .alert("Export Failed", isPresented: $showExportErrorAlert) {
-            Button("OK", role: .cancel) {}
+        .alert("导出失败", isPresented: $showExportErrorAlert) {
+            Button("好", role: .cancel) {}
         } message: {
             Text(exportErrorMessage)
         }
-        .alert("Export to Folder", isPresented: $showFolderExportAlert) {
-            Button("OK", role: .cancel) {}
+        .alert("导出到文件夹", isPresented: $showFolderExportAlert) {
+            Button("好", role: .cancel) {}
         } message: {
             Text(folderExportAlertMessage)
         }
@@ -741,7 +741,7 @@ struct TranscriptionDetailView: View {
                 if activeStreamingText.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         ProgressView()
-                        Text("Generating variation...")
+                        Text("正在生成版本…")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -753,7 +753,7 @@ struct TranscriptionDetailView: View {
                 }
             } else if processingState != .idle {
                 // Lightweight placeholder to avoid expensive CoreText layout on large text
-                Text("The art of writing is the art of discovering what you believe. Every word you speak is a seed, and every thought refined becomes a garden of clarity and understanding.")
+                Text("写作的艺术，就是发现自己所信的艺术。你说出的每个词都是种子，每个被打磨的想法都会变成清晰与理解的花园。")
                     .font(.system(size: 16, weight: .regular, design: .default))
                     .lineSpacing(2)
                     .redacted(reason: .placeholder)
@@ -771,10 +771,10 @@ struct TranscriptionDetailView: View {
         // the type-checker's budget, and an alert works from anywhere in the
         // hierarchy.
         .alert(
-            "Transcription Failed",
+            "转写失败",
             isPresented: $showRetranscribeErrorAlert
         ) {
-            Button("OK", role: .cancel) {}
+            Button("好", role: .cancel) {}
         } message: {
             Text(retranscribeErrorMessage)
         }
@@ -785,16 +785,16 @@ struct TranscriptionDetailView: View {
     /// the bottom bar is the way out - point the user at it.
     private var failedTranscriptionNotice: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("No text captured", systemImage: "exclamationmark.triangle")
+            Label("没有捕获到文本", systemImage: "exclamationmark.triangle")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.secondary)
 
-            Text("Transcription failed for this recording. The audio was kept - play it back below, or retry transcription.")
+            Text("这次录音转写失败。音频已保留——可以在下面回放，或重新转写。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineSpacing(2)
 
-            Button("Retry Transcription", systemImage: "arrow.clockwise") {
+            Button("重新转写", systemImage: "arrow.clockwise") {
                 retranscribe()
             }
             .buttonStyle(.borderedProminent)
@@ -819,7 +819,7 @@ struct TranscriptionDetailView: View {
         }
         .buttonStyle(.plain)
         .disabled(appState.recordViewModel.recordingState != .idle)
-        .accessibilityLabel("Append with Voice")
+        .accessibilityLabel("语音续写")
     }
 
     @ViewBuilder
@@ -837,7 +837,7 @@ struct TranscriptionDetailView: View {
         }
         .buttonStyle(.plain)
         .disabled(appState.recordViewModel.recordingState != .idle)
-        .accessibilityLabel("Send to Obsidian")
+        .accessibilityLabel("发送到 Obsidian")
     }
 
     @ViewBuilder
@@ -854,7 +854,7 @@ struct TranscriptionDetailView: View {
         }
         .buttonStyle(.plain)
         .disabled(appState.recordViewModel.recordingState != .idle)
-        .accessibilityLabel("Export to Folder")
+        .accessibilityLabel("导出到文件夹")
     }
 
     private func exportToFolder() {
@@ -1008,15 +1008,15 @@ struct TranscriptionDetailView: View {
                             .font(.system(size: 20))
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Edit Text")
+                    .accessibilityLabel("编辑文本")
                 } else {
                     Menu {
-                        Button("Edit Text", systemImage: "pencil") {
+                        Button("编辑文本", systemImage: "pencil") {
                             HapticManager.lightImpact()
                             showTextEditor = true
                         }
 
-                        Button("Append with Voice", systemImage: "mic") {
+                        Button("语音续写", systemImage: "mic") {
                             startVoiceAppend()
                         }
                         .disabled(appState.recordViewModel.recordingState != .idle)
@@ -1066,7 +1066,7 @@ struct TranscriptionDetailView: View {
 
     private var shareMenu: some View {
         Menu {
-            Section("Share") {
+            Section("分享") {
                 // Share currently selected text (if it's a variation)
                 if selectedIsVariation {
                     let presetIcon = PresetCatalog.icon(for: selectedChipId)
@@ -1077,7 +1077,7 @@ struct TranscriptionDetailView: View {
                 }
 
                 ShareLink(item: transcription.text) {
-                    Label("Original Text", systemImage: "text.alignleft")
+                    Label("原始文本", systemImage: "text.alignleft")
                 }
 
                 if let audioURL = audioURL {
@@ -1089,24 +1089,24 @@ struct TranscriptionDetailView: View {
                             image: Image(systemName: "waveform")
                         )
                     ) {
-                        Label("Audio Recording", systemImage: "waveform")
+                        Label("音频录制", systemImage: "waveform")
                     }
                 }
             }
 
-            Section("Export") {
+            Section("导出") {
                 Button {
                     HapticManager.lightImpact()
                     exportTranscriptionAsMarkdown()
                 } label: {
-                    Label("Export as Markdown", systemImage: "doc.text")
+                    Label("导出为 Markdown", systemImage: "doc.text")
                 }
             }
         } label: {
             Image(systemName: "square.and.arrow.up")
                 .offset(y: -2)
         }
-        .accessibilityLabel("Share Transcription")
+        .accessibilityLabel("分享转写")
     }
 
     // MARK: - Actions
@@ -1447,7 +1447,7 @@ private struct StreamingCancelButton: View {
     let onCancel: () -> Void
 
     var body: some View {
-        Button("Cancel", systemImage: "xmark.circle.fill") {
+        Button("取消", systemImage: "xmark.circle.fill") {
             HapticManager.lightImpact()
             onCancel()
         }
@@ -1476,10 +1476,10 @@ private struct ConfigureAISheet: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 20)
 
-            Text("AI Processing Not Configured")
+            Text("AI 处理未配置")
                 .font(.title3.bold())
 
-            Text("Set up an AI provider in your mode settings to use AI text processing.")
+            Text("在模式设置里配置一个 AI 服务商后使用 AI 文本处理。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -1488,7 +1488,7 @@ private struct ConfigureAISheet: View {
             Button {
                 onOpenSettings()
             } label: {
-                Text("Open Mode Settings")
+                Text("打开模式设置")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
@@ -1509,10 +1509,10 @@ private struct ConfigureChatSheet: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 20)
 
-            Text("Chat Not Available")
+            Text("对话不可用")
                 .font(.title3.bold())
 
-            Text("Set up an AI provider in your mode settings to chat with your notes.")
+            Text("在模式设置里配置一个 AI 服务商后，和你的笔记对话。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -1521,7 +1521,7 @@ private struct ConfigureChatSheet: View {
             Button {
                 onOpenSettings()
             } label: {
-                Text("Open Mode Settings")
+                Text("打开模式设置")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
@@ -1540,7 +1540,7 @@ private struct MetaInfoSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Recording") {
+                Section("录音") {
                     metadataRow(icon: "hourglass", label: "Audio Duration", value: transcription.getDurationFormatted(transcription.audioDuration))
 
                     #if DEBUG
@@ -1550,7 +1550,7 @@ private struct MetaInfoSheet: View {
                     #endif
                 }
 
-                Section("Transcription") {
+                Section("转写") {
                     if let providerName = transcription.transcriptionProviderName {
                         metadataRow(icon: "waveform", label: "Provider", value: providerName)
                     }
@@ -1566,7 +1566,7 @@ private struct MetaInfoSheet: View {
                 }
 
                 if let variation = selectedVariation {
-                    Section("AI Processing") {
+                    Section("AI 处理") {
                         if let providerName = variation.aiProviderName {
                             metadataRow(icon: "sparkles", label: "Provider", value: providerName)
                         }
@@ -1582,7 +1582,7 @@ private struct MetaInfoSheet: View {
                     }
                 } else {
                     if transcription.aiProviderName != nil || transcription.aiEnhancementModelName != nil || transcription.promptName != nil {
-                        Section("AI Processing") {
+                        Section("AI 处理") {
                             if let providerName = transcription.aiProviderName {
                                 metadataRow(icon: "sparkles", label: "Provider", value: providerName)
                             }
@@ -1601,7 +1601,7 @@ private struct MetaInfoSheet: View {
                     }
                 }
             }
-            .navigationTitle("Info")
+            .navigationTitle("信息")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -1747,7 +1747,7 @@ private struct PresetPickerSheet: View {
                     notConfiguredView
                 }
             }
-            .navigationTitle("AI Actions")
+            .navigationTitle("AI 操作")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if hasOverrideOptions {
@@ -1765,10 +1765,10 @@ private struct PresetPickerSheet: View {
                 .font(.system(size: 40))
                 .foregroundStyle(.secondary)
 
-            Text("AI Processing Not Configured")
+            Text("AI 处理未配置")
                 .font(.title3.bold())
 
-            Text("Set up an AI provider in your mode settings to use AI text processing.")
+            Text("在模式设置里配置一个 AI 服务商后使用 AI 文本处理。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -1777,7 +1777,7 @@ private struct PresetPickerSheet: View {
             Button {
                 onOpenSettings()
             } label: {
-                Text("Open Mode Settings")
+                Text("打开模式设置")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
@@ -1797,7 +1797,7 @@ private struct PresetPickerSheet: View {
     private var presetList: some View {
         List {
             if filter == .system, let onExtractTasks {
-                Section("Smart Actions") {
+                Section("智能操作") {
                     if let onReviewExtractedTasks {
                         Button {
                             onReviewExtractedTasks()
@@ -1849,7 +1849,7 @@ private struct PresetPickerSheet: View {
             }
 
             Section {
-                Picker("Filter", selection: $filter) {
+                Picker("筛选", selection: $filter) {
                     ForEach(PresetFilter.allCases) { filter in
                         Text(filter.title).tag(filter)
                     }
@@ -1880,7 +1880,7 @@ private struct PresetPickerSheet: View {
                 if selectedCategory == nil {
                     let favorites = typeFilteredPresets.filter(\.isFavorite)
                     if !favorites.isEmpty {
-                        Section("Favorites") {
+                        Section("收藏") {
                             ForEach(favorites) { preset in
                                 presetRow(preset)
                             }
@@ -1950,7 +1950,7 @@ private struct PresetPickerSheet: View {
             .foregroundStyle(overrideModeId == nil ? Color.primary : Color.accentColor)
             .frame(maxWidth: 160)
         }
-        .accessibilityLabel("AI mode override")
+        .accessibilityLabel("AI 模式覆盖")
         .accessibilityValue(effectiveModeName)
     }
 
@@ -2034,7 +2034,7 @@ private struct TextEditSheet: View {
                                 dismiss()
                             }
                         } else {
-                            Button("Cancel") {
+                            Button("取消") {
                                 HapticManager.lightImpact()
                                 dismiss()
                             }
@@ -2050,7 +2050,7 @@ private struct TextEditSheet: View {
                             .tint(.blue)
                             .disabled(editableText == text)
                         } else {
-                            Button("Done") {
+                            Button("完成") {
                                 onSave(editableText)
                                 dismiss()
                             }

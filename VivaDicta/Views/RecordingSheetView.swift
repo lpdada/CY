@@ -73,7 +73,7 @@ struct RecordingSheetView: View {
                             .recordingSheetButtonBackground(color: nil)
                             .contentShape(.circle)
                     }
-                    .accessibilityLabel("Cancel Recording")
+                    .accessibilityLabel("取消录音")
                     .padding(.vertical, 16)
                     .padding(.horizontal, 16)
                     
@@ -110,7 +110,7 @@ struct RecordingSheetView: View {
                             .frame(width: 56, height: 56)
                             .recordingSheetButtonBackground(color: .red)
                     }
-                    .accessibilityLabel("Stop Recording")
+                    .accessibilityLabel("停止录音")
                     .disabled(vm.recordingState != .recording)
 
                     Spacer()
@@ -176,7 +176,7 @@ private struct RecordingTagButton: View {
                     }
                 }
         }
-        .accessibilityLabel("Tags")
+        .accessibilityLabel("标签")
         .accessibilityValue(selectedCount > 0 ? "\(selectedCount) selected" : "None selected")
     }
 }

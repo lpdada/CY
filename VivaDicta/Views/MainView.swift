@@ -286,7 +286,7 @@ struct MainView: View {
                                 } label: {
                                     Image(systemName: "xmark")
                                 }
-                                .accessibilityLabel("Close")
+                                .accessibilityLabel("关闭")
                             }
                         }
                 }
@@ -322,28 +322,28 @@ struct MainView: View {
         .navigationDestination(for: Transcription.self) { transcription in
             TranscriptionDetailView(transcription: transcription)
         }
-        .alert("No Transcription Model", isPresented: $showNoModelAlert) {
-            Button("Go to Models") {
+        .alert("没有转写模型", isPresented: $showNoModelAlert) {
+            Button("去模型页") {
                 appState.shouldNavigateToModels = true
             }
         } message: {
-            Text("To start recording, please download a local model or select a cloud transcription model.")
+            Text("要开始录音，请先下载一个本地模型，或选择一个云端转写模型。")
         }
-        .alert("File Error", isPresented: $showFileErrorAlert) {
-            Button("OK", role: .cancel) {}
+        .alert("文件错误", isPresented: $showFileErrorAlert) {
+            Button("好", role: .cancel) {}
         } message: {
             Text(fileErrorMessage)
         }
         .alert(isPresented: recordErrorAlertBinding, error: appState.recordViewModel?.recordError) { recordError in
             if case .userDenied = recordError {
-                Button("Settings") {
+                Button("设置") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button("取消", role: .cancel) {}
             } else {
-                Button("OK", role: .cancel) {}
+                Button("好", role: .cancel) {}
             }
         } message: { recordError in
             Text(recordError.failureReason)
@@ -353,12 +353,12 @@ struct MainView: View {
                 .presentationDetents([.medium])
         }
         .alert(deleteAlertTitle, isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
                 deleteSelectedTranscriptions()
             }
         } message: {
-            Text("This action cannot be undone.")
+            Text("此操作无法撤销。")
         }
     }
 
@@ -506,7 +506,7 @@ struct MainView: View {
     private var trailingToolbarContent: some ToolbarContent {
         if isSelectionMode {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
+                Button("完成") {
                     HapticManager.lightImpact()
                     exitSelectionMode()
                 }
@@ -538,7 +538,7 @@ struct MainView: View {
                     } label: {
                         Image(systemName: "globe.americas.fill")
                     }
-                    .accessibilityLabel("Live Translation")
+                    .accessibilityLabel("实时翻译")
                     .matchedTransitionSource(id: "LiveTranslationSheetTransition", in: sheetTransitions)
                     .popoverTip(LiveTranslationDiscoveryTip())
                 }
@@ -555,7 +555,7 @@ struct MainView: View {
                 } label: {
                     Image(systemName: "gearshape.fill")
                 }
-                .accessibilityLabel("Settings")
+                .accessibilityLabel("设置")
                 .matchedTransitionSource(id: "SettingsSheetTransition", in: sheetTransitions)
                 .popoverTip(selectTranscriptionModelTipMainView) { action in
                     if action.id == "go-to-models" {
@@ -572,7 +572,7 @@ struct MainView: View {
         if isSelectionMode {
             ToolbarItem(placement: .principal) {
                 if !selectedTranscriptionIDs.isEmpty {
-                    Text("^[\(selectedTranscriptionIDs.count) Note](inflect: true) selected")
+                    Text("已选 \(selectedTranscriptionIDs.count) 条笔记")
                         .foregroundStyle(.secondary)
                 }
             }
@@ -606,7 +606,7 @@ struct MainView: View {
                 } label: {
                     Image(systemName: "waveform.badge.plus")
                 }
-                .accessibilityLabel("Import Audio File")
+                .accessibilityLabel("导入音频文件")
             }
 
             if #available(iOS 26.0, *) {
@@ -623,7 +623,7 @@ struct MainView: View {
                     } label: {
                         Image(systemName: "checkmark.circle")
                     }
-                    .accessibilityLabel("Select Notes")
+                    .accessibilityLabel("选择笔记")
                 }
             }
         }
@@ -636,7 +636,7 @@ struct MainView: View {
                 Button {
                     showBulkTagPicker = true
                 } label: {
-                    Label("Tag", systemImage: "tag")
+                    Label("标签", systemImage: "tag")
                 }
                 .disabled(selectedTranscriptionIDs.isEmpty)
             }
@@ -650,7 +650,7 @@ struct MainView: View {
                     Button {
                         startMultiNoteChatWithSelected()
                     } label: {
-                        Label("Create Chat", systemImage: "plus.bubble")
+                        Label("新建对话", systemImage: "plus.bubble")
                     }
                     .disabled(selectedTranscriptionIDs.isEmpty)
                 }
@@ -666,17 +666,17 @@ struct MainView: View {
                         HapticManager.lightImpact()
                         exportSelectedTranscriptions()
                     } label: {
-                        Label("Markdown Files", systemImage: "doc.text")
+                        Label("Markdown 文件", systemImage: "doc.text")
                     }
 
                     Button {
                         HapticManager.lightImpact()
                         prepareZipShare()
                     } label: {
-                        Label("Share ZIP", systemImage: "doc.zipper")
+                        Label("分享 ZIP", systemImage: "doc.zipper")
                     }
                 } label: {
-                    Label("Export", systemImage: isPreparingZipShare ? "hourglass" : "square.and.arrow.up")
+                    Label("导出", systemImage: isPreparingZipShare ? "hourglass" : "square.and.arrow.up")
                 }
                 .disabled(selectedTranscriptionIDs.isEmpty || isPreparingZipShare)
             }
@@ -695,7 +695,7 @@ struct MainView: View {
                     HapticManager.warning()
                     showDeleteConfirmation = true
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label("删除", systemImage: "trash")
                 }
                 .tint(.red)
                 .disabled(selectedTranscriptionIDs.isEmpty)

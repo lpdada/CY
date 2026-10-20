@@ -175,7 +175,7 @@ public struct OpenAICompatibleService: Sendable {
                 logger.logError("OpenAI-compatible enhance - \(httpResponse.statusCode): \(errorString.prefix(500))")
                 throw EnhancementError.customError(unauthorizedMessage)
             } else {
-                let errorString = String(data: data, encoding: .utf8) ?? "Could not decode error response."
+                let errorString = String(data: data, encoding: .utf8) ?? "无法解析错误响应。"
                 logger.logError("OpenAI-compatible enhance - HTTP \(httpResponse.statusCode): \(errorString.prefix(500))")
                 throw EnhancementError.customError("HTTP \(httpResponse.statusCode): \(errorString)")
             }

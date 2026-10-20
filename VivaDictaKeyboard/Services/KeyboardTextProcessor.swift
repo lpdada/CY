@@ -208,7 +208,7 @@ final class KeyboardTextProcessor {
             return Target(text: text, isSelection: false)
         case .empty:
             logger.logInfo("📝 [TextProcessor] No text found")
-            dictationState.textProcessingPhase = .error("No text to process")
+            dictationState.textProcessingPhase = .error("没有可处理的文本")
             autoDismissError(dictationState: dictationState)
             return nil
         }
@@ -226,7 +226,7 @@ final class KeyboardTextProcessor {
             dictationState.onTextProcessingResult = { [weak self] result in
                 if result.isEmpty {
                     self?.logger.logInfo("📝 [TextProcessor] Received empty result — treating as error")
-                    self?.resultContinuation?.resume(throwing: TextProcessingError.processingFailed("AI returned empty result"))
+                    self?.resultContinuation?.resume(throwing: TextProcessingError.processingFailed("AI 返回了空结果"))
                 } else {
                     self?.resultContinuation?.resume(returning: result)
                 }

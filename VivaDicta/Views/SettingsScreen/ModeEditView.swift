@@ -87,12 +87,12 @@ struct ModeEditView: View {
         ScrollViewReader { scrollProxy in
         Form {
             Section {
-                TextField("Mode Name", text: $viewModel.modeName)
+                TextField("模式名称", text: $viewModel.modeName)
                     .focused($isNameFieldFocused)
                     .id("nameSection")
                     .overlay(alignment: .trailing) {
                         if isNameFieldFocused && !viewModel.modeName.isEmpty {
-                            Button("Clear", systemImage: "xmark.circle.fill") {
+                            Button("清除", systemImage: "xmark.circle.fill") {
                                 viewModel.modeName = ""
                             }
                             .labelStyle(.iconOnly)
@@ -111,7 +111,7 @@ struct ModeEditView: View {
                     footer: transcriptionSectionFooter) {
                 
                 Picker(selection: $viewModel.transcriptionProvider) {
-                    Section("On-Device") {
+                    Section("设备端") {
                         ForEach(TranscriptionModelProvider.localProviders) { provider in
                             if viewModel.isTranscriptionProviderConfigured(provider) {
                                 Text(provider.displayName).tag(provider)
@@ -124,7 +124,7 @@ struct ModeEditView: View {
                             }
                         }
                     }
-                    Section("Cloud") {
+                    Section("云端") {
                         ForEach(TranscriptionModelProvider.cloudProviders) { provider in
                             if viewModel.isTranscriptionProviderConfigured(provider) {
                                 Text(provider.displayName).tag(provider)
@@ -142,7 +142,7 @@ struct ModeEditView: View {
                     HStack {
                         Image(systemName: "waveform")
                             .foregroundStyle(transcriptionGradient)
-                        Text("Provider")
+                        Text("服务商")
                     }
                 }
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -158,7 +158,7 @@ struct ModeEditView: View {
                         HStack {
                             Image(systemName: "character.bubble")
                                 .foregroundStyle(transcriptionModelGradient)
-                            Text("Model")
+                            Text("模型")
                             Spacer()
                             Text(CustomTranscriptionModelManager.shared.customModel.modelName)
                                 .foregroundStyle(.secondary)
@@ -174,7 +174,7 @@ struct ModeEditView: View {
                             HStack {
                                 Image(systemName: "character.bubble")
                                     .foregroundStyle(transcriptionModelGradient)
-                                Text("Model")
+                                Text("模型")
                             }
                         }
                         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -192,7 +192,7 @@ struct ModeEditView: View {
                     
                     if viewModel.isLanguageSelectionAvailable() {
                         let grouped = viewModel.getGroupedLanguages()
-                        Picker("Language", selection: $viewModel.transcriptionLanguage) {
+                        Picker("语言", selection: $viewModel.transcriptionLanguage) {
                             ForEach(grouped.recommended, id: \.key) { key, value in
                                 Text(TranscriptionModelProvider.languageWithFlag(key, name: value)).tag(key)
                             }
@@ -212,17 +212,17 @@ struct ModeEditView: View {
 
                     } else { // Auto-detected language models - Gemini and Parakeet
                         HStack {
-                            Text("Language")
+                            Text("语言")
                             Spacer()
-                            Text("Autodetected by model")
+                            Text("由模型自动检测")
                                 .foregroundStyle(.secondary)
                         }
                     }
 
                     if viewModel.isTranslationTargetSelectionAvailable() {
                         let translationGroups = viewModel.getGroupedTranslationTargetLanguages()
-                        Picker("Translate to", selection: $viewModel.translationTargetLanguage) {
-                            Text("Off").tag("")
+                        Picker("翻译为", selection: $viewModel.translationTargetLanguage) {
+                            Text("关闭").tag("")
 
                             if !translationGroups.recommended.isEmpty {
                                 Divider()
@@ -247,9 +247,9 @@ struct ModeEditView: View {
                     if viewModel.isSpeakerLabelsAvailable() {
                         Toggle(isOn: $viewModel.speakerLabelsEnabled) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Speaker Labels")
+                                Text("说话人标注")
                                     .font(.body)
-                                Text("Identify and label each speaker in the transcript")
+                                Text("识别并标注转写中的每位说话人")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -267,9 +267,9 @@ struct ModeEditView: View {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.orange)
-                                Text("Download Model")
+                                Text("下载模型")
                                 Spacer()
-                                Text("Required")
+                                Text("必填")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")
@@ -285,9 +285,9 @@ struct ModeEditView: View {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.orange)
-                                Text("Configure Custom Model")
+                                Text("配置自定义模型")
                                 Spacer()
-                                Text("Required")
+                                Text("必填")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")
@@ -304,9 +304,9 @@ struct ModeEditView: View {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.orange)
-                                Text("Configure Grok")
+                                Text("配置 Grok")
                                 Spacer()
-                                Text("Required")
+                                Text("必填")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -327,9 +327,9 @@ struct ModeEditView: View {
                                 HStack {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .foregroundStyle(.orange)
-                                    Text("Add API Key")
+                                    Text("添加 API Key")
                                     Spacer()
-                                    Text("Required")
+                                    Text("必填")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -341,12 +341,12 @@ struct ModeEditView: View {
             
             if viewModel.isTranscriptionProviderConfigured(viewModel.transcriptionProvider) {
 
-                Section("Text Processing") {
+                Section("文本处理") {
                     Toggle(isOn: $viewModel.isAutoTextFormattingEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Automatic Text Formatting")
+                            Text("自动文本格式化")
                                 .font(.body)
-                            Text("Splits text into readable paragraphs")
+                            Text("把文本切成易读的段落")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -357,9 +357,9 @@ struct ModeEditView: View {
 
                     Toggle(isOn: $viewModel.isSmartInsertEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Smart Insert")
+                            Text("智能插入")
                                 .font(.body)
-                            Text("Auto-adjust spacing and capitalization when inserting text via keyboard")
+                            Text("通过键盘插入文本时，自动调整空格和大小写")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -378,7 +378,7 @@ struct ModeEditView: View {
                     }
 
                     Toggle(
-                        "Enable",
+                        "启用",
                         isOn: Binding(
                             get: { viewModel.aiEnhanceEnabled },
                             set: { newValue in
@@ -392,7 +392,7 @@ struct ModeEditView: View {
                     if viewModel.aiEnhanceEnabled {
                         Picker(selection: $viewModel.aiProvider) {
                             // On-device section: Apple FM (if available) + on-device Gemma (LiteRT)
-                            Section("On-Device") {
+                            Section("设备端") {
                                 if viewModel.isAppleFoundationModelAvailable {
                                     Label("Apple", systemImage: "apple.intelligence")
                                         .tag(AIProvider.apple)
@@ -401,7 +401,7 @@ struct ModeEditView: View {
                                     .tag(AIProvider.local)
                             }
                             // Cloud providers section
-                            Section("Cloud") {
+                            Section("云端") {
                                 ForEach(AIProvider.cloudProviders) { provider in
                                     if viewModel.isProviderReady(provider) {
                                         Text(provider.displayName).tag(provider)
@@ -423,7 +423,7 @@ struct ModeEditView: View {
                             HStack {
                                 Image(systemName: "sparkles")
                                     .foregroundStyle(aiEnhancementGradient)
-                                Text("AI Provider")
+                                Text("AI 服务商")
                             }
                         }
                         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -444,9 +444,9 @@ struct ModeEditView: View {
                                     HStack {
                                         Image(systemName: "wand.and.sparkles")
                                             .foregroundStyle(aiEnhancementGradient)
-                                        Text("AI Model")
+                                        Text("AI 模型")
                                         Spacer()
-                                        Text("Foundation Model")
+                                        Text("基础模型")
                                             .foregroundStyle(.secondary)
                                     }
                                     .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -455,7 +455,7 @@ struct ModeEditView: View {
                                     HStack {
                                         Image(systemName: "wand.and.sparkles")
                                             .foregroundStyle(aiEnhancementGradient)
-                                        Text("AI Model")
+                                        Text("AI 模型")
                                         Spacer()
                                         Text(viewModel.aiService.customOpenAIModelName)
                                             .foregroundStyle(.secondary)
@@ -468,7 +468,7 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "wand.and.sparkles")
                                                 .foregroundStyle(aiEnhancementGradient)
-                                            Text("AI Model")
+                                            Text("AI 模型")
                                             Spacer()
                                             Text(viewModel.aiModel ?? "Select")
                                                 .foregroundStyle(.secondary)
@@ -511,9 +511,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure Ollama")
+                                            Text("配置 Ollama")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -527,9 +527,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure Custom AI Provider")
+                                            Text("配置自定义 AI 服务商")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -543,9 +543,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure Anthropic")
+                                            Text("配置 Anthropic")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -559,9 +559,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure OpenAI")
+                                            Text("配置 OpenAI")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -575,9 +575,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure Gemini")
+                                            Text("配置 Gemini")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -591,9 +591,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Configure Grok")
+                                            Text("配置 Grok")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -607,9 +607,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "person.badge.key")
                                                 .foregroundStyle(.orange)
-                                            Text("Sign in with GitHub")
+                                            Text("用 GitHub 登录")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -624,9 +624,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "arrow.down.circle")
                                                 .foregroundStyle(.orange)
-                                            Text("Download Model")
+                                            Text("下载模型")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -646,9 +646,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Add API Key")
+                                            Text("添加 API Key")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -663,7 +663,7 @@ struct ModeEditView: View {
                                 showPresetPicker = true
                             } label: {
                                 HStack {
-                                    Text("Preset")
+                                    Text("预设")
                                     Spacer()
                                     Text(viewModel.selectedPresetName)
                                         .foregroundStyle(.secondary)
@@ -686,9 +686,9 @@ struct ModeEditView: View {
 
                             Toggle(isOn: $viewModel.useClipboardContext) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Clipboard Context")
+                                    Text("剪贴板上下文")
                                         .font(.body)
-                                    Text("Use clipboard text as context for better AI processing accuracy")
+                                    Text("把剪贴板文本用作上下文，提高 AI 处理的准确度")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -718,9 +718,9 @@ struct ModeEditView: View {
                             )
                         ) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Use Separate Extractor")
+                                Text("使用单独的提取器")
                                     .font(.body)
-                                Text("Choose a different provider or model for reminder suggestions than the one used for regular AI processing.")
+                                Text("为提醒建议选择与常规 AI 处理不同的服务商或模型。")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -730,13 +730,13 @@ struct ModeEditView: View {
                         if viewModel.usesSeparateReminderExtractor {
                             Picker(selection: $viewModel.reminderExtractorProvider) {
                                 if viewModel.isAppleFoundationModelAvailable {
-                                    Section("On-Device") {
+                                    Section("设备端") {
                                         Label("Apple", systemImage: "apple.intelligence")
                                             .tag(AIProvider.apple)
                                     }
                                 }
 
-                                Section("Cloud") {
+                                Section("云端") {
                                     ForEach(AIProvider.reminderExtractorCloudProviders) { provider in
                                         if viewModel.isProviderReady(provider) {
                                             Text(provider.displayName).tag(provider)
@@ -757,7 +757,7 @@ struct ModeEditView: View {
                                 HStack {
                                     Image(systemName: "checklist")
                                         .foregroundStyle(aiEnhancementGradient)
-                                    Text("Reminder Provider")
+                                    Text("提醒服务商")
                                 }
                             }
                             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -776,9 +776,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "wand.and.sparkles")
                                                 .foregroundStyle(aiEnhancementGradient)
-                                            Text("Reminder Model")
+                                            Text("提醒模型")
                                             Spacer()
-                                            Text("Foundation Model")
+                                            Text("基础模型")
                                                 .foregroundStyle(.secondary)
                                         }
                                         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
@@ -786,7 +786,7 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "wand.and.sparkles")
                                                 .foregroundStyle(aiEnhancementGradient)
-                                            Text("Reminder Model")
+                                            Text("提醒模型")
                                             Spacer()
                                             Text(viewModel.aiService.customOpenAIModelName)
                                                 .foregroundStyle(.secondary)
@@ -799,7 +799,7 @@ struct ModeEditView: View {
                                             HStack {
                                                 Image(systemName: "wand.and.sparkles")
                                                     .foregroundStyle(aiEnhancementGradient)
-                                                Text("Reminder Model")
+                                                Text("提醒模型")
                                                 Spacer()
                                                 Text(viewModel.reminderExtractorModel ?? "Select")
                                                     .foregroundStyle(.secondary)
@@ -839,9 +839,9 @@ struct ModeEditView: View {
                                         HStack {
                                             Image(systemName: "exclamationmark.triangle.fill")
                                                 .foregroundStyle(.orange)
-                                            Text("Open AI Providers Settings")
+                                            Text("打开 AI 服务商设置")
                                             Spacer()
-                                            Text("Required")
+                                            Text("必填")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                             Image(systemName: "chevron.right")
@@ -864,9 +864,9 @@ struct ModeEditView: View {
                 Section(header: obsidianSectionHeader) {
                     Toggle(isOn: $viewModel.obsidianEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Save to Obsidian")
+                            Text("保存到 Obsidian")
                                 .font(.body)
-                            Text("Save this mode's transcriptions to Obsidian. Configure the global integration in Settings → Integrations.")
+                            Text("把这个模式的转写保存到 Obsidian。全局集成在「设置 → 集成」里配置。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -881,9 +881,9 @@ struct ModeEditView: View {
                 Section(header: folderExportSectionHeader) {
                     Toggle(isOn: $viewModel.folderExportEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Save markdown file")
+                            Text("保存 Markdown 文件")
                                 .font(.body)
-                            Text("Save this mode's transcriptions as a .md file in the folder picked in Settings → Integrations.")
+                            Text("把这个模式的转写保存为 .md 文件，存到在「设置 → 集成」里选的文件夹。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -903,7 +903,7 @@ struct ModeEditView: View {
                         } label: {
                             HStack {
                                 Spacer()
-                                Label("Duplicate Mode", systemImage: "doc.on.doc")
+                                Label("复制模式", systemImage: "doc.on.doc")
                                 Spacer()
                             }
                         }
@@ -917,7 +917,7 @@ struct ModeEditView: View {
                         } label: {
                             HStack {
                                 Spacer()
-                                Label("Delete Mode", systemImage: "trash")
+                                Label("删除模式", systemImage: "trash")
                                     .foregroundStyle(.red)
                                 Spacer()
                             }
@@ -952,7 +952,7 @@ struct ModeEditView: View {
                     }
                     .tint(viewModel.isValid ? .blue : .gray)
                 } else {
-                    Button("Save") {
+                    Button("保存") {
                         handleSaveTapped(scrollProxy: scrollProxy)
                     }
                     .foregroundStyle(viewModel.isValid ? .blue : .gray)
@@ -972,7 +972,7 @@ struct ModeEditView: View {
             Label(validationMessage, systemImage: "info.circle")
                 .foregroundStyle(.orange)
                 .font(.caption)
-                .accessibilityLabel("Required: \(validationMessage)")
+                .accessibilityLabel("必填：\(validationMessage)")
                 .keyframeAnimator(initialValue: CGFloat.zero, trigger: shakeTrigger) { content, value in
                     content.offset(x: value)
                 } keyframes: { _ in
@@ -992,7 +992,7 @@ struct ModeEditView: View {
             Label(validationMessage, systemImage: "info.circle")
                 .foregroundStyle(.orange)
                 .font(.caption)
-                .accessibilityLabel("Required: \(validationMessage)")
+                .accessibilityLabel("必填：\(validationMessage)")
                 .keyframeAnimator(initialValue: CGFloat.zero, trigger: shakeTrigger) { content, value in
                     content.offset(x: value)
                 } keyframes: { _ in
@@ -1002,7 +1002,7 @@ struct ModeEditView: View {
                     SpringKeyframe(0, duration: 0.1, spring: .bouncy)
                 }
         } else {
-            Text("Configure how the raw transcription should be processed and refined.")
+            Text("配置原始转写应如何处理和润色。")
         }
     }
 
@@ -1010,7 +1010,7 @@ struct ModeEditView: View {
 
     private var modeDetailsSectionHeader: some View {
         HStack(spacing: 4) {
-            Text("Mode Details")
+            Text("模式详情")
             if hasAttemptedSave && viewModel.hasNameError {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
@@ -1021,7 +1021,7 @@ struct ModeEditView: View {
 
     private var transcriptionSectionHeader: some View {
         HStack(spacing: 4) {
-            Text("Transcription")
+            Text("转写")
             if viewModel.hasTranscriptionError {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
@@ -1040,7 +1040,7 @@ struct ModeEditView: View {
 
     private var aiProcessingSectionHeader: some View {
         HStack(spacing: 4) {
-            Text("AI Processing")
+            Text("AI 处理")
             if viewModel.hasAIProcessingError {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
@@ -1062,12 +1062,12 @@ struct ModeEditView: View {
     }
 
     private var folderExportSectionHeader: some View {
-        Text("Save to Folder")
+        Text("保存到文件夹")
     }
 
     private var reminderSuggestionsSectionHeader: some View {
         HStack(spacing: 4) {
-            Text("Reminder Suggestions")
+            Text("提醒建议")
             if viewModel.hasReminderExtractorError {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
@@ -1087,7 +1087,7 @@ struct ModeEditView: View {
     @ViewBuilder
     private var nameValidationFooter: some View {
         if hasAttemptedSave && viewModel.hasNameError {
-            Label("Enter a mode name to continue", systemImage: "info.circle")
+            Label("输入模式名称以继续", systemImage: "info.circle")
                 .foregroundStyle(.orange)
                 .font(.caption)
         }
@@ -1099,7 +1099,7 @@ struct ModeEditView: View {
             Label(validationMessage, systemImage: "info.circle")
                 .foregroundStyle(.orange)
                 .font(.caption)
-                .accessibilityLabel("Required: \(validationMessage)")
+                .accessibilityLabel("必填：\(validationMessage)")
                 .keyframeAnimator(initialValue: CGFloat.zero, trigger: shakeTrigger) { content, value in
                     content.offset(x: value)
                 } keyframes: { _ in
@@ -1109,7 +1109,7 @@ struct ModeEditView: View {
                     SpringKeyframe(0, duration: 0.1, spring: .bouncy)
                 }
         } else {
-            Text("Leave this off to use the mode's regular AI setup for reminder suggestions when available.")
+            Text("关掉它，提醒建议会用该模式常规的 AI 配置（如果有）。")
         }
     }
 
@@ -1234,7 +1234,7 @@ private struct ModePresetPickerSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("Filter", selection: $filter) {
+                    Picker("筛选", selection: $filter) {
                         ForEach(PresetFilter.allCases) { filter in
                             Text(filter.title).tag(filter)
                         }
@@ -1264,7 +1264,7 @@ private struct ModePresetPickerSheet: View {
                     if selectedCategory == nil {
                         let favorites = typeFilteredPresets.filter(\.isFavorite)
                         if !favorites.isEmpty {
-                            Section("Favorites") {
+                            Section("收藏") {
                                 ForEach(favorites) { preset in
                                     modePresetRow(preset)
                                 }
@@ -1290,7 +1290,7 @@ private struct ModePresetPickerSheet: View {
                     selectedCategory = nil
                 }
             }
-            .navigationTitle("Select Preset")
+            .navigationTitle("选择预设")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -1367,7 +1367,7 @@ private struct ModelPickerSheet: View {
                 }
             }
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search models")
-            .navigationTitle("Select Model")
+            .navigationTitle("选择模型")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -1409,7 +1409,7 @@ private struct ModelPickerSheet: View {
         return List {
             if provider == .opencodeZen, let selectedModel,
                !AIProvider.isOpencodeZenCatalogModelUsable(selectedModel) {
-                Section("Unavailable selection") {
+                Section("不可用的选择") {
                     Text(selectedModel)
                     Text(AIProvider.opencodeZenUnavailableModelMessage)
                         .foregroundStyle(.secondary)
@@ -1420,7 +1420,7 @@ private struct ModelPickerSheet: View {
                     ForEach(free, id: \.self) { modelRow($0) }
                 } header: {
                     Label {
-                        Text("Free with your key")
+                        Text("用你的 Key 免费")
                     } icon: {
                         Image(systemName: "checkmark.seal.fill").foregroundStyle(.green)
                     }

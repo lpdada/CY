@@ -17,10 +17,10 @@ struct OnboardingKeyboardPage: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(spacing: 4) {
-                        Text("Dictate")
+                        Text("听写")
                             .foregroundStyle(meshGradient(t: t))
-                        + Text(" Anywhere")
-                        Text("You Type")
+                        + Text(" 任意位置")
+                        Text("你输入")
                     }
                     .font(.largeTitle.weight(.bold))
                     .fontDesign(.rounded)
@@ -33,7 +33,7 @@ struct OnboardingKeyboardPage: View {
                         .shadow(color: .black.opacity(0.2), radius: 10, x: 4, y: 6)
 
                     // Subtitle
-                    Text("Use VivaDicta keyboard to transcribe in any app")
+                    Text("用畅言键盘在任意 App 里转写")
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct OnboardingKeyboardPage: View {
                     // Setup Instructions
                     OnboardingCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Setup Instructions")
+                            Text("设置说明")
                                 .font(.title3.weight(.bold))
 
                             VStack(alignment: .leading, spacing: 12) {

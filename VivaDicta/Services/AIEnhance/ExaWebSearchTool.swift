@@ -114,7 +114,7 @@ enum ExaWebSearchToolRuntime {
                     query: trimmedQuery,
                     status: .empty,
                     results: [],
-                    message: "No relevant web results were found."
+                    message: "没有找到相关的网络结果。"
                 )
             }
 

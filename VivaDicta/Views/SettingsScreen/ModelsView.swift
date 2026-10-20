@@ -20,7 +20,7 @@ struct ModelsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Main segmented control at the top
-            Picker("Model type", selection: $modelType) {
+            Picker("模型类型", selection: $modelType) {
                 ForEach(TranscriptionModelType.allCases) {
                     Text($0.rawValue.capitalized)
                 }
@@ -100,7 +100,7 @@ struct ModelsView: View {
                 handleCustomModelSaved()
             })
         }
-        .navigationTitle("Transcription Models")
+        .navigationTitle("转写模型")
         .navigationBarTitleDisplayMode(.large)
     }
 

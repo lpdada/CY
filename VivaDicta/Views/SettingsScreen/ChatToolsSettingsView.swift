@@ -21,12 +21,12 @@ struct ChatToolsSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Other Notes") {
+            Section("其他笔记") {
                 Toggle(isOn: $isImplicitCrossNoteSearchEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Automatic search in other notes (Experimental)")
+                        Text("在其他笔记中自动搜索（实验）")
                             .font(.body)
-                        Text("Allow compatible chat models to decide when to search your other notes during chat. Off by default.")
+                        Text("允许兼容的对话模型在聊天时自行决定是否搜索你的其他笔记。默认关闭。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -34,18 +34,18 @@ struct ChatToolsSettingsView: View {
                 .disabled(!isSmartSearchEnabled)
 
                 if !isSmartSearchEnabled {
-                    Text("Requires Smart Search to be enabled because other-note search uses the shared RAG index.")
+                    Text("需要开启智能搜索，因为其他笔记搜索用的是共享的 RAG 索引。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section("Web Search") {
+            Section("网络搜索") {
                 Toggle(isOn: $isImplicitWebSearchEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Web Search (Exa)")
+                        Text("网络搜索（Exa）")
                             .font(.body)
-                        Text("Allow chat to search the web with Exa. When enabled, the web search button appears in chat and compatible models may also search automatically.")
+                        Text("允许对话用 Exa 搜索网络。开启后，对话里会出现网络搜索按钮，兼容的模型也可能自动搜索。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -53,7 +53,7 @@ struct ChatToolsSettingsView: View {
                 .disabled(!isExaConfigured)
 
                 if !isExaConfigured {
-                    Text("Requires an Exa API key because web search uses Exa.")
+                    Text("需要 Exa API Key，因为网络搜索用的是 Exa。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -63,8 +63,8 @@ struct ChatToolsSettingsView: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Configure Exa API Key")
-                            Text("Manage the Exa API key used for chat web search.")
+                            Text("配置 Exa API Key")
+                            Text("管理对话网络搜索用的 Exa API Key。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -80,7 +80,7 @@ struct ChatToolsSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Chat Tools")
+        .navigationTitle("对话工具")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             isExaConfigured = ExaAPIKeyManager.isConfigured
@@ -98,10 +98,10 @@ private struct ExaWebSearchSettingsView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("Web Search (Exa)")
+            Text("网络搜索（Exa）")
                 .font(.title2)
 
-            Text("Let chat models search the web for current information during chat.")
+            Text("让对话模型在聊天时搜索网络获取最新信息。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -132,7 +132,7 @@ private struct ExaWebSearchSettingsView: View {
                 Button {
                     pasteFromClipboard()
                 } label: {
-                    Text("Paste from clipboard")
+                    Text("从剪贴板粘贴")
                         .font(.headline.weight(.medium))
                 }
                 .padding(.vertical, 8)
@@ -143,7 +143,7 @@ private struct ExaWebSearchSettingsView: View {
                 Button {
                     pasteFromClipboard()
                 } label: {
-                    Text("Paste from clipboard")
+                    Text("从剪贴板粘贴")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.primary)
                         .padding(.vertical, 8)
@@ -159,7 +159,7 @@ private struct ExaWebSearchSettingsView: View {
             Button {
                 UIApplication.shared.open(URL(string: "https://dashboard.exa.ai/api-keys")!)
             } label: {
-                Label("Get Exa API Key", systemImage: "key")
+                Label("获取 Exa API Key", systemImage: "key")
                     .font(.headline.weight(.medium))
                     .foregroundStyle(.blue)
             }
@@ -172,7 +172,7 @@ private struct ExaWebSearchSettingsView: View {
                         exaAPIKey = ""
                         HapticManager.lightImpact()
                     } label: {
-                        Text("Clear")
+                        Text("清除")
                             .font(.headline.weight(.medium))
                     }
                     .padding(.vertical, 8)
@@ -184,7 +184,7 @@ private struct ExaWebSearchSettingsView: View {
                         exaAPIKey = ""
                         HapticManager.lightImpact()
                     } label: {
-                        Text("Clear")
+                        Text("清除")
                             .font(.headline.weight(.medium))
                             .foregroundStyle(.primary)
                             .padding(.vertical, 8)
@@ -204,7 +204,7 @@ private struct ExaWebSearchSettingsView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -217,7 +217,7 @@ private struct ExaWebSearchSettingsView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -239,7 +239,7 @@ private struct ExaWebSearchSettingsView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
-        .navigationTitle("Web Search")
+        .navigationTitle("网络搜索")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -253,7 +253,7 @@ private struct ExaWebSearchSettingsView: View {
                         .disabled(exaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .tint(.blue)
                     } else {
-                        Button("Save") {
+                        Button("保存") {
                             saveKey()
                         }
                         .disabled(exaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -267,9 +267,9 @@ private struct ExaWebSearchSettingsView: View {
             hasExistingKey = existing != nil
             clearButtonVisible = !exaAPIKey.isEmpty
         }
-        .alert("Delete API Key", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
+        .alert("删除 API Key", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
                 ExaAPIKeyManager.delete()
                 exaAPIKey = ""
                 hasExistingKey = false
@@ -277,7 +277,7 @@ private struct ExaWebSearchSettingsView: View {
                 HapticManager.heavyImpact()
             }
         } message: {
-            Text("Are you sure you want to delete the Exa API key?")
+            Text("确定要删除 Exa 的 API Key 吗？")
         }
     }
 
@@ -310,7 +310,7 @@ private struct ExaWebSearchSettingsView: View {
                 hasExistingKey = true
                 HapticManager.success()
             } else {
-                verificationError = "Invalid API key. Please check your key and try again."
+                verificationError = "API Key 无效。请检查你的 Key 后重试。"
                 HapticManager.error()
             }
         }

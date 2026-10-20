@@ -24,14 +24,14 @@ struct AnimatedCopyButton: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
                         .frame(height: buttonHeight)
-                    Text("Copied")
+                    Text("已复制")
                 }
                 .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity.combined(with: .move(edge: .top))))
             } else {
                 HStack(spacing: 4) {
                     Image(systemName: "doc.on.doc")
                         .frame(height: buttonHeight)
-                    Text("Copy")
+                    Text("复制")
                 }
                 .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity.combined(with: .move(edge: .top))))
 

@@ -37,8 +37,8 @@ public extension View {
 
 #Preview("Loading overlay - on") {
     VStack(spacing: 20) {
-        Text("Some content")
-        Button("Tap me") {}
+        Text("一些内容")
+        Button("点我") {}
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .loadingOverlay(if: true)
@@ -46,8 +46,8 @@ public extension View {
 
 #Preview("Loading overlay - off") {
     VStack(spacing: 20) {
-        Text("Some content")
-        Button("Tap me") {}
+        Text("一些内容")
+        Button("点我") {}
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .loadingOverlay(if: false)

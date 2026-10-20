@@ -26,10 +26,10 @@ struct OnboardingMicrophonePage: View {
                     OnboardingAppIcon(size: 80, useSinebow: true)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Microphone Access")
+                        Text("麦克风权限")
                             .font(.title2.weight(.bold))
 
-                        Text("Required to record your voice for transcription.")
+                        Text("转写录音必需。")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

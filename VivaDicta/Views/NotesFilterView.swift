@@ -58,11 +58,11 @@ struct NotesFilterView: View {
                     ContentUnavailableView(
                         "No Filters Yet",
                         systemImage: "line.3.horizontal.decrease.circle",
-                        description: Text("Create tags or add more notes to start filtering.")
+                        description: Text("创建标签或添加更多笔记后开始筛选。")
                     )
                 } else {
                     if !sourceTags.isEmpty {
-                        Section("Sources") {
+                        Section("来源") {
                             ForEach(sourceTags, id: \.self) { tag in
                                 selectionRow(
                                     title: SourceTag.displayName(for: tag),
@@ -77,7 +77,7 @@ struct NotesFilterView: View {
                     }
 
                     if !userTags.isEmpty {
-                        Section("Tags") {
+                        Section("标签") {
                             ForEach(userTags) { tag in
                                 selectionRow(
                                     title: tag.name,
@@ -92,17 +92,17 @@ struct NotesFilterView: View {
                     }
                 }
             }
-            .navigationTitle("Notes Filter")
+            .navigationTitle("笔记筛选")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26, *) {
-                        Button("Close", systemImage: "xmark") {
+                        Button("关闭", systemImage: "xmark") {
                             dismiss()
                         }
                         .labelStyle(.iconOnly)
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             dismiss()
                         }
                     }
@@ -118,7 +118,7 @@ struct NotesFilterView: View {
     private var bottomActions: some View {
         if hasAvailableFilters {
             VStack(spacing: 12) {
-                Button("Apply Filter", systemImage: "checkmark.circle.fill") {
+                Button("应用筛选", systemImage: "checkmark.circle.fill") {
                     onApply(draftFilter)
                     dismiss()
                 }
@@ -127,7 +127,7 @@ struct NotesFilterView: View {
                 .disabled(!hasChanges)
 
                 if appliedFilter.isActive {
-                    Button("Disable Filter", systemImage: "line.3.horizontal.decrease.circle") {
+                    Button("关闭筛选", systemImage: "line.3.horizontal.decrease.circle") {
                         onApply(SavedNotesFilter())
                         dismiss()
                     }

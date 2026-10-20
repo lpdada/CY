@@ -36,7 +36,7 @@ struct PromptsSettings: View {
             .padding(.bottom, 20)
         }
         .toolbarTitleDisplayMode(.inlineLarge)
-        .navigationTitle("Prompts")
+        .navigationTitle("提示词")
     }
     
     private var emptyStateView: some View {
@@ -47,10 +47,10 @@ struct PromptsSettings: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
             
-            Text("No Prompts Created")
+            Text("还没有创建提示词")
                 .font(.title2.weight(.medium))
             
-            Text("Create your first prompt from a template to get started with AI processing")
+            Text("从模板创建你的第一个提示词，开始使用 AI 处理")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -67,7 +67,7 @@ struct PromptsSettings: View {
                     PromptRowView(prompt: prompt)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button("Delete", role: .destructive) {
+                    Button("删除", role: .destructive) {
                         deletePrompt(prompt)
                     }
                 }

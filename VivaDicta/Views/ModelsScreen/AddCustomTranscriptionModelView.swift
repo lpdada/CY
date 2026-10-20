@@ -61,10 +61,10 @@ struct AddCustomTranscriptionModelView: View {
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)
 
-                Text("Custom Model")
+                Text("自定义模型")
                     .font(.title2)
 
-                Text("OpenAI-Compatible Transcription API")
+                Text("OpenAI 兼容转写 API")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -75,7 +75,7 @@ struct AddCustomTranscriptionModelView: View {
                     VStack(spacing: 20) {
                         // API Endpoint input
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("API Endpoint")
+                            Text("API 接口地址")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -98,14 +98,14 @@ struct AddCustomTranscriptionModelView: View {
                                     }
                                 }
 
-                            Text("The full transcription endpoint URL")
+                            Text("完整的转写接口 URL")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
 
                         // API Key input (optional)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("API Key (Optional)")
+                            Text("API Key（可选）")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -120,14 +120,14 @@ struct AddCustomTranscriptionModelView: View {
                                         .stroke(Color.gray, lineWidth: 0.5)
                                 }
 
-                            Text("Leave empty if your server doesn't require authentication")
+                            Text("如果你的服务器不需要认证，留空")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
 
                         // Model Name input
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Model Name")
+                            Text("模型名称")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -141,18 +141,18 @@ struct AddCustomTranscriptionModelView: View {
                                         .stroke(Color.gray, lineWidth: 0.5)
                                 }
 
-                            Text("The model identifier as expected by your API server")
+                            Text("你的 API 服务器要求的模型标识")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
 
                         // Request format picker
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Request Format")
+                            Text("请求格式")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            Picker("Request Format", selection: $requestFormat) {
+                            Picker("请求格式", selection: $requestFormat) {
                                 ForEach(CustomTranscriptionRequestFormat.allCases, id: \.self) { format in
                                     Text(format.title).tag(format)
                                 }
@@ -168,9 +168,9 @@ struct AddCustomTranscriptionModelView: View {
                         // Multilingual toggle
                         Toggle(isOn: $isMultilingual) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Multilingual Model")
+                                Text("多语言模型")
                                     .font(.subheadline)
-                                Text("Enable if the model supports multiple languages")
+                                Text("如果模型支持多语言则启用")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -230,7 +230,7 @@ struct AddCustomTranscriptionModelView: View {
                         Button(role: .destructive) {
                             showingClearConfirmation = true
                         } label: {
-                            Label("Clear Configuration", systemImage: "trash")
+                            Label("清除配置", systemImage: "trash")
                                 .font(.subheadline)
                         }
                     }
@@ -243,17 +243,17 @@ struct AddCustomTranscriptionModelView: View {
             .onTapGesture {
                 focusedField = nil
             }
-            .navigationTitle("Custom Model")
+            .navigationTitle("自定义模型")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26, *) {
-                        Button("Close", systemImage: "xmark") {
+                        Button("关闭", systemImage: "xmark") {
                             dismiss()
                         }
                         .labelStyle(.iconOnly)
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             dismiss()
                         }
                     }
@@ -263,16 +263,16 @@ struct AddCustomTranscriptionModelView: View {
                 loadExistingConfiguration()
             }
             .confirmationDialog(
-                "Clear Configuration",
+                "清除配置",
                 isPresented: $showingClearConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Clear", role: .destructive) {
+                Button("清除", role: .destructive) {
                     clearConfiguration()
                 }
-                Button("Cancel", role: .cancel) {}
+                Button("取消", role: .cancel) {}
             } message: {
-                Text("This will remove all custom model settings.")
+                Text("这会删除全部自定义模型设置。")
             }
         }
     }
@@ -287,7 +287,7 @@ struct AddCustomTranscriptionModelView: View {
             HStack {
                 ProgressView()
                     .controlSize(.small)
-                Text("Validating...")
+                Text("正在验证…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -296,8 +296,8 @@ struct AddCustomTranscriptionModelView: View {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .accessibilityLabel("Saved successfully")
-                Text("Configuration saved")
+                    .accessibilityLabel("保存成功")
+                Text("配置已保存")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -306,7 +306,7 @@ struct AddCustomTranscriptionModelView: View {
             HStack(alignment: .top) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-                    .accessibilityLabel("Save failed")
+                    .accessibilityLabel("保存失败")
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -317,8 +317,8 @@ struct AddCustomTranscriptionModelView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Invalid URL")
-                Text("Invalid URL. Use http:// or https://")
+                    .accessibilityLabel("URL 无效")
+                Text("URL 无效。请用 http:// 或 https://")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -327,7 +327,7 @@ struct AddCustomTranscriptionModelView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Validation error")
+                    .accessibilityLabel("验证错误")
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

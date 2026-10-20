@@ -73,7 +73,7 @@ struct SettingsView: View {
         NavigationStack(path: $navigationPath) {
             Form {
                 // Modes section
-                Section("Modes") {
+                Section("模式") {
                     
                     ForEach(appState.aiService.modes) { mode in
                         NavigationLink(value: mode) {
@@ -84,14 +84,14 @@ struct SettingsView: View {
                                 HapticManager.heavyImpact()
                                 duplicateMode(mode)
                             } label: {
-                                Label("Duplicate", systemImage: "doc.on.doc")
+                                Label("复制一份", systemImage: "doc.on.doc")
                             }
 
                             if appState.aiService.modes.count > 1 {
                                 Button(role: .destructive) {
                                     deleteMode(mode)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("删除", systemImage: "trash")
                                 }
                             }
                         }
@@ -100,7 +100,7 @@ struct SettingsView: View {
                                 Button(role: .destructive) {
                                     deleteMode(mode)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("删除", systemImage: "trash")
                                 }
                             }
                         }
@@ -109,7 +109,7 @@ struct SettingsView: View {
                                 HapticManager.heavyImpact()
                                 duplicateMode(mode)
                             } label: {
-                                Label("Duplicate", systemImage: "doc.on.doc")
+                                Label("复制一份", systemImage: "doc.on.doc")
                             }
                             .tint(.blue)
                         }
@@ -126,7 +126,7 @@ struct SettingsView: View {
                                     .foregroundStyle(.blue)
                                     .font(.title2)
 
-                                Text("Add New Mode")
+                                Text("添加新模式")
                                     .foregroundStyle(.blue)
                                     .font(.body)
 
@@ -142,7 +142,7 @@ struct SettingsView: View {
                                 Image(systemName: "info.circle")
                                     .foregroundStyle(.orange)
                                 
-                                Text("Set Up Transcription Model")
+                                Text("设置转写模型")
                                     .foregroundStyle(.orange)
                                     .font(.footnote)
                             }
@@ -150,17 +150,17 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section("Transcription") {
+                Section("转写") {
                     NavigationLink(value: SettingsDestination.transcriptionModels) {
-                        Text("Transcription Models")
+                        Text("转写模型")
                     }
                     .popoverTip(selectTranscriptionModelTipSettingsView)
 
                     Toggle(isOn: $isVADEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Voice Activity Detection")
+                            Text("语音活动检测")
                                 .font(.body)
-                            Text("Improves accuracy by detecting speech segments")
+                            Text("通过检测语音片段提升准确率")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -171,9 +171,9 @@ struct SettingsView: View {
 
                     Toggle(isOn: $isAutoCopyAfterRecordingEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Copy to Clipboard")
+                            Text("复制到剪贴板")
                                 .font(.body)
-                            Text("Automatically copy transcription to clipboard after recording")
+                            Text("录音后自动把转写复制到剪贴板")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -183,40 +183,40 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section("Dictionary") {
+                Section("词典") {
                     NavigationLink(value: SettingsDestination.correctSpelling) {
-                        Text("Spelling Corrections")
+                        Text("拼写纠正")
                     }
 
                     NavigationLink(value: SettingsDestination.replacements) {
-                        Text("Word Replacements")
+                        Text("词语替换")
                     }
                 }
                 
-                Section("Organization") {
+                Section("组织") {
                     NavigationLink(value: SettingsDestination.tags) {
-                        Label("Tags", systemImage: "tag")
+                        Label("标签", systemImage: "tag")
                     }
                 }
 
-                Section("AI Settings") {
+                Section("AI 设置") {
                     NavigationLink(value: SettingsDestination.aiProviders) {
-                        Text("AI Providers")
+                        Text("AI 服务商")
                     }
                     NavigationLink(value: SettingsDestination.presetsSettings) {
-                        Text("AI Processing Presets")
+                        Text("AI 处理预设")
                     }
                     NavigationLink(value: SettingsDestination.remindersAndCalendar) {
-                        Text("Reminders and Calendar")
+                        Text("提醒事项与日历")
                     }
                     if ChineseScriptPreferenceStore.shouldShowSetting(modes: appState.aiService.modes) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Picker("Chinese Script", selection: $chineseScriptPreference) {
+                            Picker("中文简繁", selection: $chineseScriptPreference) {
                                 ForEach(ChineseScriptPreference.allCases) { option in
                                     Text(option.displayName).tag(option)
                                 }
                             }
-                            Text("Applied to AI-enhanced output when it's in Chinese.")
+                            Text("当 AI 增强输出是中文时应用。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -226,9 +226,9 @@ struct SettingsView: View {
                     }
                     Toggle(isOn: $isModelThinkingEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Let the Model Think")
+                            Text("让模型思考")
                                 .font(.body)
-                            Text("Off is faster: AI processing asks reasoning models to keep thinking to a minimum. Turn on to send no reasoning setting at all, so each model uses its own default - slower, and possibly better on tricky text.")
+                            Text("关闭更快：AI 处理会要求推理模型把思考降到最低。打开则完全不发送推理设置，每个模型用自己的默认值——更慢，但处理棘手文本可能更好。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -238,29 +238,29 @@ struct SettingsView: View {
                     }
                     NavigationLink(value: SettingsDestination.chatTools) {
                         HStack {
-                            Text("Chat Tools")
+                            Text("对话工具")
                         }
                     }
                 }
 
-                Section("Smart Search") {
+                Section("智能搜索") {
                     NavigationLink(value: SettingsDestination.smartSearch) {
                         HStack {
-                            Text("Smart Search")
+                            Text("智能搜索")
                             Spacer()
-                            Text("^[\(RAGIndexingService.shared.indexedTranscriptionCount) note](inflect: true)")
+                            Text("\(RAGIndexingService.shared.indexedTranscriptionCount) 条笔记")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section("Keyboard") {
+                Section("键盘") {
                     Toggle(isOn: $isKeepInClipboardEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Copy to Clipboard")
+                            Text("复制到剪贴板")
                                 .font(.body)
-                            Text("Keep transcript in clipboard after inserting")
+                            Text("插入后把转写保留在剪贴板")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -271,7 +271,7 @@ struct SettingsView: View {
                     }
 
                     Toggle(isOn: $isHapticFeedbackEnabled) {
-                        Text("Haptic Feedback")
+                        Text("震动反馈")
                             .font(.body)
                     }
                     .onChange(of: isHapticFeedbackEnabled) { _, newValue in
@@ -280,7 +280,7 @@ struct SettingsView: View {
                     }
 
                     Toggle(isOn: $isSoundFeedbackEnabled) {
-                        Text("Sound")
+                        Text("声音")
                             .font(.body)
                     }
                     .onChange(of: isSoundFeedbackEnabled) { _, newValue in
@@ -291,34 +291,34 @@ struct SettingsView: View {
                     KeyboardLanguagesSettingsView(enabledLanguages: $enabledKeyboardLanguages)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Picker("Session Timeout", selection: $audioSessionTimeout) {
+                        Picker("会话超时", selection: $audioSessionTimeout) {
                             #if DEBUG
-                            Text("15 seconds").tag(15)
+                            Text("15 秒").tag(15)
                             #endif
-                            Text("30 seconds").tag(30)
-                            Text("1 minute").tag(60)
+                            Text("30 秒").tag(30)
+                            Text("1 分钟").tag(60)
                             #if DEBUG
-                            Text("90 seconds").tag(90)
-                            Text("2 minutes").tag(120)
+                            Text("90 秒").tag(90)
+                            Text("2 分钟").tag(120)
                             #endif
-                            Text("3 minutes").tag(180)
-                            Text("5 minutes").tag(300)
-                            Text("15 minutes").tag(900)
-                            Text("30 minutes").tag(1800)
-                            Text("1 hour").tag(3600)
-                            Text("Never").tag(AppGroupCoordinator.sessionTimeoutNever)
+                            Text("3 分钟").tag(180)
+                            Text("5 分钟").tag(300)
+                            Text("15 分钟").tag(900)
+                            Text("30 分钟").tag(1800)
+                            Text("1 小时").tag(3600)
+                            Text("永不").tag(AppGroupCoordinator.sessionTimeoutNever)
                         }
                         .onChange(of: audioSessionTimeout) { _, _ in
                             HapticManager.selectionChanged()
                             prewarmManager.applyTimeoutChange()
                         }
 
-                        Text("Keep microphone session active to allow recording from keyboard")
+                        Text("保持麦克风会话活跃，以便从键盘录音")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
                         if audioSessionTimeout == AppGroupCoordinator.sessionTimeoutNever {
-                            Text("With Never the microphone stays armed until you end the session below, which uses more battery.")
+                            Text("选「永不」时，麦克风会一直保持待命，直到你在下面结束会话，这样更耗电。")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
@@ -330,10 +330,10 @@ struct SettingsView: View {
                     )
                 }
 
-                Section("Microphone") {
-                    Picker("Input", selection: $preferredMicrophone) {
-                        Text("Automatic").tag(PreferredMicrophone.automatic)
-                        Text("iPhone Microphone").tag(PreferredMicrophone.builtIn)
+                Section("麦克风") {
+                    Picker("输入", selection: $preferredMicrophone) {
+                        Text("自动").tag(PreferredMicrophone.automatic)
+                        Text("iPhone 麦克风").tag(PreferredMicrophone.builtIn)
                     }
                     // @AppStorage persists to the same store and key
                     // RecordingAudioSession reads, so there is nothing to write
@@ -353,24 +353,24 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Feedback") {
+                Section("反馈") {
                     Toggle(isOn: $isHapticsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Haptic Feedback")
+                            Text("震动反馈")
                                 .font(.body)
-                            Text("Vibrations for actions like recording, copying, and deleting")
+                            Text("录音、复制、删除等操作时的震动")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Picker("Recording Orb", selection: $orbStyle) {
+                        Picker("录音球", selection: $orbStyle) {
                             ForEach(RecordingOrbStyle.allCases) { style in
                                 Text(style.displayName).tag(style)
                             }
                         }
-                        Text("The animation shown on the recording screen. Select None to hide it entirely.")
+                        Text("录音界面上显示的动画。选「无」完全隐藏。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -379,13 +379,13 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Storage") {
+                Section("存储") {
 
                     Toggle(isOn: $isAutoNoteCleanupEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Auto-delete Notes")
+                            Text("自动删除笔记")
                                 .font(.body)
-                            Text("Automatically delete old notes and their audio files")
+                            Text("自动删除旧笔记及其音频文件")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -398,12 +398,12 @@ struct SettingsView: View {
                     }
 
                     if isAutoNoteCleanupEnabled {
-                        Picker("Keep Notes For", selection: $noteRetentionDays) {
-                            Text("1 day").tag(1)
-                            Text("3 days").tag(3)
-                            Text("7 days").tag(7)
-                            Text("14 days").tag(14)
-                            Text("30 days").tag(30)
+                        Picker("笔记保留", selection: $noteRetentionDays) {
+                            Text("1 天").tag(1)
+                            Text("3 天").tag(3)
+                            Text("7 天").tag(7)
+                            Text("14 天").tag(14)
+                            Text("30 天").tag(30)
                         }
                         .padding(.leading)
                         .onChange(of: noteRetentionDays) { _, _ in
@@ -414,9 +414,9 @@ struct SettingsView: View {
                     if !isAutoNoteCleanupEnabled {
                         Toggle(isOn: $isAutoAudioCleanupEnabled) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Automatic Audio Cleanup")
+                                Text("自动清理音频")
                                     .font(.body)
-                                Text("Automatically delete old audio files to save space")
+                                Text("自动删除旧音频文件以节省空间")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -426,12 +426,12 @@ struct SettingsView: View {
                         }
 
                         if isAutoAudioCleanupEnabled {
-                            Picker("Keep Audio Files For", selection: $audioRetentionDays) {
-                                Text("1 day").tag(1)
-                                Text("3 days").tag(3)
-                                Text("7 days").tag(7)
-                                Text("14 days").tag(14)
-                                Text("30 days").tag(30)
+                            Picker("音频文件保留", selection: $audioRetentionDays) {
+                                Text("1 天").tag(1)
+                                Text("3 天").tag(3)
+                                Text("7 天").tag(7)
+                                Text("14 天").tag(14)
+                                Text("30 天").tag(30)
                             }
                             .padding(.leading)
                             .onChange(of: audioRetentionDays) { _, _ in
@@ -447,9 +447,9 @@ struct SettingsView: View {
 
                     Toggle(isOn: $isAutoChatCleanupEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Auto-delete Chats")
+                            Text("自动删除对话")
                                 .font(.body)
-                            Text("Automatically delete old chat conversations")
+                            Text("自动删除旧对话")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -459,12 +459,12 @@ struct SettingsView: View {
                     }
 
                     if isAutoChatCleanupEnabled {
-                        Picker("Keep Chats For", selection: $chatRetentionDays) {
-                            Text("1 day").tag(1)
-                            Text("3 days").tag(3)
-                            Text("7 days").tag(7)
-                            Text("14 days").tag(14)
-                            Text("30 days").tag(30)
+                        Picker("对话保留", selection: $chatRetentionDays) {
+                            Text("1 天").tag(1)
+                            Text("3 天").tag(3)
+                            Text("7 天").tag(7)
+                            Text("14 天").tag(14)
+                            Text("30 天").tag(30)
                         }
                         .padding(.leading)
                         .onChange(of: chatRetentionDays) { _, _ in
@@ -476,9 +476,9 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $isICloudSyncEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("iCloud Sync")
+                            Text("iCloud 同步")
                                 .font(.body)
-                            Text("Sync transcriptions, dictionary, and replacements across devices")
+                            Text("在设备间同步转写、词典和替换规则")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -490,45 +490,45 @@ struct SettingsView: View {
                 } header: {
                     Text("iCloud")
                 } footer: {
-                    Text("Requires app restart to take effect.")
+                    Text("需要重启 App 才生效。")
                 }
                 
-                Section("Export Notes") {
+                Section("导出笔记") {
                     NavigationLink(value: SettingsDestination.export) {
                         HStack {
                             Image(systemName: "square.and.arrow.up.on.square")
                                 .foregroundStyle(.blue)
-                            Text("Export Notes")
+                            Text("导出笔记")
                         }
                     }
                 }
 
-                Section("Integrations") {
+                Section("集成") {
                     NavigationLink(value: SettingsDestination.integrations) {
                         HStack {
                             Image(systemName: "puzzlepiece.extension")
                                 .foregroundStyle(.purple)
-                            Text("Integrations")
+                            Text("集成")
                         }
                     }
                 }
 
-                Section("Advanced") {
+                Section("高级") {
                     NavigationLink(value: SettingsDestination.advanced) {
                         HStack {
                             Image(systemName: "slider.horizontal.3")
                                 .foregroundStyle(.gray)
-                            Text("Advanced")
+                            Text("高级")
                         }
                     }
                 }
 
-                Section("Support") {
+                Section("支持") {
                     Link(destination: URL(string: "https://vivadicta.com/ios/docs")!) {
                         HStack {
                             Image(systemName: "book")
                                 .foregroundStyle(.purple)
-                            Text("Documentation")
+                            Text("文档")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -547,7 +547,7 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "envelope")
                                 .foregroundStyle(.blue)
-                            Text("Email Support")
+                            Text("邮件联系支持")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -562,7 +562,7 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "star")
                                 .foregroundStyle(.yellow)
-                            Text("Review in App Store")
+                            Text("在 App Store 评价")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -578,7 +578,7 @@ struct SettingsView: View {
                                 .scaledToFit()
                                 .frame(width: 20, height: 20)
                                 .tint(.primary)
-                            Text("Star on GitHub")
+                            Text("在 GitHub 点星")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -591,7 +591,7 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(.green)
-                            Text("Share VivaDicta")
+                            Text("分享畅言")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -604,7 +604,7 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "desktopcomputer")
                                 .foregroundStyle(.indigo)
-                            Text("VivaDicta for macOS")
+                            Text("畅言 macOS 版")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.forward")
@@ -683,15 +683,15 @@ struct SettingsView: View {
                     navigationPath: $navigationPath
                 )
             }
-            .navigationTitle("Settings")
+            .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close", systemImage: "xmark") {
+                    Button("关闭", systemImage: "xmark") {
                         HapticManager.lightImpact()
                         dismiss()
                     }
-                    .accessibilityLabel("Close Settings")
+                    .accessibilityLabel("关闭设置")
                 }
             }
 
@@ -721,20 +721,20 @@ struct SettingsView: View {
             }
         }
         
-        .alert("Prewarm Session Error", isPresented: $showPrewarmError) {
-            Button("OK") {
+        .alert("预热会话错误", isPresented: $showPrewarmError) {
+            Button("好") {
                 showPrewarmError = false
             }
         } message: {
             Text(prewarmErrorMessage)
         }
-        .alert("Restart Required", isPresented: $showRestartAlert) {
-            Button("Restart Now") {
+        .alert("需要重启", isPresented: $showRestartAlert) {
+            Button("立即重启") {
                 exit(0)
             }
-            Button("Later", role: .cancel) { }
+            Button("稍后", role: .cancel) { }
         } message: {
-            Text("The app needs to restart for iCloud sync changes to take effect.")
+            Text("App 需要重启，iCloud 同步的修改才生效。")
         }
         .sheet(isPresented: $showMailCompose) {
             MailComposeView(
@@ -871,7 +871,7 @@ private struct KeyboardSessionButton: View {
                                 .fill(.green)
                                 .frame(width: 6)
 
-                            Text("Session active")
+                            Text("会话活跃中")
                                 .font(.caption)
                                 .foregroundStyle(.green)
                         }
@@ -906,7 +906,7 @@ private struct AppVersionFooter: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
-            .accessibilityLabel("App version \(versionText)")
+            .accessibilityLabel("App 版本 \(versionText)")
     }
 }
 
@@ -956,7 +956,7 @@ private struct ModeInfoRow: View {
             if let languageCode = mode.transcriptionLanguage, isLanguageSelectionAvailable {
                 Text(TranscriptionModelProvider.allLanguages[languageCode] ?? languageCode)
             } else {
-                Text("Auto")
+                Text("自动")
             }
         }
     }
@@ -993,7 +993,7 @@ private struct ModeInfoRow: View {
                                     ]
                                 )
                             )
-                            .accessibilityLabel("Transcription provider")
+                            .accessibilityLabel("转写服务商")
                         VStack(alignment: .leading, spacing: 2) {
                             Text(mode.transcriptionProvider.displayName)
                                 .foregroundStyle(.secondary)
@@ -1025,7 +1025,7 @@ private struct ModeInfoRow: View {
                                         ]
                                     )
                                 )
-                                .accessibilityLabel("AI processing provider")
+                                .accessibilityLabel("AI 处理服务商")
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(provider.displayName)
                                     .foregroundStyle(.secondary)

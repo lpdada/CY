@@ -35,6 +35,6 @@ struct GetLatestTranscriptionIntent: AppIntent {
 
 struct NoTranscriptionsAvailableError: Error, CustomLocalizedStringResourceConvertible {
     var localizedStringResource: LocalizedStringResource {
-        "You haven't recorded any notes yet."
+        "你还没有录过任何笔记。"
     }
 }

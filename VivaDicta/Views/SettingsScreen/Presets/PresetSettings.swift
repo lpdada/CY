@@ -58,7 +58,7 @@ struct PresetSettings: View {
     var body: some View {
         List {
             Section {
-                Picker("Filter", selection: $filter) {
+                Picker("筛选", selection: $filter) {
                     ForEach(PresetFilter.allCases) { filter in
                         Text(filter.title).tag(filter)
                     }
@@ -79,7 +79,7 @@ struct PresetSettings: View {
             if selectedCategory == nil {
                 let favorites = typeFilteredPresets.filter(\.isFavorite)
                 if !favorites.isEmpty {
-                    Section("Favorites") {
+                    Section("收藏") {
                         ForEach(favorites) { preset in
                             presetRowLink(for: preset)
                         }
@@ -106,10 +106,10 @@ struct PresetSettings: View {
             }
         }
         .toolbarTitleDisplayMode(.inlineLarge)
-        .navigationTitle("AI Presets")
+        .navigationTitle("AI 预设")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Preset", systemImage: "plus") {
+                Button("添加预设", systemImage: "plus") {
                     HapticManager.mediumImpact()
                     showCreatePreset = true
                 }
@@ -153,7 +153,7 @@ struct PresetSettings: View {
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if !preset.isBuiltIn {
-                Button("Delete", role: .destructive) {
+                Button("删除", role: .destructive) {
                     deletePreset(preset)
                 }
             }
@@ -201,7 +201,7 @@ private struct PresetRowView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if preset.isEdited {
-                    Text("Edited")
+                    Text("已编辑")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -213,7 +213,7 @@ private struct PresetRowView: View {
                 Image(systemName: "eye.slash")
                     .foregroundStyle(.secondary.opacity(0.7))
                     .font(.system(size: 14))
-                    .accessibilityLabel("Hidden from pickers and keyboard")
+                    .accessibilityLabel("在选择器和键盘中隐藏")
             }
 
             if let onToggleFavorite {

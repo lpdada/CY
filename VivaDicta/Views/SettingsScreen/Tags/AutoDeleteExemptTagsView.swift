@@ -22,7 +22,7 @@ struct AutoDeleteExemptTagsView: View {
                 ContentUnavailableView(
                     "No Tags",
                     systemImage: "tag",
-                    description: Text("Create a tag first, then mark it here to keep its notes from being auto-deleted.")
+                    description: Text("先创建一个标签，再在这里标记它，让它的笔记不被自动删除。")
                 )
             } else {
                 Section {
@@ -41,11 +41,11 @@ struct AutoDeleteExemptTagsView: View {
                         }
                     }
                 } footer: {
-                    Text("Notes carrying any of the selected tags are skipped by automatic note and audio cleanup, however old they get.")
+                    Text("带有任一所选标签的笔记，无论多旧，都不会被自动清理笔记和音频。")
                 }
             }
         }
-        .navigationTitle("Never Auto-delete")
+        .navigationTitle("永不自动删除")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -72,7 +72,7 @@ struct AutoDeleteExemptTagsLink: View {
     var body: some View {
         NavigationLink(value: SettingsDestination.autoDeleteExemptTags) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Never Auto-delete")
+                Text("永不自动删除")
                     .font(.body)
                 Text(protectedNames.isEmpty
                      ? "Mark a tag to keep its notes forever"

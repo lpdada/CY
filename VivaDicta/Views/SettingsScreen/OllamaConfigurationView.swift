@@ -36,21 +36,21 @@ struct OllamaConfigurationView: View {
             Text("Ollama")
                 .font(.title2)
 
-            Text("Local AI Server")
+            Text("本地 AI 服务器")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             // Server URL input
             VStack(alignment: .leading, spacing: 8) {
-                Text("Server URL")
+                Text("服务器 URL")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("Format: http://host:11434, or https://host:11434\n(default Ollama port is 11434)")
+                Text("格式：http://host:11434 或 https://host:11434\n（Ollama 默认端口是 11434）")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
 
-                TextField("Server URL", text: $serverURL)
+                TextField("服务器 URL", text: $serverURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding()
@@ -117,7 +117,7 @@ struct OllamaConfigurationView: View {
             // Models list (if connected)
             if case .connected = connectionStatus, !aiService.ollamaModels.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Available Models")
+                    Text("可用的模型")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
@@ -140,7 +140,7 @@ struct OllamaConfigurationView: View {
 
             // Help text
             VStack(spacing: 8) {
-                Text("Ollama runs AI models locally on your Mac or server.")
+                Text("Ollama 在你的 Mac 或服务器上本地运行 AI 模型。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -180,7 +180,7 @@ struct OllamaConfigurationView: View {
             HStack {
                 ProgressView()
                     .controlSize(.small)
-                Text("Checking connection...")
+                Text("正在检查连接…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -189,8 +189,8 @@ struct OllamaConfigurationView: View {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .accessibilityLabel("Connection successful")
-                Text("Connected • \(modelCount) model\(modelCount == 1 ? "" : "s") available")
+                    .accessibilityLabel("连接成功")
+                Text("已连接 • \(modelCount) 个模型可用")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -199,7 +199,7 @@ struct OllamaConfigurationView: View {
             HStack(alignment: .top) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-                    .accessibilityLabel("Connection failed")
+                    .accessibilityLabel("连接失败")
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -210,8 +210,8 @@ struct OllamaConfigurationView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Invalid URL")
-                Text("Invalid URL. Use http:// or https://")
+                    .accessibilityLabel("URL 无效")
+                Text("URL 无效。请用 http:// 或 https://")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

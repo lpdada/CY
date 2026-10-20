@@ -89,7 +89,7 @@ public struct AnthropicService: Sendable {
                 logger.logError("Anthropic enhance - server error \(httpResponse.statusCode)")
                 throw EnhancementError.serverError
             } else {
-                let errorString = String(data: data, encoding: .utf8) ?? "Could not decode error response."
+                let errorString = String(data: data, encoding: .utf8) ?? "无法解析错误响应。"
                 logger.logError("Anthropic enhance - HTTP \(httpResponse.statusCode): \(errorString.prefix(500))")
                 throw EnhancementError.customError("HTTP \(httpResponse.statusCode): \(errorString)")
             }
@@ -147,7 +147,7 @@ public struct AnthropicService: Sendable {
             for try await byte in bytes {
                 errorData.append(byte)
             }
-            let errorString = String(data: errorData, encoding: .utf8) ?? "Could not decode error response."
+            let errorString = String(data: errorData, encoding: .utf8) ?? "无法解析错误响应。"
 
             if httpResponse.statusCode == 429 {
                 logger.logWarning("Anthropic streaming - rate limit exceeded (429)")

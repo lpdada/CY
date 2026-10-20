@@ -62,7 +62,7 @@ struct AIProviders: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Provider type", selection: $providerType) {
+            Picker("服务商类型", selection: $providerType) {
                 ForEach(AIProviderType.allCases) { type in
                     Text(type.title).tag(type)
                 }
@@ -143,7 +143,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "gear")
                                             .foregroundStyle(.orange)
-                                        Text("Configure")
+                                        Text("配置")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -151,7 +151,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
-                                        Text("\(appState.aiService.ollamaModels.count) models")
+                                        Text("\(appState.aiService.ollamaModels.count) 个模型")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -166,7 +166,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
-                                        Text("Configured")
+                                        Text("已配置")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -174,7 +174,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "gear")
                                             .foregroundStyle(.orange)
-                                        Text("Configure")
+                                        Text("配置")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -223,7 +223,7 @@ struct AIProviders: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundStyle(.green)
-                                    Text("Subscription")
+                                    Text("订阅")
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
@@ -241,7 +241,7 @@ struct AIProviders: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "person.badge.key")
                                         .foregroundStyle(.orange)
-                                    Text("Sign In")
+                                    Text("登录")
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
@@ -250,7 +250,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "gear")
                                             .foregroundStyle(.orange)
-                                        Text("Configure")
+                                        Text("配置")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -258,7 +258,7 @@ struct AIProviders: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundStyle(.orange)
-                                        Text("Add API Key")
+                                        Text("添加 API Key")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -280,7 +280,7 @@ struct AIProviders: View {
                             .foregroundStyle(.blue.gradient)
                             .frame(width: 28, height: 28)
 
-                        Text("VivAgents Server")
+                        Text("VivAgents 服务器")
 
                         Spacer()
 
@@ -288,7 +288,7 @@ struct AIProviders: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
-                                Text("Connected")
+                                Text("已连接")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
@@ -296,7 +296,7 @@ struct AIProviders: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "gear")
                                     .foregroundStyle(.orange)
-                                Text("Configure")
+                                Text("配置")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
@@ -304,9 +304,9 @@ struct AIProviders: View {
                     }
                 }
             } header: {
-                Text("Server")
+                Text("服务器")
             } footer: {
-                Text("Route AI processing through CLI agents (Anthropic, Codex, Gemini) running on your Mac or remote server. Uses your existing accounts — no API keys needed.")
+                Text("通过运行在 Mac 或远程服务器上的 CLI 代理（Anthropic、Codex、Gemini）做 AI 处理。用你现有的账号——不需要 API Key。")
             }
                 }
             }
@@ -321,7 +321,7 @@ struct AIProviders: View {
             await mlxModel.refresh()
             await coreMLQwenModel.refresh()
         }
-        .navigationTitle("AI Providers")
+        .navigationTitle("AI 服务商")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(for: AIProvider.self) { provider in
             if provider == .ollama {
@@ -360,13 +360,13 @@ struct AIProviders: View {
                     TopModelRow(entry: entry)
                 }
             } label: {
-                Text("Top Models for AI Processing")
+                Text("AI 处理热门模型")
             }
         } footer: {
             if isTopModelsExpanded {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Scored on how well each model cleans up dictation, and how long it takes. Measured \(AIModelBenchmarkCatalog.measuredAt); scores within 0.3 are ties. One row per provider - each provider's other models are in its own picker.")
-                    Text("Free tier marks models you can run without paying, though the terms differ - some are free forever with rate limits, others give a monthly allowance or a starting credit.")
+                    Text("按每个模型整理口述的效果和耗时打分。测量于 \(AIModelBenchmarkCatalog.measuredAt)；分差在 0.3 以内算并列。每个服务商一行——该服务商的其他模型在它自己的选择器里。")
+                    Text("免费层标记的是可以免费用（有限制）的模型，不过各家条款不同——有些是永久免费但有速率限制，有些给每月额度或新手额度。")
                     Link("See all measured models", destination: AIModelBenchmarkCatalog.fullTableURL)
                 }
             }
@@ -420,13 +420,13 @@ private struct TopModelRow: View {
 /// provider's free tier, no paid plan needed.
 private struct FreeTierBadge: View {
     var body: some View {
-        Text("Free tier")
+        Text("免费层")
             .font(.caption2)
             .foregroundStyle(.tint)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(.tint.opacity(0.12), in: .rect(cornerRadius: 4))
-            .accessibilityLabel("Usable on the provider's free tier")
+            .accessibilityLabel("可在服务商的免费层使用")
     }
 }
 
@@ -475,11 +475,11 @@ private struct AppleProviderCard: View {
     private var statusLabel: some View {
         switch status {
         case .available:
-            Label("Ready", systemImage: "checkmark.circle.fill")
+            Label("就绪", systemImage: "checkmark.circle.fill")
                 .font(.subheadline)
                 .foregroundStyle(.green)
         default:
-            Label("Setup needed", systemImage: "gear")
+            Label("需要设置", systemImage: "gear")
                 .font(.subheadline)
                 .foregroundStyle(.orange)
         }

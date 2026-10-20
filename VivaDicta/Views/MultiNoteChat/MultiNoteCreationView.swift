@@ -74,7 +74,7 @@ struct MultiNoteCreationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Select notes to start a conversation")
+            Text("选择笔记开始对话")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
@@ -100,7 +100,7 @@ struct MultiNoteCreationView: View {
 
                 Spacer()
 
-                Text("^[\(selectedNoteIds.count) note](inflect: true) selected")
+                Text("已选 \(selectedNoteIds.count) 条笔记")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -117,7 +117,7 @@ struct MultiNoteCreationView: View {
 
             createButton
         }
-        .navigationTitle("New Multi-Note Chat")
+        .navigationTitle("新建多笔记对话")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -217,7 +217,7 @@ struct MultiNoteCreationView: View {
             Button {
                 createConversation()
             } label: {
-                Text("Start Chat")
+                Text("开始对话")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

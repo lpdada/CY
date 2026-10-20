@@ -44,10 +44,10 @@ struct CustomOpenAIConfigurationView: View {
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)
 
-                Text("Custom AI provider")
+                Text("自定义 AI 服务商")
                     .font(.title2)
 
-                Text("OpenAI-Compatible API")
+                Text("OpenAI 兼容 API")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -58,11 +58,11 @@ struct CustomOpenAIConfigurationView: View {
                 VStack(spacing: 20) {
                     // Endpoint URL input
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Endpoint URL")
+                        Text("接口 URL")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        TextField("Server URL", text: $endpointURL)
+                        TextField("服务器 URL", text: $endpointURL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding()
@@ -79,14 +79,14 @@ struct CustomOpenAIConfigurationView: View {
                                 }
                             }
 
-                        Text("The full chat completions endpoint URL.\nExample: https://openrouter.ai/api/v1/chat/completions")
+                        Text("完整的对话补全接口 URL。\n例如：https://openrouter.ai/api/v1/chat/completions")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
 
                     // Model Name input
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Model Name")
+                        Text("模型名称")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -107,14 +107,14 @@ struct CustomOpenAIConfigurationView: View {
                                 }
                             }
 
-                        Text("The model identifier as expected by your API server.")
+                        Text("你的 API 服务器要求的模型标识。")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
 
                     // API Key input (optional)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("API Key (Optional)")
+                        Text("API Key（可选）")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -128,7 +128,7 @@ struct CustomOpenAIConfigurationView: View {
                                     .stroke(Color.gray, lineWidth: 0.5)
                             }
 
-                        Text("Leave empty if your server doesn't require authentication.")
+                        Text("如果你的服务器不需要认证，留空。")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -185,7 +185,7 @@ struct CustomOpenAIConfigurationView: View {
                         Button(role: .destructive) {
                             showingClearConfirmation = true
                         } label: {
-                            Label("Clear Configuration", systemImage: "trash")
+                            Label("清除配置", systemImage: "trash")
                                 .font(.subheadline)
                         }
                     }
@@ -193,12 +193,12 @@ struct CustomOpenAIConfigurationView: View {
 
                 // Help text
                 VStack(spacing: 8) {
-                    Text("Connect to any OpenAI-compatible API server.")
+                    Text("连接到任意 OpenAI 兼容的 API 服务器。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
-                    Text("Supports LiteLLM, vLLM, Ollama, and other compatible servers.")
+                    Text("支持 LiteLLM、vLLM、Ollama 及其他兼容服务器。")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
@@ -214,22 +214,22 @@ struct CustomOpenAIConfigurationView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .navigationTitle("Custom AI Provider")
+        .navigationTitle("自定义 AI 服务商")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadExistingConfiguration()
         }
         .confirmationDialog(
-            "Clear Configuration",
+            "清除配置",
             isPresented: $showingClearConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Clear", role: .destructive) {
+            Button("清除", role: .destructive) {
                 clearConfiguration()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
-            Text("This will remove your Custom OpenAI configuration and disable AI processing for any modes using it.")
+            Text("这会删除你的自定义 OpenAI 配置，并停用所有使用它的模式的 AI 处理。")
         }
     }
 
@@ -243,7 +243,7 @@ struct CustomOpenAIConfigurationView: View {
             HStack {
                 ProgressView()
                     .controlSize(.small)
-                Text("Testing connection...")
+                Text("正在测试连接…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -252,8 +252,8 @@ struct CustomOpenAIConfigurationView: View {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .accessibilityLabel("Connection successful")
-                Text("Connected successfully")
+                    .accessibilityLabel("连接成功")
+                Text("连接成功")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -262,7 +262,7 @@ struct CustomOpenAIConfigurationView: View {
             HStack(alignment: .top) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-                    .accessibilityLabel("Connection failed")
+                    .accessibilityLabel("连接失败")
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -273,8 +273,8 @@ struct CustomOpenAIConfigurationView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Invalid URL")
-                Text("Invalid URL. Use http:// or https://")
+                    .accessibilityLabel("URL 无效")
+                Text("URL 无效。请用 http:// 或 https://")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -283,8 +283,8 @@ struct CustomOpenAIConfigurationView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .accessibilityLabel("Missing model name")
-                Text("Please enter a model name")
+                    .accessibilityLabel("缺少模型名称")
+                Text("请输入模型名称")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

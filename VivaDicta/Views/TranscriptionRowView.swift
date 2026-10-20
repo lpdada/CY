@@ -62,7 +62,7 @@ struct TranscriptionRowView: View {
                 }
 
                 if transcription.isFailedTranscription {
-                    Label("No text captured - open to retry", systemImage: "exclamationmark.arrow.circlepath")
+                    Label("没有捕获到文本——打开重试", systemImage: "exclamationmark.arrow.circlepath")
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -113,7 +113,7 @@ struct TranscriptionRowView: View {
                     .foregroundStyle(.blue)
                     .clipShape(.rect(cornerRadius: 6))
 
-                Button("Copy", systemImage: showCopied ? "checkmark" : "doc.on.doc") {
+                Button("复制", systemImage: showCopied ? "checkmark" : "doc.on.doc") {
                     ClipboardManager.copyToClipboard(displayText)
                     HapticManager.success()
                     showCopied = true

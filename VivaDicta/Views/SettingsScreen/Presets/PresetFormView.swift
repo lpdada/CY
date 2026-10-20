@@ -93,48 +93,48 @@ struct PresetFormView: View {
 
     var body: some View {
         Form {
-            Section("Name") {
+            Section("名称") {
                 if let preset = existingPreset, preset.isBuiltIn {
                     Text(name)
                         .foregroundStyle(.secondary)
                 } else {
-                    TextField("Preset Name", text: $name)
+                    TextField("预设名称", text: $name)
                 }
             }
 
-            Section("Description") {
+            Section("描述") {
                 if let preset = existingPreset, preset.isBuiltIn {
                     Text(presetDescription)
                         .foregroundStyle(.secondary)
                 } else {
-                    TextField("Short description", text: $presetDescription)
+                    TextField("简短描述", text: $presetDescription)
                 }
             }
 
-            Section("Visibility") {
-                Toggle("Visible", isOn: $isVisible)
+            Section("可见性") {
+                Toggle("可见", isOn: $isVisible)
             }
 
             if isAssistantPreset {
                 Section {
-                    Text("This preset uses a dedicated AI assistant prompt that responds to your requests instead of cleaning up transcriptions.")
+                    Text("这个预设用的是专门的 AI 助手提示词，会响应你的要求，而不是整理转写。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } else {
                 Section {
-                    Toggle("Use System Prompt", isOn: $useSystemTemplate)
-                    Toggle("Wrap in <TRANSCRIPT>", isOn: $wrapInTranscriptTags)
+                    Toggle("使用系统提示词", isOn: $useSystemTemplate)
+                    Toggle("包上 <TRANSCRIPT> 标签", isOn: $wrapInTranscriptTags)
                 }
 
                 if let preset = existingPreset, preset.isBuiltIn {
-                    Section("Category") {
+                    Section("分类") {
                         Text(category)
                             .foregroundStyle(.secondary)
                     }
                 } else {
-                    Section("Category") {
-                        Picker("Category", selection: $category) {
+                    Section("分类") {
+                        Picker("分类", selection: $category) {
                             ForEach(allCategories, id: \.self) { cat in
                                 Text(cat).tag(cat)
                             }
@@ -142,7 +142,7 @@ struct PresetFormView: View {
                     }
                 }
 
-                Section("Instructions") {
+                Section("指令") {
                     TextEditor(text: $promptInstructions)
                         .frame(minHeight: 200)
                         .font(.body.monospaced())
@@ -151,7 +151,7 @@ struct PresetFormView: View {
 
             if canReset {
                 Section {
-                    Button("Reset to Default") {
+                    Button("恢复默认") {
                         showResetConfirmation = true
                     }
                     .foregroundStyle(.orange)
@@ -189,14 +189,14 @@ struct PresetFormView: View {
                 }
             }
         }
-        .confirmationDialog("Reset to Default",
+        .confirmationDialog("恢复默认",
                             isPresented: $showResetConfirmation,
                             titleVisibility: .visible) {
-            Button("Reset", role: .destructive) {
+            Button("重置", role: .destructive) {
                 resetToDefault()
             }
         } message: {
-            Text("This will reset the preset instructions to the factory default.")
+            Text("这会把预设指令恢复为出厂默认。")
         }
     }
 

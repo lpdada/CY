@@ -38,7 +38,7 @@ struct ChatWebSearchContextManager {
             \(basePrompt)
             """
         case .empty:
-            let message = payload.message ?? "No relevant web results were found."
+            let message = payload.message ?? "没有找到相关的网络结果。"
             return """
             <WEB_SEARCH_RESULTS>
             Focused web search query used: \(plannedQuery)

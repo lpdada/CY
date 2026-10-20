@@ -25,7 +25,7 @@ struct KeyboardReturnPromptView: View {
         VStack(alignment: .leading, spacing: 16) {
             statusPill
 
-            Text("Swipe back to continue")
+            Text("滑动返回以继续")
                 .font(.largeTitle)
                 .bold()
                 .foregroundStyle(Color.vivaAccent)
@@ -42,13 +42,13 @@ struct KeyboardReturnPromptView: View {
             Spacer()
 
             VStack(spacing: 16) {
-                Text("We wish you didn't have to switch apps to use VivaDicta, but Apple requires this step to activate the microphone.")
+                Text("我们也不想让你为了用畅言切换 App，但 Apple 要求必须走这一步来激活麦克风。")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
-                Button("Dismiss", action: dismiss)
+                Button("忽略", action: dismiss)
                     .font(.headline)
                     .padding(.top, 8)
             }
@@ -72,7 +72,7 @@ struct KeyboardReturnPromptView: View {
             Circle()
                 .fill(.green)
                 .frame(width: 10, height: 10)
-            Text("Keyboard active")
+            Text("键盘已启用")
                 .font(.subheadline)
                 .fontWeight(.medium)
         }

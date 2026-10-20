@@ -55,7 +55,7 @@ struct SmartSearchChatView: View {
                 onStop: { viewModel.cancelStreaming() }
             )
         }
-        .navigationTitle("Smart Search")
+        .navigationTitle("智能搜索")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -67,13 +67,13 @@ struct SmartSearchChatView: View {
                 .disabled(viewModel.messages.isEmpty || viewModel.isStreaming)
             }
         }
-        .alert("Delete Conversation?", isPresented: $showClearConfirmation) {
-            Button("Delete", role: .destructive) {
+        .alert("删除对话？", isPresented: $showClearConfirmation) {
+            Button("删除", role: .destructive) {
                 viewModel.clearChat()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
-            Text("This will delete all messages in this Smart Search conversation. This cannot be undone.")
+            Text("这会删除这个智能搜索对话里的全部消息。无法撤销。")
         }
         .sheet(item: $selectedTranscription) { transcription in
             NavigationStack {
@@ -85,7 +85,7 @@ struct SmartSearchChatView: View {
                             } label: {
                                 Image(systemName: "xmark")
                             }
-                            .accessibilityLabel("Close")
+                            .accessibilityLabel("关闭")
                         }
                     }
             }
@@ -195,9 +195,9 @@ struct SmartSearchChatView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("Smart Search", systemImage: "sparkle.magnifyingglass")
+            Label("智能搜索", systemImage: "sparkle.magnifyingglass")
         } description: {
-            Text("Ask questions about your notes. AI-powered semantic search finds relevant notes automatically.")
+            Text("向你的笔记提问。AI 语义搜索会自动找出相关的笔记。")
         }
         .padding(.top, 40)
     }
@@ -331,7 +331,7 @@ struct SmartSearchChatView: View {
     private var searchingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView()
-            Text("Searching notes...")
+            Text("正在搜索笔记…")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -341,7 +341,7 @@ struct SmartSearchChatView: View {
     private var compactingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView()
-            Text("Compacting conversation...")
+            Text("正在压缩对话…")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -391,10 +391,10 @@ struct SmartSearchChatView: View {
             if ragService.isIndexing {
                 ProgressView()
                     .controlSize(.mini)
-                Text("Indexing...")
+                Text("正在索引…")
             } else {
                 Image(systemName: "doc.text.magnifyingglass")
-                Text("^[\(count) note](inflect: true)")
+                Text("\(count) 条笔记")
             }
         }
         .font(.caption2)

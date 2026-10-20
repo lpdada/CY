@@ -49,7 +49,7 @@ struct MultiNoteChatsListView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("Set up an AI provider in mode settings to start new chats.")
+                        Text("在模式设置里配置一个 AI 服务商后开始新对话。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -59,7 +59,7 @@ struct MultiNoteChatsListView: View {
                     .background(Color(.systemGray6))
                 }
 
-                Picker("Chat Type", selection: $selectedTab) {
+                Picker("对话类型", selection: $selectedTab) {
                     ForEach(availableTabs, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
                     }
@@ -81,7 +81,7 @@ struct MultiNoteChatsListView: View {
                     }
                 }
             }
-            .navigationTitle("Chats")
+            .navigationTitle("对话")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -90,11 +90,11 @@ struct MultiNoteChatsListView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel("Close")
+                    .accessibilityLabel("关闭")
                 }
                 if selectedTab == .multiNote {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("New Chat", systemImage: "plus") {
+                        Button("新建对话", systemImage: "plus") {
                             navigationPath.append(NavigationTarget.creation)
                         }
                         .disabled(!isAIConfigured)
@@ -102,7 +102,7 @@ struct MultiNoteChatsListView: View {
                 }
                 if selectedTab == .allNotes {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("New Chat", systemImage: "plus") {
+                        Button("新建对话", systemImage: "plus") {
                             startNewAllNotesChat()
                         }
                         .disabled(!isAIConfigured)
@@ -213,7 +213,7 @@ struct MultiNoteChatsListView: View {
                 ContentUnavailableView(
                     "No Multi-Note Chats",
                     systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Create a chat to discuss multiple notes with AI")
+                    description: Text("新建一个对话，和 AI 讨论多条笔记")
                 )
             }
         }
@@ -245,7 +245,7 @@ struct MultiNoteChatsListView: View {
                 ContentUnavailableView(
                     "No Single-Note Chats",
                     systemImage: "bubble.left.and.text.bubble.right",
-                    description: Text("Start a chat from any note's detail view")
+                    description: Text("从任意笔记的详情页开始对话")
                 )
             }
         }
@@ -277,7 +277,7 @@ struct MultiNoteChatsListView: View {
                 ContentUnavailableView(
                     "No Recent Notes Chats",
                     systemImage: "bubble.left.and.bubble.right.fill",
-                    description: Text("Start a chat that automatically includes your most recent notes.")
+                    description: Text("开始一个自动包含你最近笔记的对话。")
                 )
             }
         }
@@ -300,9 +300,9 @@ struct MultiNoteChatsListView: View {
             } else {
                 VStack(spacing: 16) {
                     ContentUnavailableView {
-                        Label("Smart Search", systemImage: "sparkle.magnifyingglass")
+                        Label("智能搜索", systemImage: "sparkle.magnifyingglass")
                     } description: {
-                        Text("Ask questions about all your notes. Relevant notes are found automatically using AI.")
+                        Text("向你的全部笔记提问。AI 会自动找出相关的笔记。")
                     }
 
                     Button {
@@ -311,7 +311,7 @@ struct MultiNoteChatsListView: View {
                             _ = smartSearchChatVM(for: conversation)
                         }
                     } label: {
-                        Label("Start Smart Search", systemImage: "sparkle.magnifyingglass")
+                        Label("开始智能搜索", systemImage: "sparkle.magnifyingglass")
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!isAIConfigured)
@@ -391,7 +391,7 @@ private struct ChatRowContent: View {
             }
 
             if let noteCount {
-                Label("^[\(noteCount) note](inflect: true)", systemImage: "doc.text")
+                Label("\(noteCount) 条笔记", systemImage: "doc.text")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -38,11 +38,11 @@ struct FullAccessPromptView: View {
 
             // Content
             VStack(spacing: 16) {
-                Text("Almost there!")
+                Text("就快完成了！")
                     .font(.title)
                     .fontWeight(.semibold)
 
-                Text("To use voice transcription → allow **Full Access** in your Keyboard Settings")
+                Text("要使用语音转写 → 请在键盘设置里允许**完全访问**")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -52,7 +52,7 @@ struct FullAccessPromptView: View {
                     HapticManager.mediumImpact()
                     openSettings()
                 } label: {
-                    Text("Finish setup")
+                    Text("完成设置")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 32)

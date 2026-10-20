@@ -88,12 +88,12 @@ struct TagEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Name") {
-                    TextField("Tag name", text: $name)
+                Section("名称") {
+                    TextField("标签名称", text: $name)
                         .focused($isNameFocused)
                 }
 
-                Section("Color") {
+                Section("颜色") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
                         ForEach(Self.colorPalette, id: \.hex) { color in
                             Button {
@@ -117,14 +117,14 @@ struct TagEditorSheet: View {
                     }
                     .padding(.vertical, 4)
 
-                    ColorPicker("Custom Color", selection: $customColor, supportsOpacity: false)
+                    ColorPicker("自定义颜色", selection: $customColor, supportsOpacity: false)
                         .onChange(of: customColor) { _, newColor in
                             useCustomColor = true
                             selectedColorHex = newColor.hexString
                         }
                 }
 
-                Section("Icon") {
+                Section("图标") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
                         ForEach(Self.iconOptions, id: \.self) { icon in
                             Button {
@@ -164,16 +164,16 @@ struct TagEditorSheet: View {
                 Section {
                     Toggle(isOn: $isExcludedFromAutoDelete) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Keep From Auto-delete")
+                            Text("不自动删除")
                                 .font(.body)
-                            Text("Notes with this tag are never removed by automatic note or audio cleanup, however old they get.")
+                            Text("带有这个标签的笔记，无论多旧，都不会被自动清理笔记和音频。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section("Preview") {
+                Section("预览") {
                     HStack(spacing: 12) {
                         Image(systemName: selectedIcon)
                             .font(.body)
@@ -192,18 +192,18 @@ struct TagEditorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26, *) {
-                        Button("Close", systemImage: "xmark") {
+                        Button("关闭", systemImage: "xmark") {
                             dismiss()
                         }
                         .labelStyle(.iconOnly)
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             dismiss()
                         }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("保存") {
                         onSave(
                             Draft(
                                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),

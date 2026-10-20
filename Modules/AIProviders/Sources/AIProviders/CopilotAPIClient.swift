@@ -252,7 +252,7 @@ public enum CopilotAPIClient {
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
             logger.logError("Copilot: failed to parse response")
-            throw CopilotOAuthError.tokenExchangeFailed("Invalid response format")
+            throw CopilotOAuthError.tokenExchangeFailed("响应格式无效")
         }
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -287,7 +287,7 @@ public enum CopilotAPIClient {
         }
 
         guard !aggregatedText.isEmpty else {
-            throw CopilotOAuthError.tokenExchangeFailed("Invalid response format")
+            throw CopilotOAuthError.tokenExchangeFailed("响应格式无效")
         }
 
         let finalResult = aggregatedText.trimmingCharacters(in: .whitespacesAndNewlines)

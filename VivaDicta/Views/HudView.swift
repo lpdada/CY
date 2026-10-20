@@ -225,7 +225,7 @@ struct HudContentView: View {
                     HapticManager.lightImpact()
                     onCancel()
                 } label: {
-                    Text("Cancel")
+                    Text("取消")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(colorScheme == .dark ? .white.opacity(0.85) : .primary.opacity(0.8))
                         .padding(.horizontal, 16)

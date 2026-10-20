@@ -29,9 +29,9 @@ struct GeminiTranscriptionPromptView: View {
                     .focused($isEditorFocused)
                     .autocorrectionDisabled()
             } header: {
-                Text("Instruction")
+                Text("指令")
             } footer: {
-                Text("Sent with the audio to Gemini's general-purpose models. Leave it empty to use the built-in instruction.")
+                Text("随音频一起发送给 Gemini 的通用模型。留空则用内置指令。")
             }
 
             Section {
@@ -39,33 +39,33 @@ struct GeminiTranscriptionPromptView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                Button("Reset to Default") {
+                Button("恢复默认") {
                     draft = ""
                     HapticManager.lightImpact()
                 }
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } header: {
-                Text("Built-In Instruction")
+                Text("内置指令")
             }
 
             Section {
                 Label(
-                    "Gemini 3.5 Transcribe ignores this - Google's dedicated transcription models do not accept an instruction.",
+                    "Gemini 3.5 Transcribe 会忽略这个——Google 的专用转写模型不接受指令。",
                     systemImage: "info.circle"
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
             } footer: {
-                Text("A prompt that asks for anything other than a transcript - a summary, a translation - is what you will get back, and the rest of the app treats it as the transcript.")
+                Text("如果提示词要求的是转写以外的内容——比如摘要、翻译——返回的就会是那个结果，App 的其他部分会把它当作转写文本处理。")
             }
         }
-        .navigationTitle("Transcription Prompt")
+        .navigationTitle("转写提示词")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { draft = storedPrompt }
         .onDisappear { save() }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
+                Button("完成") {
                     save()
                     isEditorFocused = false
                     dismiss()

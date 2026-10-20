@@ -28,7 +28,7 @@ struct CustomTranscriptionModelCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        Text("Custom")
+                        Text("自定义")
                             .font(.title3)
                             .fontWeight(.semibold)
                     }

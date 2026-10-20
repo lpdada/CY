@@ -999,7 +999,7 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
             )
             guard !result.isEmpty else {
                 logger.logError("🗣️ Voice instruction returned empty result")
-                failPendingVoiceInstruction("AI returned empty result")
+                failPendingVoiceInstruction("AI 返回了空结果")
                 return
             }
             // A cancel that landed mid-call already released the keyboard. Delivering
@@ -1675,7 +1675,7 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
     private func handleKeyboardTextProcessingRequest() {
         guard let pending = appGroupBridge.getAndConsumePendingTextProcessing() else {
             logger.logError("📝 Text processing requested but no pending data found")
-            appGroupBridge.shareTextProcessingError("No text to process")
+            appGroupBridge.shareTextProcessingError("没有可处理的文本")
             return
         }
 
@@ -1716,7 +1716,7 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
                 logger.logInfo("📝 Text processing completed, result length: \(result.count)")
                 if result.isEmpty {
                     logger.logError("📝 Text processing returned empty result")
-                    appGroupBridge.shareTextProcessingError("AI returned empty result")
+                    appGroupBridge.shareTextProcessingError("AI 返回了空结果")
                 } else {
                     appGroupBridge.shareTextProcessingResult(result)
                 }

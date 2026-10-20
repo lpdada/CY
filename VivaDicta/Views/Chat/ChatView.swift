@@ -49,7 +49,7 @@ struct ChatView: View {
                             } label: {
                                 Image(systemName: "xmark")
                             }
-                            .accessibilityLabel("Close")
+                            .accessibilityLabel("关闭")
                         }
                     }
             }
@@ -94,7 +94,7 @@ struct ChatView: View {
                 onStop: { viewModel.cancelStreaming() }
             )
         }
-        .navigationTitle("Chat")
+        .navigationTitle("对话")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -102,14 +102,14 @@ struct ChatView: View {
                     Button {
                         Task { await viewModel.compactChat() }
                     } label: {
-                        Label("Compact Chat", systemImage: "arrow.trianglehead.2.clockwise")
+                        Label("紧凑对话", systemImage: "arrow.trianglehead.2.clockwise")
                     }
                     .disabled(viewModel.messages.count < 6 || viewModel.isStreaming || viewModel.isCompacting)
 
                     Button(role: .destructive) {
                         showClearConfirmation = true
                     } label: {
-                        Label("Clear Chat", systemImage: "trash")
+                        Label("清空对话", systemImage: "trash")
                     }
                     .disabled(viewModel.messages.isEmpty || viewModel.isStreaming)
                 } label: {
@@ -117,13 +117,13 @@ struct ChatView: View {
                 }
             }
         }
-        .alert("Clear Chat?", isPresented: $showClearConfirmation) {
-            Button("Clear", role: .destructive) {
+        .alert("清空对话？", isPresented: $showClearConfirmation) {
+            Button("清除", role: .destructive) {
                 viewModel.clearChat()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
-            Text("This will delete all chat messages for this note. This cannot be undone.")
+            Text("这会删除这条笔记的全部对话消息。无法撤销。")
         }
         .sheet(item: $selectedTranscription) { transcription in
             NavigationStack {
@@ -135,7 +135,7 @@ struct ChatView: View {
                             } label: {
                                 Image(systemName: "xmark")
                             }
-                            .accessibilityLabel("Close")
+                            .accessibilityLabel("关闭")
                         }
                     }
             }
@@ -240,7 +240,7 @@ struct ChatView: View {
             Image(systemName: "bubble.left.and.text.bubble.right")
                 .font(.system(size: 40))
                 .foregroundStyle(.tertiary)
-            Text("Ask anything about this note")
+            Text("问问关于这条笔记的任何事")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -306,7 +306,7 @@ struct ChatView: View {
             Button {
                 selectedTranscription = viewModel.transcription
             } label: {
-                Label("1 note", systemImage: "doc.text")
+                Label("1 条笔记", systemImage: "doc.text")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
@@ -331,7 +331,7 @@ struct ChatView: View {
     private var compactingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView()
-            Text("Compacting conversation...")
+            Text("正在压缩对话…")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -149,10 +149,10 @@ struct RewriteModesView: View {
                         .font(.system(size: 20))
                         .foregroundStyle(.secondary)
 
-                    Text("No Visible Presets")
+                    Text("没有可见的预设")
                         .font(.system(size: 16, weight: .semibold))
 
-                    Text("Unhide presets in the app to use them from the keyboard.")
+                    Text("在 App 里取消隐藏预设后，才能在键盘里使用它们。")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -161,7 +161,7 @@ struct RewriteModesView: View {
                         HapticManager.mediumImpact()
                         onOpenApp()
                     } label: {
-                        Label("Open VivaDicta", systemImage: "arrow.up.forward.app")
+                        Label("打开畅言", systemImage: "arrow.up.forward.app")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 18)
@@ -211,7 +211,7 @@ struct RewriteModesView: View {
                 Image(systemName: "mic.fill")
                     .font(.system(size: 14, weight: .semibold))
 
-                Text("Speak an instruction")
+                Text("说一条指令")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
             }
@@ -296,10 +296,10 @@ struct RewriteModesView: View {
         VStack(spacing: 12) {
             Spacer()
 
-            Text("Open VivaDicta")
+            Text("打开畅言")
                 .font(.system(size: 18, weight: .semibold))
 
-            Text("Launch the app to use AI text processing")
+            Text("打开 App 使用 AI 文本处理")
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -308,7 +308,7 @@ struct RewriteModesView: View {
                 HapticManager.mediumImpact()
                 onOpenApp()
             } label: {
-                Label("Open VivaDicta", systemImage: "arrow.up.forward.app")
+                Label("打开畅言", systemImage: "arrow.up.forward.app")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 24)

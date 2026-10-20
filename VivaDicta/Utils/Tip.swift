@@ -11,7 +11,7 @@ import TipKit
 
 struct SelectLanguageTip: Tip {
     var title: Text {
-        Text("Select language")
+        Text("选择语言")
             .foregroundStyle(
                 MeshGradient(
                     width: 2,
@@ -29,7 +29,7 @@ struct SelectLanguageTip: Tip {
     }
     
     var message: Text? {
-        Text("Tap here to select language for better transcription")
+        Text("点这里选择语言，转写更准确")
     }
 
     var image: Image? {
@@ -46,7 +46,7 @@ struct SelectTranscriptionModelTipMainView: Tip {
     static var isTranscriptionReady: Bool = false
     
     var title: Text {
-        Text("Select Transcription model")
+        Text("选择转写模型")
             .foregroundStyle(
                 MeshGradient(
                     width: 2,
@@ -64,7 +64,7 @@ struct SelectTranscriptionModelTipMainView: Tip {
     }
     
     var message: Text? {
-        Text("Tap here to set up a transcription model")
+        Text("点这里设置转写模型")
     }
     
     var image: Image? {
@@ -93,7 +93,7 @@ struct SelectTranscriptionModelTipSettingsView: Tip {
     
     
     var title: Text {
-        Text("Select Transcription model")
+        Text("选择转写模型")
             .foregroundStyle(
                 MeshGradient(
                     width: 2,
@@ -111,7 +111,7 @@ struct SelectTranscriptionModelTipSettingsView: Tip {
     }
     
     var message: Text? {
-        Text("Tap here to set up a transcription model")
+        Text("点这里设置转写模型")
     }
 
     var image: Image? {
@@ -128,11 +128,11 @@ struct SelectTranscriptionModelTipSettingsView: Tip {
 
 struct SelectAIEnhacementTip: Tip {
     var title: Text {
-        Text("Add AI Processing")
+        Text("添加 AI 处理")
     }
 
     var message: Text? {
-        Text("Improve transcriptions with AI")
+        Text("用 AI 提升转写质量")
     }
 
     var image: Image? {
@@ -145,7 +145,7 @@ struct TranscriptTagsTip: Tip {
     static let promptEditOpenedEvent = Event(id: "promptEditOpened")
 
     var title: Text {
-        Text("Tip: Using <TRANSCRIPT> tag")
+        Text("小提示：使用 <TRANSCRIPT> 标签")
             .foregroundStyle(
                 MeshGradient(
                     width: 2,
@@ -163,7 +163,7 @@ struct TranscriptTagsTip: Tip {
     }
 
     var message: Text? {
-        Text("Use <TRANSCRIPT> in your instructions to reference the transcribed text")
+        Text("在指令里用 <TRANSCRIPT> 引用转写的文本")
     }
 
     var image: Image? {
@@ -199,12 +199,12 @@ struct ChatsDiscoveryTip: Tip {
     static let chatsOpenedEvent = Event(id: "chatsOpened")
 
     var title: Text {
-        Text("Chat With Your Notes")
+        Text("和你的笔记对话")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("Ask questions about any note, or chat across many at once.")
+        Text("向任意笔记提问，或同时围绕多条笔记对话。")
     }
 
     var image: Image? {
@@ -225,12 +225,12 @@ struct SmartSearchDiscoveryTip: Tip {
     static let smartSearchPerformedEvent = Event(id: "smartSearchPerformed")
 
     var title: Text {
-        Text("Search by Meaning")
+        Text("按语义搜索")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("Ask \"what did I say about pricing?\" and Smart AI Search finds it - even without exact words.")
+        Text("试着问「我关于定价说了什么？」，智能 AI 搜索不用原词也能找到。")
     }
 
     var image: Image? {
@@ -254,12 +254,12 @@ struct AIVariationsDiscoveryTip: Tip {
     static var isAIConfigured: Bool = false
 
     var title: Text {
-        Text("Try Different AI Versions")
+        Text("试试不同的 AI 版本")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("Generate summaries, rewrites, or translations. Each result is saved as a variation you can compare.")
+        Text("生成摘要、改写或翻译。每个结果都会保存为一个版本，方便对比。")
     }
 
     var image: Image? {
@@ -283,12 +283,12 @@ struct LiveTranslationDiscoveryTip: Tip {
     static let liveTranslationOpenedEvent = Event(id: "liveTranslationOpened")
 
     var title: Text {
-        Text("Live Translation")
+        Text("实时翻译")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("Speak in one language, hear it back in another in near real time. 60+ languages, plug in headphones.")
+        Text("用一种语言说，几乎实时地听到另一种语言的回放。60+ 种语言，请插上耳机。")
     }
 
     var image: Image? {
@@ -310,12 +310,12 @@ struct LiveTranslationDiscoveryTip: Tip {
 
 struct NativeTranslationTip: Tip {
     var title: Text {
-        Text("One-step translation")
+        Text("一步翻译")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("This provider translates while it transcribes. Pick a target and your transcription comes back already translated - no extra AI processing step.")
+        Text("这个服务商在转写的同时翻译。选一个目标语言，转写回来就已经是翻译好的——不需要额外的 AI 处理步骤。")
     }
 
     var image: Image? {
@@ -330,12 +330,12 @@ struct SingleNoteChatDiscoveryTip: Tip {
     static var isAIConfigured: Bool = false
 
     var title: Text {
-        Text("Ask This Note Questions")
+        Text("向这条笔记提问")
             .foregroundStyle(discoveryMeshGradient())
     }
 
     var message: Text? {
-        Text("Dig into what you recorded - get summaries, clarifications, or action items.")
+        Text("深入挖掘你录的内容——生成摘要、答疑或待办事项。")
     }
 
     var image: Image? {

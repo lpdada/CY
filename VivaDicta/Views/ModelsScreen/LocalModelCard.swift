@@ -117,7 +117,7 @@ struct LocalModelCard: View {
                         .foregroundStyle(.secondary)
                     
                     if model.recommended {
-                        Text("Recommended")
+                        Text("推荐")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundStyle(.blue)
@@ -215,25 +215,25 @@ struct LocalModelCard: View {
                     showDeleteAlert = true
                     HapticManager.warning()
                 } label: {
-                    Label("Delete Model", systemImage: "trash")
+                    Label("删除模型", systemImage: "trash")
                 }
             }
         }
-        .alert("Download Model", isPresented: $showDownloadAlert) {
-            Button("Continue") {
+        .alert("下载模型", isPresented: $showDownloadAlert) {
+            Button("继续") {
                 downloadLocalModel()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Downloading and preparing the model can take up to 4 minutes (Your device's Apple Neural Engine has to compile a cached model, only the first time — all subsequent usage is blazingly fast!). Please don't close the app while it's downloading.")
+            Text("下载和准备模型最多需要 4 分钟（设备要用 Apple 神经网络引擎编译缓存模型，只在第一次，以后每次都非常快！）。下载期间请不要关闭 App。")
         }
-        .alert("Delete Model", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("删除模型", isPresented: $showDeleteAlert) {
+            Button("删除", role: .destructive) {
                 deleteModel()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete \(model.displayName)? You can download it again later.")
+            Text("确定要删除 \(model.displayName) 吗？之后可以重新下载。")
         }
     }
 

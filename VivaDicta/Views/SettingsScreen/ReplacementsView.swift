@@ -43,7 +43,7 @@ struct ReplacementsView: View {
         .toolbar {
             if editMode {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("完成") {
                         HapticManager.lightImpact()
                         selectedReplacements.removeAll()
                         editMode = false
@@ -51,7 +51,7 @@ struct ReplacementsView: View {
                 }
             } else {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Edit") {
+                    Button("编辑") {
                         HapticManager.lightImpact()
                         editMode = true
                     }
@@ -59,7 +59,7 @@ struct ReplacementsView: View {
                 }
             }
         }
-        .navigationTitle("Word Replacements")
+        .navigationTitle("词语替换")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $replacementToEdit) { item in
             EditReplacementSheet(
@@ -81,18 +81,18 @@ struct ReplacementsView: View {
             }
             .presentationDetents(.sizeToFit)
         }
-        .alert("Delete Replacements", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("删除替换规则", isPresented: $showDeleteAlert) {
+            Button("删除", role: .destructive) {
                 deleteSelectedReplacements()
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete \(selectedReplacements.count) replacement\(selectedReplacements.count == 1 ? "" : "s")? This action cannot be undone.")
+            Text("确定要删除这 \(selectedReplacements.count) 条替换规则吗？此操作无法撤销。")
         }
     }
 
     private var enableToggle: some View {
-        Toggle("Enable Replacements", isOn: $isReplacementsEnabled)
+        Toggle("启用替换规则", isOn: $isReplacementsEnabled)
             .padding(.horizontal)
             .padding(.vertical, 8)
             .onChange(of: isReplacementsEnabled) { _, _ in
@@ -102,10 +102,10 @@ struct ReplacementsView: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView {
-            Label("No Replacements", systemImage: "arrow.left.arrow.right")
+            Label("没有替换规则", systemImage: "arrow.left.arrow.right")
         } description: {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Add text replacements that will be applied during transcription")
+                Text("添加在转写时应用的文本替换规则")
                 Text("""
                     For example:
                         "My website link" -> "https://vivadicta.com"
@@ -134,7 +134,7 @@ struct ReplacementsView: View {
             Spacer()
 
             if !selectedReplacements.isEmpty {
-                Button("Delete", role: .destructive) {
+                Button("删除", role: .destructive) {
                     HapticManager.warning()
                     showDeleteAlert = true
                 }
@@ -188,14 +188,14 @@ struct ReplacementsView: View {
                             HapticManager.mediumImpact()
                             modelContext.delete(replacement)
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("删除", systemImage: "trash")
                         }
 
                         Button {
                             HapticManager.lightImpact()
                             replacementToEdit = replacement
                         } label: {
-                            Label("Edit", systemImage: "pencil")
+                            Label("编辑", systemImage: "pencil")
                         }
                         .tint(.blue)
                     }
@@ -229,7 +229,7 @@ struct ReplacementsView: View {
     private var addReplacementBar: some View {
         VStack(spacing: 8) {
             VStack(spacing: 4) {
-                TextField("Original text", text: $originalText)
+                TextField("原始文本", text: $originalText)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .padding(8)
@@ -254,7 +254,7 @@ struct ReplacementsView: View {
             }
 
             VStack(spacing: 4) {
-                TextField("Replace with", text: $replacementText)
+                TextField("替换为", text: $replacementText)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .padding(8)
@@ -281,7 +281,7 @@ struct ReplacementsView: View {
                 }
             }
 
-            Button("Add Replacement", action: addReplacement)
+            Button("添加替换规则", action: addReplacement)
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddReplacement)
         }
@@ -357,11 +357,11 @@ private struct EditReplacementSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Edit Replacement")
+            Text("编辑替换规则")
                 .font(.headline)
 
             VStack(alignment: .trailing, spacing: 4) {
-                TextField("Original text", text: $editedOriginal)
+                TextField("原始文本", text: $editedOriginal)
                     .focused($focusedField, equals: .original)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -379,7 +379,7 @@ private struct EditReplacementSheet: View {
             }
 
             VStack(alignment: .trailing, spacing: 4) {
-                TextField("Replace with", text: $editedReplacement)
+                TextField("替换为", text: $editedReplacement)
                     .focused($focusedField, equals: .replacement)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -397,7 +397,7 @@ private struct EditReplacementSheet: View {
                     .foregroundStyle(editedReplacement.count >= ReplacementsService.maxTextLength ? .orange : .secondary)
             }
 
-            Button("Save changes") {
+            Button("保存修改") {
                 HapticManager.mediumImpact()
                 onSave(editedOriginal, editedReplacement)
             }

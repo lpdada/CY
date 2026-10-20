@@ -51,14 +51,14 @@ struct OnboardingView: View {
                     .foregroundStyle(.primary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Go Back")
+                .accessibilityLabel("返回")
                 .opacity(currentPage > .welcome ? 1 : 0)
                 .disabled(currentPage == .welcome)
 
                 Spacer()
 
                 if currentPage == .keyboard {
-                    Button("Skip") {
+                    Button("跳过") {
                         onComplete()
                     }
                     .foregroundStyle(.secondary)
@@ -112,7 +112,7 @@ struct OnboardingView: View {
                             action: openSettings
                         )
 
-                        Text("Microphone access was denied. Please enable it in Settings.")
+                        Text("麦克风权限被拒绝。请在设置里开启。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)

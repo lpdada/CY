@@ -51,12 +51,12 @@ struct ExportSettingsView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Picker("Markdown Export", selection: $markdownExportContent) {
+                    Picker("Markdown 导出", selection: $markdownExportContent) {
                         ForEach(MarkdownExportContent.allCases) { option in
                             Text(option.displayName).tag(option)
                         }
                     }
-                    Text("Choose what to include when exporting notes as Markdown. Applies to manual share, the Export to Folder button, and the auto-export below.")
+                    Text("选择导出 Markdown 时包含什么。对手动分享、「导出到文件夹」按钮和下面的自动导出都生效。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -65,12 +65,12 @@ struct ExportSettingsView: View {
                 }
             }
 
-            Section(header: Text("Folder Export"), footer: exportFooter) {
+            Section(header: Text("文件夹导出"), footer: exportFooter) {
                 Toggle(isOn: $isFolderExportAutoEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Auto-export after transcription")
+                        Text("转写后自动导出")
                             .font(.body)
-                        Text("After each transcription, silently save a .md file to the folder you pick below.")
+                        Text("每次转写后，自动把 .md 文件保存到下面选择的文件夹。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -81,9 +81,9 @@ struct ExportSettingsView: View {
 
                 Toggle(isOn: $isFolderExportButtonEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Show Export to Folder button")
+                        Text("显示「导出到文件夹」按钮")
                             .font(.body)
-                        Text("Add a button on each note's detail screen to save the markdown file to the folder on demand.")
+                        Text("在每条笔记的详情页加一个按钮，需要时把 Markdown 文件保存到文件夹。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -109,7 +109,7 @@ struct ExportSettingsView: View {
                     }
 
                     if !folderExportDisplayName.isEmpty {
-                        Button("Clear folder", role: .destructive) {
+                        Button("清空文件夹", role: .destructive) {
                             FolderExportService.clearBookmark()
                             folderExportDisplayName = ""
                         }
@@ -118,9 +118,9 @@ struct ExportSettingsView: View {
             }
 
             if isAnyExportEnabled {
-                Section(header: Text("File"), footer: fileFooter) {
+                Section(header: Text("文件"), footer: fileFooter) {
                     HStack {
-                        Text("File name")
+                        Text("文件名")
                         Spacer()
                         TextField(UserDefaultsStorage.defaultFolderExportFilenameTemplate, text: $filenameTemplate)
                             .multilineTextAlignment(.trailing)
@@ -128,7 +128,7 @@ struct ExportSettingsView: View {
                             .textInputAutocapitalization(.never)
                     }
 
-                    Picker("If the file exists", selection: $writeMode) {
+                    Picker("如果文件已存在", selection: $writeMode) {
                         ForEach(FolderExportWriteMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
                         }
@@ -139,7 +139,7 @@ struct ExportSettingsView: View {
 
                     if writeMode != .replace {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Entry")
+                            Text("条目")
                             TextField(UserDefaultsStorage.defaultFolderExportEntryTemplate, text: $entryTemplate, axis: .vertical)
                                 .lineLimit(2...8)
                                 .font(.callout.monospaced())
@@ -150,7 +150,7 @@ struct ExportSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Export Notes")
+        .navigationTitle("导出笔记")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
             isPresented: $isFolderPickerPresented,
@@ -174,13 +174,13 @@ struct ExportSettingsView: View {
                 folderPickerError = error.localizedDescription
             }
         }
-        .alert("Folder selection failed",
+        .alert("文件夹选择失败",
                isPresented: Binding(
                    get: { folderPickerError != nil },
                    set: { if !$0 { folderPickerError = nil } }
                ),
                presenting: folderPickerError) { _ in
-            Button("OK", role: .cancel) { folderPickerError = nil }
+            Button("好", role: .cancel) { folderPickerError = nil }
         } message: { message in
             Text(message)
         }
@@ -189,7 +189,7 @@ struct ExportSettingsView: View {
     @ViewBuilder
     private var exportFooter: some View {
         if isAnyExportEnabled {
-            Text("Pick any folder, including an Obsidian vault. Per-mode opt-out for auto-export is available in each mode's settings.")
+            Text("可以选任意文件夹，包括 Obsidian 仓库。每个模式的设置里可以单独关掉自动导出。")
         }
     }
 
@@ -197,9 +197,9 @@ struct ExportSettingsView: View {
     private var fileFooter: some View {
         switch writeMode {
         case .replace:
-            Text("One markdown file per name. Placeholders: \(NoteTemplate.placeholderList). A / creates subfolders, e.g. Daily/{date}. .md is added if missing. With a name unique per note (the default includes seconds) every transcription gets its own file; exporting the same note again overwrites it.")
+            Text("每个名称一个 Markdown 文件。占位符：\(NoteTemplate.placeholderList)。「/」会创建子文件夹，如 Daily/{date}。缺少 .md 时自动补上。名称对每条笔记唯一时（默认含秒数），每条转写都有自己的文件；重复导出同一条笔记会覆盖。")
         case .append, .prepend:
-            Text("Each transcription is added as an entry to the file, e.g. File name Daily/{date} collects a whole day in one note. \(writeMode == .prepend ? "New entries go on top, below any YAML frontmatter." : "New entries go at the end.") Entry placeholders: \(NoteTemplate.placeholderList), plus {markdown} for the full export with variations. {text} is the final text, {original} the raw transcription. Entries carry hidden markers, so exporting the same note again updates its entry instead of adding a copy.")
+            Text("每条转写作为一个条目加入文件。例如文件名 Daily/{date} 会把一整天收集在同一篇笔记里。\(writeMode == .prepend ? "新条目加在顶部、YAML frontmatter 之后。" : "新条目加在末尾。")条目占位符：\(NoteTemplate.placeholderList)，以及 {markdown}（含各版本的完整导出）。{text} 是最终文本，{original} 是原始转写。条目带有隐藏标记，重复导出同一条笔记会更新它的条目，而不是再加一份。")
         }
     }
 }

@@ -96,7 +96,7 @@ struct AdvancedSettingsView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Picker("Append with Voice", selection: appendWithVoiceStyle) {
+                    Picker("语音续写", selection: appendWithVoiceStyle) {
                         ForEach(AppendWithVoiceStyle.allCases) { style in
                             Text(style.displayName).tag(style)
                         }
@@ -104,14 +104,14 @@ struct AdvancedSettingsView: View {
                     .onChange(of: appendWithVoiceStyle.wrappedValue) { _, _ in
                         HapticManager.selectionChanged()
                     }
-                    Text("Choose how to access the Append with Voice action on a note. Toolbar puts it inside the pencil menu in the bottom action bar; Floating Button shows a microphone shortcut in the bottom-right corner.")
+                    Text("选择在笔记上如何使用「语音续写」：工具栏模式把它放进底部操作栏的铅笔菜单里；悬浮按钮模式在右下角显示一个麦克风快捷按钮。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Picker("Default AI Mode", selection: defaultAIMode) {
-                        Text("None").tag("")
+                    Picker("默认 AI 模式", selection: defaultAIMode) {
+                        Text("无").tag("")
                         ForEach(aiConfiguredModes) { mode in
                             Text(mode.name).tag(mode.id.uuidString)
                         }
@@ -119,58 +119,58 @@ struct AdvancedSettingsView: View {
                     .onChange(of: defaultAIMode.wrappedValue) { _, _ in
                         HapticManager.selectionChanged()
                     }
-                    Text("Mode pre-selected for AI actions in a note when the current mode has no AI processing. You can still switch modes in the AI Actions sheet.")
+                    Text("当当前模式没有 AI 处理时，这是在笔记的 AI 操作里预选的模式。你仍可以在 AI 操作面板里切换模式。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Note Detail")
+                Text("笔记详情")
             }
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Chats", isOn: $isChatEnabled)
+                    Toggle("对话", isOn: $isChatEnabled)
                         .onChange(of: isChatEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Show chat buttons on the main screen and in note detail. Disable to hide chat buttons across the app. Siri Shortcuts and deep links can still open chats.")
+                    Text("在主屏和笔记详情里显示对话按钮。关掉后整个 App 都不显示对话按钮。Siri 快捷指令和深链仍可打开对话。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Live Translation", isOn: $isLiveTranslationEnabled)
+                    Toggle("实时翻译", isOn: $isLiveTranslationEnabled)
                         .onChange(of: isLiveTranslationEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Show the Live Translation button in the main screen toolbar. Disable to hide it if you don't use live translation.")
+                    Text("在主屏工具栏显示实时翻译按钮。不用实时翻译的话关掉隐藏它。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Auto Share Note", isOn: $isAutoShareAfterRecordingEnabled)
+                    Toggle("自动分享笔记", isOn: $isAutoShareAfterRecordingEnabled)
                         .onChange(of: isAutoShareAfterRecordingEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Open the share sheet automatically with the note's text as soon as it finishes transcribing in the app. Notes captured from the keyboard, Watch, or extensions are unaffected.")
+                    Text("在 App 内转写一完成，就自动弹出分享面板（内容是笔记文本）。从键盘、Watch 或扩展捕获的笔记不受影响。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Features")
+                Text("功能")
             }
 
             Section {
                 Picker(selection: $geminiThinkingLevel) {
-                    Text("Low").tag(GeminiTranscriptionService.ThinkingLevel.low)
-                    Text("Medium").tag(GeminiTranscriptionService.ThinkingLevel.medium)
-                    Text("High").tag(GeminiTranscriptionService.ThinkingLevel.high)
+                    Text("低").tag(GeminiTranscriptionService.ThinkingLevel.low)
+                    Text("中").tag(GeminiTranscriptionService.ThinkingLevel.medium)
+                    Text("高").tag(GeminiTranscriptionService.ThinkingLevel.high)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Gemini Thinking Level")
+                        Text("Gemini 思考等级")
                             .font(.body)
-                        Text("How much Gemini reasons before answering. Low is fastest and cheapest")
+                        Text("Gemini 回答前思考多少。低最快、最便宜")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -181,64 +181,64 @@ struct AdvancedSettingsView: View {
 
                 NavigationLink(value: SettingsDestination.geminiTranscriptionPrompt) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Gemini Transcription Prompt")
+                        Text("Gemini 转写提示词")
                             .font(.body)
-                        Text("Customize the instruction sent with the audio")
+                        Text("自定义随音频一起发送的指令")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
             } header: {
-                Text("Transcription")
+                Text("转写")
             }
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Remove Filler Words", isOn: $isFillerRemovalEnabled)
+                    Toggle("去掉语气词", isOn: $isFillerRemovalEnabled)
                         .onChange(of: isFillerRemovalEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Strips hesitation sounds like \"uh\", \"um\", \"ähm\" from transcripts, matched to the transcript's language. Disable to keep them verbatim. Applies to all modes.")
+                    Text("从转写中去掉「uh」「um」「ähm」这类迟疑声（按转写的语言匹配）。关掉则原样保留。对所有模式生效。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Trim Trailing Period", isOn: $isStripTrailingPeriodEnabled)
+                    Toggle("去掉末尾句号", isOn: $isStripTrailingPeriodEnabled)
                         .onChange(of: isStripTrailingPeriodEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Strips trailing \".\" or \"...\" from transcripts so casual messages like \"Okay.\" don't read as cold. Applies to all modes.")
+                    Text("去掉转写末尾的「.」或「...」，让「Okay.」这类随口消息读起来不显得冷淡。对所有模式生效。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Text Processing")
+                Text("文本处理")
             }
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Skip Apps That Lose Your Place", isOn: $isSkipStateLosingHostReturnEnabled)
+                    Toggle("跳过会丢失位置的 App", isOn: $isSkipStateLosingHostReturnEnabled)
                         .onChange(of: isSkipStateLosingHostReturnEnabled) { _, _ in
                             HapticManager.selectionChanged()
                         }
-                    Text("Safari and Claude open a new tab or chat when VivaDicta sends you back. Turn this on and VivaDicta asks you to swipe back instead, so you return exactly where you were.")
+                    Text("畅言送你返回时，Safari 和 Claude 会打开新标签页或新对话。打开这个开关，畅言会改为提示你滑动返回，精确回到你离开的位置。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Apps You Swipe Back To")
+                    Text("你会切回去的 App")
                         .font(.body)
                     Text(VivaDictaApp.StateLosingHostApps.displayNames.formatted(.list(type: .and)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Return to App")
+                Text("返回 App")
             }
         }
-        .navigationTitle("Advanced")
+        .navigationTitle("高级")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

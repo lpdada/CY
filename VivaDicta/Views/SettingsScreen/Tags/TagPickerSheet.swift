@@ -28,7 +28,7 @@ struct TagPickerSheet: View {
                     ContentUnavailableView(
                         "No Tags",
                         systemImage: "tag",
-                        description: Text("Create your first tag to start organizing.")
+                        description: Text("创建你的第一个标签，开始整理。")
                     )
                 } else {
                     ForEach(allTags) { tag in
@@ -59,14 +59,14 @@ struct TagPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Tags")
+            .navigationTitle("标签")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("完成") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("New Tag", systemImage: "plus") {
+                    Button("新建标签", systemImage: "plus") {
                         showCreateTag = true
                     }
                 }

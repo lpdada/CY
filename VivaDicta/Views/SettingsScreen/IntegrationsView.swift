@@ -44,9 +44,9 @@ struct IntegrationsView: View {
                     footer: obsidianFooter) {
                 Toggle(isOn: $isObsidianAutoOpenEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Auto-open after transcription")
+                        Text("转写后自动打开")
                             .font(.body)
-                        Text("Open Obsidian after each transcription and save the text as a note.")
+                        Text("每次转写后打开 Obsidian，并把文本保存为笔记。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -57,9 +57,9 @@ struct IntegrationsView: View {
 
                 Toggle(isOn: $isObsidianSendButtonEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Show Send to Obsidian button")
+                        Text("显示「发送到 Obsidian」按钮")
                             .font(.body)
-                        Text("Add a button on each note's detail screen to send a transcription on demand.")
+                        Text("在每条笔记的详情页加一个按钮，需要时发送转写。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -71,9 +71,9 @@ struct IntegrationsView: View {
                 if isAnyObsidianEnabled {
                     Toggle(isOn: $isObsidianCustomURLEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Custom URL")
+                            Text("自定义 URL")
                                 .font(.body)
-                            Text("Write the whole URL yourself, e.g. to prepend to a daily note or use the Advanced URI plugin.")
+                            Text("自己写完整的 URL，比如插入到日记笔记开头，或配合 Advanced URI 插件使用。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -90,7 +90,7 @@ struct IntegrationsView: View {
                             .textInputAutocapitalization(.never)
                     } else {
                         HStack {
-                            Text("Note name")
+                            Text("笔记名称")
                             Spacer()
                             TextField(UserDefaultsStorage.defaultObsidianNoteTemplate, text: $obsidianNoteTemplate)
                                 .multilineTextAlignment(.trailing)
@@ -101,7 +101,7 @@ struct IntegrationsView: View {
                 }
             }
         }
-        .navigationTitle("Integrations")
+        .navigationTitle("集成")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -112,7 +112,7 @@ struct IntegrationsView: View {
                 // Verbatim: the literal "%2F" must not be read as a format specifier.
                 Text(verbatim: "VivaDicta opens this URL after filling in the placeholders: \(NoteTemplate.placeholderList). {text} is the final text (AI-processed if a preset ran), {original} is the raw transcription. Values are URL-encoded automatically; type literal slashes in paths as %2F. Example for a daily note: \(Self.customURLExample). Any app's URL scheme works. The text is also copied to the clipboard, so &clipboard works too. Leave the field empty to use the standard note.")
             } else {
-                Text("An Obsidian note is created for new transcriptions and appended to when an existing note name matches. Placeholders: \(NoteTemplate.placeholderList). To instead append to a daily note, set the name to just {date}. Per-mode opt-out for auto-open is available in each mode's settings. The clipboard is overwritten each time.")
+                Text("新转写会创建一篇 Obsidian 笔记；已有同名笔记时追加进去。占位符：\(NoteTemplate.placeholderList)。想改为追加到日记笔记，把名称只设为 {date}。每个模式的设置里可以单独关掉自动打开。每次都会覆盖剪贴板。")
             }
         }
     }

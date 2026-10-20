@@ -87,17 +87,17 @@ struct ConditionalShimmer: ViewModifier {
     @Previewable @State var isShimmering = false
 
     VStack(spacing: 40) {
-        Text("Grayscale gradient effect!")
+        Text("灰度渐变效果！")
             .font(.title)
             .bold()
             .modifier(ConditionalShimmer(isActive: isShimmering))
 
-        Text("Water distortion effect!")
+        Text("水波扭曲效果！")
             .font(.title)
             .bold()
             .modifier(WaterModifier(startTime: Date()))
 
-        Button("Toggle Shimmer") {
+        Button("切换微光效果") {
             isShimmering.toggle()
         }
     }

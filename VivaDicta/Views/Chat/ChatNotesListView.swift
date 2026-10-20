@@ -28,14 +28,14 @@ struct ChatNotesListView: View {
                     ContentUnavailableView(
                         "Notes Unavailable",
                         systemImage: "doc.text.magnifyingglass",
-                        description: Text("The linked notes have been deleted.")
+                        description: Text("关联的笔记已被删除。")
                     )
                 } else {
                     if transcriptions.count < originalCount {
                         let deleted = originalCount - transcriptions.count
                         Section {
                             Label(
-                                "^[\(deleted) note](inflect: true) no longer available",
+                                "\(deleted) 条笔记已不可用",
                                 systemImage: "exclamationmark.triangle"
                             )
                             .font(.caption)
@@ -53,7 +53,7 @@ struct ChatNotesListView: View {
                     }
                 }
             }
-            .navigationTitle("^[\(originalCount) Linked Note](inflect: true)")
+            .navigationTitle("\(originalCount) 条关联笔记")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -62,7 +62,7 @@ struct ChatNotesListView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel("Close")
+                    .accessibilityLabel("关闭")
                 }
             }
             .navigationDestination(for: Transcription.self) { transcription in

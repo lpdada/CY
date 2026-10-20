@@ -58,7 +58,7 @@ struct TextProcessingStateView: View {
                         HapticManager.mediumImpact()
                         onStopInstruction()
                     } label: {
-                        Label("Stop", systemImage: "stop.fill")
+                        Label("停止", systemImage: "stop.fill")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 40)

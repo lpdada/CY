@@ -21,9 +21,9 @@ struct RemindersCalendarSettingsView: View {
             Section {
                 Toggle(isOn: $isAutoReminderExtractionEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Extract Reminder Suggestions Automatically")
+                        Text("自动提取提醒建议")
                             .font(.body)
-                        Text("After saving a new note, detect reminder-worthy tasks in the background and keep them ready for review.")
+                        Text("保存新笔记后，在后台检测值得提醒的任务，供你确认。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -32,15 +32,15 @@ struct RemindersCalendarSettingsView: View {
                     HapticManager.selectionChanged()
                 }
             } header: {
-                Text("Reminders")
+                Text("提醒事项")
             }
 
             Section {
                 Toggle(isOn: $isCalendarEventExtractionEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Extract Calendar Events Too")
+                        Text("同时提取日历事件")
                             .font(.body)
-                        Text("Also look for things that happen at a set time - a dinner, a meeting, an appointment - and offer them as calendar events.")
+                        Text("同时找出有明确时间的事情——晚餐、会议、约会——并建议添加为日历事件。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -49,12 +49,12 @@ struct RemindersCalendarSettingsView: View {
                     HapticManager.selectionChanged()
                 }
             } header: {
-                Text("Calendar")
+                Text("日历")
             } footer: {
-                Text("Applies to extraction you start from a note as well as the automatic pass above.")
+                Text("对你在笔记里手动发起的提取和上面的自动提取都生效。")
             }
         }
-        .navigationTitle("Reminders and Calendar")
+        .navigationTitle("提醒事项与日历")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

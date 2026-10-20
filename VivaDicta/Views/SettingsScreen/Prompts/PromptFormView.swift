@@ -87,13 +87,13 @@ struct PromptFormView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Prompt Name")) {
-                TextField("Title", text: $title)
+            Section(header: Text("提示词名称")) {
+                TextField("标题", text: $title)
             }
 
             Section(
-                header: Text("Prompt Instructions"),
-                footer: template == .custom ? Text("Tip: Use <TRANSCRIPT> to reference the transcribed text.\nExample: \"Clean up <TRANSCRIPT> and fix grammar\"") : nil
+                header: Text("提示词指令"),
+                footer: template == .custom ? Text("小提示：用 <TRANSCRIPT> 引用转写的文本。\n例如：「整理 <TRANSCRIPT> 并修正语法」") : nil
             ) {
                 Button {
                     showInstructionsEditor = true
@@ -104,7 +104,7 @@ struct PromptFormView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Edit prompt instructions")
+                .accessibilityLabel("编辑提示词指令")
                 .accessibilityHint(promptInstructions.isEmpty ? "Double tap to add instructions" : "Current instructions: \(promptInstructions)")
 
                 TipView(transcriptTagsTip)
@@ -113,17 +113,17 @@ struct PromptFormView: View {
             Section {
                 DisclosureGroup("Advanced Settings") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Use System Instructions", isOn: $useSystemTemplate)
+                        Toggle("使用系统指令", isOn: $useSystemTemplate)
 
-                        Text("When enabled, your instructions are combined with system instructions to improve transcription quality. Disable for full control over the AI prompt. Note: Spelling Corrections are always included when enabled in Settings.")
+                        Text("开启后，你的指令会与系统指令合并，以提高转写质量。关掉可完全掌控 AI 提示词。注意：在设置里开启拼写纠正后，它始终会包含在内。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Wrap in <TRANSCRIPT>", isOn: $wrapInTranscriptTags)
+                        Toggle("包上 <TRANSCRIPT> 标签", isOn: $wrapInTranscriptTags)
 
-                        Text("When enabled, the transcribed text is wrapped in <TRANSCRIPT> tags before being sent to the AI. Keep this on when using our prompt templates, as they reference the text using these tags.")
+                        Text("开启后，转写文本会先包上 <TRANSCRIPT> 标签再发送给 AI。用我们的提示词模板时请保持开启，因为模板就是用这个标签引用文本的。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -139,7 +139,7 @@ struct PromptFormView: View {
                         } label: {
                             HStack {
                                 Spacer()
-                                Label("Duplicate Prompt", systemImage: "doc.on.doc")
+                                Label("复制提示词", systemImage: "doc.on.doc")
                                 Spacer()
                             }
                         }
@@ -152,7 +152,7 @@ struct PromptFormView: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Label("Delete Prompt", systemImage: "trash")
+                            Label("删除提示词", systemImage: "trash")
                                 .foregroundStyle(.red)
                             Spacer()
                         }
@@ -168,12 +168,12 @@ struct PromptFormView: View {
             if !isEditMode {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26, *) {
-                        Button("Close", systemImage: "xmark") {
+                        Button("关闭", systemImage: "xmark") {
                             dismiss()
                         }
                         .labelStyle(.iconOnly)
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             dismiss()
                         }
                     }
@@ -187,7 +187,7 @@ struct PromptFormView: View {
                     .disabled(!isFormValid)
                     .tint(.blue)
                 } else {
-                    Button("Save") {
+                    Button("保存") {
                         savePrompt()
                     }
                     .disabled(!isFormValid)
@@ -211,13 +211,13 @@ struct PromptFormView: View {
                message: { error in
             Text(error.failureReason)
         })
-        .alert("Delete Prompt?", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
+        .alert("删除提示词？", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
                 deletePrompt()
             }
         } message: {
-            Text("This action cannot be undone.")
+            Text("此操作无法撤销。")
         }
     }
 

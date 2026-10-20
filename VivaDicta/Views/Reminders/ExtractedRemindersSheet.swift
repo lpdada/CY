@@ -69,7 +69,7 @@ struct ExtractedRemindersSheet: View {
                     ContentUnavailableView(
                         "No Suggestions",
                         systemImage: "checklist",
-                        description: Text("Extracted drafts will appear here for review before anything is added to Apple Reminders or Calendar.")
+                        description: Text("提取的草稿会先出现在这里供你确认，之后才会添加到 Apple 提醒事项或日历。")
                     )
                 } else {
                     List {
@@ -80,7 +80,7 @@ struct ExtractedRemindersSheet: View {
                                 }
                             } header: {
                                 if showsSectionHeaders {
-                                    Text("Reminders")
+                                    Text("提醒事项")
                                 }
                             }
                         }
@@ -92,13 +92,13 @@ struct ExtractedRemindersSheet: View {
                                 }
                             } header: {
                                 if showsSectionHeaders {
-                                    Text("Calendar Events")
+                                    Text("日历事件")
                                 }
                             }
                         }
 
                         Section {
-                            Text("Swipe right to add. Swipe left to dismiss.")
+                            Text("右滑添加。左滑忽略。")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -115,12 +115,12 @@ struct ExtractedRemindersSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26, *) {
-                        Button("Close", systemImage: "xmark") {
+                        Button("关闭", systemImage: "xmark") {
                             dismiss()
                         }
                         .labelStyle(.iconOnly)
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             dismiss()
                         }
                     }
@@ -140,11 +140,11 @@ struct ExtractedRemindersSheet: View {
         }
         .alert(errorTitle, isPresented: $showErrorAlert) {
             if shouldOfferSettingsShortcut {
-                Button("Settings") {
+                Button("设置") {
                     openAppSettings()
                 }
             }
-            Button("OK", role: .cancel) {}
+            Button("好", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -157,7 +157,7 @@ struct ExtractedRemindersSheet: View {
         )
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if draft.status == .pending {
-                Button("Add to Reminders", systemImage: "checkmark.circle.fill") {
+                Button("添加到提醒事项", systemImage: "checkmark.circle.fill") {
                     Task {
                         await importDraft(draft)
                     }
@@ -167,7 +167,7 @@ struct ExtractedRemindersSheet: View {
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button("Dismiss", systemImage: "trash") {
+            Button("忽略", systemImage: "trash") {
                 dismissDraft(draft)
             }
             .tint(.red)
@@ -182,7 +182,7 @@ struct ExtractedRemindersSheet: View {
         )
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if event.status == .pending, CalendarImportService.canImport(event.calendarEventDraft) {
-                Button("Add to Calendar", systemImage: "calendar.badge.plus") {
+                Button("添加到日历", systemImage: "calendar.badge.plus") {
                     Task {
                         await importEvent(event)
                     }
@@ -192,7 +192,7 @@ struct ExtractedRemindersSheet: View {
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button("Dismiss", systemImage: "trash") {
+            Button("忽略", systemImage: "trash") {
                 dismissEvent(event)
             }
             .tint(.red)
@@ -434,7 +434,7 @@ private struct ExtractedCalendarEventRow: View {
                         .font(.caption)
                         .foregroundStyle(.green)
                 } else if !canImport {
-                    Label("No date could be resolved", systemImage: "exclamationmark.triangle")
+                    Label("无法解析出日期", systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }

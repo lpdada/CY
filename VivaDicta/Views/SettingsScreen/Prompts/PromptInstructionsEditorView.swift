@@ -19,7 +19,7 @@ struct PromptInstructionsEditorView: View {
             .contentMargins(.horizontal, 16, for: .scrollContent)
             .contentMargins(.bottom, 100, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Prompt Instructions")
+            .navigationTitle("提示词指令")
             .onAppear {
                 originalInstructions = instructions
                 isFocused = true
@@ -34,7 +34,7 @@ struct PromptInstructionsEditorView: View {
                             dismiss()
                         }
                     } else {
-                        Button("Cancel") {
+                        Button("取消") {
                             instructions = originalInstructions
                             HapticManager.lightImpact()
                             dismiss()
@@ -50,7 +50,7 @@ struct PromptInstructionsEditorView: View {
                         }
                         .tint(.blue)
                     } else {
-                        Button("Done") {
+                        Button("完成") {
                             HapticManager.lightImpact()
                             dismiss()
                         }

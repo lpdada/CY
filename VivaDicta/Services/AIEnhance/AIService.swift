@@ -1321,11 +1321,11 @@ class AIService {
             let modelName = customOpenAIModelName
 
             guard !endpointURL.isEmpty else {
-                throw EnhancementError.customError("Custom AI endpoint URL is not configured")
+                throw EnhancementError.customError("自定义 AI 接口 URL 未配置")
             }
 
             guard !modelName.isEmpty else {
-                throw EnhancementError.customError("Custom AI model name is not configured")
+                throw EnhancementError.customError("自定义 AI 模型名未配置")
             }
 
             guard let url = URL(string: endpointURL) else {
@@ -1347,7 +1347,7 @@ class AIService {
                     timeout: 120,
                     errorPrefix: "Custom AI provider error",
                     notFoundMessage: "Model '\(modelName)' not found on the server.",
-                    unauthorizedMessage: "Authentication failed. Check your API key."
+                    unauthorizedMessage: "认证失败。请检查你的 API Key。"
                 ),
                 model: modelName
             )
@@ -1638,11 +1638,11 @@ class AIService {
         let modelName = customOpenAIModelName
 
         guard !endpointURL.isEmpty else {
-            throw EnhancementError.customError("Custom AI endpoint URL is not configured")
+            throw EnhancementError.customError("自定义 AI 接口 URL 未配置")
         }
 
         guard !modelName.isEmpty else {
-            throw EnhancementError.customError("Custom AI model name is not configured")
+            throw EnhancementError.customError("自定义 AI 模型名未配置")
         }
 
         // Use URL directly - user provides the full chat/completions endpoint
@@ -1700,7 +1700,7 @@ class AIService {
                 return filteredText
 
             case 401:
-                throw EnhancementError.customError("Authentication failed. Check your API key.")
+                throw EnhancementError.customError("认证失败。请检查你的 API Key。")
 
             case 404:
                 throw EnhancementError.customError("Model '\(modelName)' not found on the server.")
@@ -1738,7 +1738,7 @@ class AIService {
             return (false, "Endpoint URL is not configured")
         }
         guard URL(string: endpointURL) != nil else {
-            return (false, "Invalid endpoint URL format")
+            return (false, "接口 URL 格式无效")
         }
         guard !modelName.isEmpty else {
             return (false, "Model name is not configured")

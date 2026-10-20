@@ -70,7 +70,7 @@ struct MultiNoteChatView: View {
                 onStop: { viewModel.cancelStreaming() }
             )
         }
-        .navigationTitle("Multi-Note Chat")
+        .navigationTitle("多笔记对话")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -78,14 +78,14 @@ struct MultiNoteChatView: View {
                     Button {
                         Task { await viewModel.compactChat() }
                     } label: {
-                        Label("Compact Chat", systemImage: "arrow.trianglehead.2.clockwise")
+                        Label("紧凑对话", systemImage: "arrow.trianglehead.2.clockwise")
                     }
                     .disabled(viewModel.messages.count < 6 || viewModel.isStreaming || viewModel.isCompacting)
 
                     Button(role: .destructive) {
                         showClearConfirmation = true
                     } label: {
-                        Label("Clear Chat", systemImage: "trash")
+                        Label("清空对话", systemImage: "trash")
                     }
                     .disabled(viewModel.messages.isEmpty || viewModel.isStreaming)
                 } label: {
@@ -93,13 +93,13 @@ struct MultiNoteChatView: View {
                 }
             }
         }
-        .alert("Clear Chat?", isPresented: $showClearConfirmation) {
-            Button("Clear", role: .destructive) {
+        .alert("清空对话？", isPresented: $showClearConfirmation) {
+            Button("清除", role: .destructive) {
                 viewModel.clearChat()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
-            Text("This will delete all chat messages. This cannot be undone.")
+            Text("这会删除全部对话消息。无法撤销。")
         }
         .sheet(isPresented: $showNotesList) {
             ChatNotesListView(
@@ -117,7 +117,7 @@ struct MultiNoteChatView: View {
                             } label: {
                                 Image(systemName: "xmark")
                             }
-                            .accessibilityLabel("Close")
+                            .accessibilityLabel("关闭")
                         }
                     }
             }
@@ -222,7 +222,7 @@ struct MultiNoteChatView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
                 .foregroundStyle(.tertiary)
-            Text("Ask anything about these notes")
+            Text("问问关于这些笔记的任何事")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -288,7 +288,7 @@ struct MultiNoteChatView: View {
             Button {
                 showNotesList = true
             } label: {
-                Label("^[\(viewModel.conversation.sourceNoteCount) note](inflect: true)", systemImage: "doc.text")
+                Label("\(viewModel.conversation.sourceNoteCount) 条笔记", systemImage: "doc.text")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
@@ -313,7 +313,7 @@ struct MultiNoteChatView: View {
     private var compactingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView()
-            Text("Compacting conversation...")
+            Text("正在压缩对话…")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

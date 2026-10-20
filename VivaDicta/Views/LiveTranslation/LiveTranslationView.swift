@@ -66,7 +66,7 @@ private struct LiveTranslationSessionView: View {
             .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
                 headphonesConnected = LiveTranslationAudio.isHeadphonesRouteActive
             }
-            .navigationTitle("Live Translation")
+            .navigationTitle("实时翻译")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -78,26 +78,26 @@ private struct LiveTranslationSessionView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel("Close")
+                    .accessibilityLabel("关闭")
                 }
             }
             .alert(item: failureBinding) { failure in
                 Alert(
-                    title: Text("Live Translation Error"),
+                    title: Text("实时翻译错误"),
                     message: Text(failure.message),
-                    dismissButton: .default(Text("OK"))
+                    dismissButton: .default(Text("好"))
                 )
             }
-            .alert("Saved", isPresented: savedAlertBinding) {
-                Button("OK", role: .cancel) {}
+            .alert("已保存", isPresented: savedAlertBinding) {
+                Button("好", role: .cancel) {}
             } message: {
-                Text("The transcript was saved as a note.")
+                Text("转写已保存为笔记。")
             }
             .alert(item: $saveError) { error in
                 Alert(
-                    title: Text("Couldn't Save Note"),
+                    title: Text("笔记保存失败"),
                     message: Text(error.message),
-                    dismissButton: .default(Text("OK"))
+                    dismissButton: .default(Text("好"))
                 )
             }
             .sheet(isPresented: $showingSaveOptions) {
@@ -135,9 +135,9 @@ private struct LiveTranslationSessionView: View {
                 .foregroundStyle(.indigo)
 
             VStack(spacing: 8) {
-                Text("Soniox API key required")
+                Text("需要 Soniox API Key")
                     .font(.title2.weight(.semibold))
-                Text("Live Translation uses Soniox for real-time speech recognition and translation. Add your API key in Settings to get started.")
+                Text("实时翻译用 Soniox 做实时语音识别和翻译。在设置里添加你的 API Key 后开始使用。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -149,7 +149,7 @@ private struct LiveTranslationSessionView: View {
                     appState.pendingCloudTranscriptionProvider = .soniox
                     dismiss()
                 } label: {
-                    Label("Open Settings", systemImage: "gearshape")
+                    Label("打开设置", systemImage: "gearshape")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -157,7 +157,7 @@ private struct LiveTranslationSessionView: View {
                 .controlSize(.large)
 
                 Link(destination: Self.sonioxConsoleURL) {
-                    Label("Get a Soniox key", systemImage: "safari")
+                    Label("获取 Soniox Key", systemImage: "safari")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -207,7 +207,7 @@ private struct LiveTranslationSessionView: View {
         HStack(spacing: 6) {
             Image(systemName: "info.circle")
                 .font(.caption)
-            Text("Use headphones for clearer audio, or hold your iPhone near your ear")
+            Text("用耳机获得更清晰的音频，或把 iPhone 贴近耳朵")
                 .font(.caption)
             Spacer()
         }
@@ -237,12 +237,12 @@ private struct LiveTranslationSessionView: View {
             HStack {
                 Image(systemName: service.config.ttsEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
                     .foregroundStyle(service.config.ttsEnabled ? .indigo : .secondary)
-                Toggle("Speak translation", isOn: Binding(
+                Toggle("语音翻译", isOn: Binding(
                     get: { service.config.ttsEnabled },
                     set: { service.config.ttsEnabled = $0 }
                 ))
                 .labelsHidden()
-                Text("Speak translation")
+                Text("语音翻译")
                     .font(.subheadline)
                 Spacer()
 
@@ -292,7 +292,7 @@ private struct LiveTranslationSessionView: View {
                 Button {
                     Task { await service.stop() }
                 } label: {
-                    Label("Stop", systemImage: "stop.fill")
+                    Label("停止", systemImage: "stop.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -302,7 +302,7 @@ private struct LiveTranslationSessionView: View {
                 Button {
                     Task { await service.start() }
                 } label: {
-                    Label("Start listening", systemImage: "waveform.and.mic")
+                    Label("开始聆听", systemImage: "waveform.and.mic")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -315,7 +315,7 @@ private struct LiveTranslationSessionView: View {
                 Button {
                     showingSaveOptions = true
                 } label: {
-                    Label("Save as note", systemImage: "square.and.arrow.down")
+                    Label("保存为笔记", systemImage: "square.and.arrow.down")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -331,7 +331,7 @@ private struct LiveTranslationSessionView: View {
         // Soniox tts-rt voices are multilingual, so this is a pure timbre
         // pick - no need to gate by source/target language.
         Menu {
-            Picker("Voice", selection: Binding(
+            Picker("语音", selection: Binding(
                 get: { LiveTranslationVoice(rawValue: service.config.ttsVoice) ?? .default },
                 set: { service.config.ttsVoice = $0.rawValue }
             )) {
@@ -366,7 +366,7 @@ private struct LiveTranslationSessionView: View {
         // inner Picker drives selection state - iOS draws the checkmark in
         // its own column so flags + names stay aligned across rows.
         return Menu {
-            Picker("Language", selection: selection) {
+            Picker("语言", selection: selection) {
                 ForEach(preferred) { language in
                     Text(language.displayNameWithFlag).tag(language)
                 }
@@ -523,9 +523,9 @@ private struct SaveOptionsSheet: View {
     var body: some View {
         VStack(spacing: 20) {
             VStack(spacing: 4) {
-                Text("Save as note")
+                Text("保存为笔记")
                     .font(.title3.bold())
-                Text("Choose what to include in the note")
+                Text("选择笔记里包含什么")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -559,7 +559,7 @@ private struct SaveOptionsSheet: View {
                 }
             }
 
-            Button("Cancel", role: .cancel) { dismiss() }
+            Button("取消", role: .cancel) { dismiss() }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)

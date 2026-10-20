@@ -219,7 +219,7 @@ public final class DefaultCopilotOAuthManager: CopilotOAuthManager {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let token = json["token"] as? String,
               let expiresAt = json["expires_at"] as? Int else {
-            throw CopilotOAuthError.tokenExchangeFailed("Invalid response format")
+            throw CopilotOAuthError.tokenExchangeFailed("响应格式无效")
         }
 
         return (token, Date(timeIntervalSince1970: TimeInterval(expiresAt)))

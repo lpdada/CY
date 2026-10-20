@@ -27,7 +27,7 @@ struct OnboardingKeyboardMicButton: View {
                 .padding(padding)
                 .background(background)
         }
-        .accessibilityLabel("Record")
+        .accessibilityLabel("录音")
     }
 
     @ViewBuilder

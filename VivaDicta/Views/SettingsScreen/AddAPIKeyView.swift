@@ -61,14 +61,14 @@ struct AddAPIKeyView: View {
                         }
                     }
                 } label: {
-                    Text("Paste from clipboard")
+                    Text("从剪贴板粘贴")
                         .font(.headline.weight(.medium))
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
                 .glassEffect(.regular.tint(.blue.opacity(0.3)).interactive())
                 .buttonStyle(.plain)
-                .accessibilityLabel("Paste from clipboard")
+                .accessibilityLabel("从剪贴板粘贴")
             } else {
                 Button {
                     if let clipboardString = UIPasteboard.general.string {
@@ -79,7 +79,7 @@ struct AddAPIKeyView: View {
                         }
                     }
                 } label: {
-                    Text("Paste from clipboard")
+                    Text("从剪贴板粘贴")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.primary)
                         .padding(.vertical, 8)
@@ -90,7 +90,7 @@ struct AddAPIKeyView: View {
                         }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Paste from clipboard")
+                .accessibilityLabel("从剪贴板粘贴")
             }
             
 
@@ -98,7 +98,7 @@ struct AddAPIKeyView: View {
                 Button {
                     UIApplication.shared.open(apiKeyURL)
                 } label: {
-                    Label("Get API Key", systemImage: "key")
+                    Label("获取 API Key", systemImage: "key")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.blue)
                 }
@@ -112,7 +112,7 @@ struct AddAPIKeyView: View {
                         apiKey = ""
                         HapticManager.lightImpact()
                     } label: {
-                        Text("Clear")
+                        Text("清除")
                             .font(.headline.weight(.medium))
                     }
                     .padding(.vertical, 8)
@@ -124,7 +124,7 @@ struct AddAPIKeyView: View {
                         apiKey = ""
                         HapticManager.lightImpact()
                     } label: {
-                        Text("Clear")
+                        Text("清除")
                             .font(.headline.weight(.medium))
                             .foregroundStyle(.primary)
                             .padding(.vertical, 8)
@@ -152,7 +152,7 @@ struct AddAPIKeyView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -165,7 +165,7 @@ struct AddAPIKeyView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -208,7 +208,7 @@ struct AddAPIKeyView: View {
                         .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .tint(.blue)
                     } else {
-                        Button("Save") {
+                        Button("保存") {
                             saveKey()
                         }
                         .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -216,13 +216,13 @@ struct AddAPIKeyView: View {
                 }
             }
         }
-        .alert("Delete API Key", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
+        .alert("删除 API Key", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
                 deleteAPIKey()
             }
         } message: {
-            Text("Are you sure you want to delete the API key for \(provider.displayName)? This action cannot be undone.")
+            Text("确定要删除 \(provider.displayName) 的 API Key 吗？此操作无法撤销。")
         }
     }
 
@@ -262,7 +262,7 @@ struct AddAPIKeyView: View {
                 onSave(provider)
                 dismiss()
             } else {
-                verificationError = "Invalid API key. Please check your key and try again."
+                verificationError = "API Key 无效。请检查你的 Key 后重试。"
             }
         }
     }

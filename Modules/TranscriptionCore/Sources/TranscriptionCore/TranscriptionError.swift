@@ -16,7 +16,7 @@ public enum TranscriptionError: LocalizedError {
         case .transcriptionFailed:
             return "Transcription failed"
         case .unsupportedModel:
-            return "Unsupported model type"
+            return "不支持的模型类型"
         case .audioConversionFailed:
             return "Failed to convert audio format"
         case .modelNotDownloaded:

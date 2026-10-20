@@ -186,7 +186,7 @@ public struct SonioxTranscriptionService: TranscriptionService, Sendable {
 
             if Date().timeIntervalSince(start) > maxWaitSeconds {
                 logger.logError("Transcription timed out after \(maxWaitSeconds) seconds")
-                throw CloudTranscriptionError.apiRequestFailed(statusCode: 504, message: "Transcription timed out")
+                throw CloudTranscriptionError.apiRequestFailed(statusCode: 504, message: "转写超时")
             }
 
             try await Task.sleep(for: Self.pollInterval(elapsed: Date().timeIntervalSince(start)))

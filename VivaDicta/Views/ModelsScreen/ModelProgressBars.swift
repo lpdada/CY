@@ -100,7 +100,7 @@ struct ModelCapabilityBadge: View {
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Supports \(title)")
+        .accessibilityLabel("支持 \(title)")
     }
 }
 

@@ -20,7 +20,7 @@ public enum CloudTranscriptionError: LocalizedError {
         case .missingAPIKey:
             return "API key missing"
         case .invalidAPIKey:
-            return "Invalid API key"
+            return "API Key 无效"
         case .audioFileNotFound:
             return "Audio file not found"
         case .apiRequestFailed(let statusCode, _):

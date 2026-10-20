@@ -424,7 +424,7 @@ enum ModelDownloadError: LocalizedError {
         case .downloadFailed(_):
             return "Download failed"
         case .unsupportedModelType:
-            return "Unsupported model type"
+            return "不支持的模型类型"
         }
     }
 

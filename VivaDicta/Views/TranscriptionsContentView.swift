@@ -549,7 +549,7 @@ struct TranscriptionsContentView: View {
                 ContentUnavailableView(
                     "No Smart Matches",
                     systemImage: "sparkle.magnifyingglass",
-                    description: Text("AI-powered semantic search could not find a close match. Try different wording or switch to Keyword.")
+                    description: Text("AI 语义搜索没找到接近的结果。换个说法试试，或切换到关键词搜索。")
                 )
             } else {
                 ContentUnavailableView.search
@@ -558,16 +558,16 @@ struct TranscriptionsContentView: View {
             ContentUnavailableView(
                 "No Matching Notes",
                 systemImage: "tag",
-                description: Text("No transcriptions match the selected filters.")
+                description: Text("没有符合所选筛选条件的转写。")
             )
         }
     }
 
     private var emptyAllStateView: some View {
         ContentUnavailableView {
-            Label("No Notes yet", systemImage: "waveform")
+            Label("还没有笔记", systemImage: "waveform")
         } description: {
-            Text("Tap the record button to capture your first note.")
+            Text("点录音按钮，记录你的第一条笔记。")
         }
     }
 }
@@ -595,12 +595,12 @@ private struct TranscriptionSearchControlsView: View {
         }
 
         if isSmartSearchEnabled, !searchText.isEmpty {
-            Picker("Search Mode", selection: $searchMode) {
-                Text("All")
+            Picker("搜索模式", selection: $searchMode) {
+                Text("全部")
                     .tag(TranscriptionSearchMode.all)
-                Label("Keyword", systemImage: "text.magnifyingglass")
+                Label("关键词", systemImage: "text.magnifyingglass")
                     .tag(TranscriptionSearchMode.keyword)
-                Label("Smart", systemImage: "sparkle.magnifyingglass")
+                Label("智能", systemImage: "sparkle.magnifyingglass")
                     .tag(TranscriptionSearchMode.smart)
             }
             .pickerStyle(.segmented)
@@ -718,7 +718,7 @@ private struct CombinedSearchResultsView: View {
                     .id(topAnchorID)
 
                 if !keywordTranscriptions.isEmpty {
-                    Section("Keyword Matches") {
+                    Section("关键词匹配") {
                         rows(
                             transcriptions: keywordTranscriptions,
                             semanticScoreProvider: { _ in nil },
@@ -728,7 +728,7 @@ private struct CombinedSearchResultsView: View {
                 }
 
                 if !smartTranscriptions.isEmpty {
-                    Section("Smart Matches") {
+                    Section("智能匹配") {
                         rows(
                             transcriptions: smartTranscriptions,
                             semanticScoreProvider: semanticScoreProvider,
@@ -872,7 +872,7 @@ private struct TranscriptionNavigationRow: View {
             )
         }
         .contextMenu {
-            Section("Share") {
+            Section("分享") {
                 if let latestVariation = transcription.variations?
                     .sorted(by: { $0.createdAt < $1.createdAt }).last {
                     let presetTitle = PresetCatalog.displayName(
@@ -891,7 +891,7 @@ private struct TranscriptionNavigationRow: View {
                 }
 
                 ShareLink(item: transcription.text) {
-                    Label("Original Text", systemImage: "text.alignleft")
+                    Label("原始文本", systemImage: "text.alignleft")
                 }
 
                 if let audioURL {
@@ -902,7 +902,7 @@ private struct TranscriptionNavigationRow: View {
                             image: Image(systemName: "waveform")
                         )
                     ) {
-                        Label("Audio Recording", systemImage: "waveform")
+                        Label("音频录制", systemImage: "waveform")
                     }
                 }
             }

@@ -318,7 +318,7 @@ private final class SmoothingState {
                 Slider(value: $power, in: 0...1)
                     .padding()
 
-                Text("Power: \(power, format: .number.precision(.fractionLength(2)))")
+                Text("电平：\(power, format: .number.precision(.fractionLength(2)))")
             }
         }
     }

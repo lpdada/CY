@@ -42,7 +42,7 @@ struct VivaModePicker: View {
             .modePickerBackground()
         }
         .tint(.primary)
-        .accessibilityLabel("Mode selector")
+        .accessibilityLabel("模式选择")
         .accessibilityValue(selectedModeName)
         .accessibilityHint("Double tap to choose a different mode")
     }

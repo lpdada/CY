@@ -45,7 +45,7 @@ struct MainFloatingActionButtonsView: View {
         label: {
             recordIcon
         }
-        .accessibilityLabel("Record")
+        .accessibilityLabel("录音")
         .padding(22)
         .background(recordButtonBackground)
         .matchedTransitionSource(id: "RecordSheetTransition", in: sheetTransitions)
@@ -75,7 +75,7 @@ struct MainFloatingActionButtonsView: View {
     }
 
     private var chatsButton: some View {
-        Button("Chats", systemImage: "bubble.left.and.text.bubble.right") {
+        Button("对话", systemImage: "bubble.left.and.text.bubble.right") {
             onShowChats()
         }
         .labelStyle(.iconOnly)

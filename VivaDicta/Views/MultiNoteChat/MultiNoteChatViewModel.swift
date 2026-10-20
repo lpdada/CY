@@ -179,7 +179,7 @@ final class MultiNoteChatViewModel {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         guard let provider = selectedProvider, let model = selectedModel else {
-            errorMessage = "No AI provider selected"
+            errorMessage = "没有选择 AI 服务商"
             return
         }
         guard aiService.isChatProviderReady(provider) else {
@@ -659,9 +659,9 @@ final class MultiNoteChatViewModel {
         } catch let error as LanguageModelSession.GenerationError {
             switch error {
             case .guardrailViolation:
-                throw EnhancementError.customError("Content was blocked by safety guidelines")
+                throw EnhancementError.customError("内容被安全准则拦截")
             case .refusal:
-                throw EnhancementError.customError("The AI declined to respond to this request. Try rephrasing.")
+                throw EnhancementError.customError("AI 拒绝回应这个请求。换个说法试试。")
             default:
                 throw EnhancementError.customError(error.localizedDescription)
             }
@@ -686,7 +686,7 @@ final class MultiNoteChatViewModel {
 
         let summary: String
         if conversationText.isEmpty {
-            summary = "Previous conversation context was cleared."
+            summary = "之前的对话上下文已清除。"
         } else {
             let summarySession = LanguageModelSession(
                 instructions: ChatContextManager.compactionPrompt

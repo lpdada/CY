@@ -71,18 +71,18 @@ struct GeminiConfigurationView: View {
             apiKey = existingKey ?? ""
             hasExistingKey = existingKey != nil
         }
-        .alert("Sign-In Error", isPresented: $showOAuthError) {
-            Button("OK") {}
+        .alert("登录错误", isPresented: $showOAuthError) {
+            Button("好") {}
         } message: {
             Text(oauthErrorMessage)
         }
-        .alert("Delete API Key", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
+        .alert("删除 API Key", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
                 deleteAPIKey()
             }
         } message: {
-            Text("Are you sure you want to delete the API key for Gemini? This action cannot be undone.")
+            Text("确定要删除 Gemini 的 API Key 吗？此操作无法撤销。")
         }
     }
 
@@ -90,7 +90,7 @@ struct GeminiConfigurationView: View {
 
     private var modelAvailabilityNote: some View {
         Label {
-            Text("OAuth and CLI agent connections support a limited set of models. Use an API key for full model access.")
+            Text("OAuth 和 CLI 代理连接只支持有限的模型。要用全部模型请使用 API Key。")
         } icon: {
             Image(systemName: "info.circle")
         }
@@ -103,10 +103,10 @@ struct GeminiConfigurationView: View {
 
     private var geminiOAuthSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Google Account")
+            Text("Google 账号")
                 .font(.headline)
 
-            Text("Use your Google account with Gemini — no API key needed. May have rate limits and slower responses.")
+            Text("用你的 Google 账号使用 Gemini——不需要 API Key。可能有速率限制且响应较慢。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -115,7 +115,7 @@ struct GeminiConfigurationView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Signed in")
+                        Text("已登录")
                             .font(.callout)
                         if let email = aiService.geminiEmail {
                             Text(email)
@@ -124,7 +124,7 @@ struct GeminiConfigurationView: View {
                         }
                     }
                     Spacer()
-                    Button("Sign Out", role: .destructive) {
+                    Button("退出登录", role: .destructive) {
                         aiService.signOutFromGemini()
                     }
                     .controlSize(.small)
@@ -139,7 +139,7 @@ struct GeminiConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Sign in with Google")
+                            Text("用 Google 登录")
                                 .font(.headline.weight(.medium))
                         }
                     }
@@ -157,7 +157,7 @@ struct GeminiConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Sign in with Google")
+                            Text("用 Google 登录")
                                 .font(.headline.weight(.medium))
                                 .foregroundStyle(.primary)
                         }
@@ -188,7 +188,7 @@ struct GeminiConfigurationView: View {
             Text("API Key")
                 .font(.headline)
 
-            Text("Fastest and most reliable option. No rate limits.")
+            Text("最快、最可靠的选择。没有速率限制。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -196,7 +196,7 @@ struct GeminiConfigurationView: View {
                 Button {
                     UIApplication.shared.open(apiKeyURL)
                 } label: {
-                    Label("Get API Key", systemImage: "key")
+                    Label("获取 API Key", systemImage: "key")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.blue)
                 }
@@ -232,7 +232,7 @@ struct GeminiConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Save API Key")
+                            Text("保存 API Key")
                                 .font(.headline.weight(.medium))
                         }
                     }
@@ -245,7 +245,7 @@ struct GeminiConfigurationView: View {
                     Button {
                         pasteAndSave()
                     } label: {
-                        Text("Paste")
+                        Text("粘贴")
                             .font(.headline.weight(.medium))
                     }
                     .padding(.vertical, 8)
@@ -259,7 +259,7 @@ struct GeminiConfigurationView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -278,7 +278,7 @@ struct GeminiConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Save API Key")
+                            Text("保存 API Key")
                                 .font(.headline.weight(.medium))
                                 .foregroundStyle(.primary)
                         }
@@ -295,7 +295,7 @@ struct GeminiConfigurationView: View {
                     Button {
                         pasteAndSave()
                     } label: {
-                        Text("Paste")
+                        Text("粘贴")
                             .font(.headline.weight(.medium))
                             .foregroundStyle(.primary)
                             .padding(.vertical, 8)
@@ -313,7 +313,7 @@ struct GeminiConfigurationView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -338,7 +338,7 @@ struct GeminiConfigurationView: View {
 
     private var fallbackChainNote: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Fallback Chain", systemImage: "arrow.triangle.branch")
+            Label("降级链", systemImage: "arrow.triangle.branch")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
@@ -370,7 +370,7 @@ struct GeminiConfigurationView: View {
             }
             .foregroundStyle(.secondary)
 
-            Text("If the first available method fails, the next one is tried automatically.")
+            Text("如果第一个可用方法失败，会自动尝试下一个。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -388,19 +388,19 @@ struct GeminiConfigurationView: View {
         if aiService.isGeminiSignedIn {
             return "Google Connected"
         } else if VivAgentsClient.isEnabled && VivAgentsClient.isGeminiCliActive {
-            return "VivAgents Server Connected"
+            return "VivAgents 服务器已连接"
         } else {
-            return "API Key Configured"
+            return "API Key 已配置"
         }
     }
 
     private var geminiCLIServerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Gemini CLI Agent")
+            Text("Gemini CLI 代理")
                 .font(.headline)
 
             if VivAgentsClient.isEnabled && VivAgentsClient.isGeminiCliAvailable {
-                Toggle("Use Gemini CLI Agent", isOn: $isGeminiCliEnabled)
+                Toggle("使用 Gemini CLI 代理", isOn: $isGeminiCliEnabled)
                     .onChange(of: isGeminiCliEnabled) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: VivAgentsClient.geminiCliEnabledKey)
                         aiService.refreshConnectedProviders()
@@ -410,19 +410,19 @@ struct GeminiConfigurationView: View {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                        Text("Gemini CLI active")
+                        Text("Gemini CLI 已启用")
                             .font(.callout)
                     }
                 }
             } else {
-                Text("Use your Gemini CLI account via the VivAgents Server. No API key needed.")
+                Text("通过 VivAgents 服务器使用你的 Gemini CLI 账号。不需要 API Key。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 NavigationLink {
                     CLIServerConfigurationView(aiService: aiService)
                 } label: {
-                    Text("Configure VivAgents Server")
+                    Text("配置 VivAgents 服务器")
                         .font(.callout)
                 }
             }
@@ -460,7 +460,7 @@ struct GeminiConfigurationView: View {
                 hasExistingKey = true
                 HapticManager.success()
             } else {
-                verificationError = "Invalid API key"
+                verificationError = "API Key 无效"
                 HapticManager.error()
             }
         }

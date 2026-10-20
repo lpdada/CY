@@ -30,7 +30,7 @@ struct WhatsNewView: View {
 
                 // Title
                 VStack(spacing: 4) {
-                    Text("What's New in")
+                    Text("新功能：")
                         .font(.title.weight(.bold))
                         .fontDesign(.rounded)
                         .foregroundStyle(meshGradient(t: t))

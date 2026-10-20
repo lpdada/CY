@@ -22,7 +22,7 @@ struct ChatBubbleView: View {
     // MARK: - Summary Card
 
     private var summaryCard: some View {
-        Label("Previous conversation compacted", systemImage: "arrow.trianglehead.2.clockwise")
+        Label("之前的对话已压缩", systemImage: "arrow.trianglehead.2.clockwise")
             .font(.caption)
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity)

@@ -32,14 +32,14 @@ struct CLIServerConfigurationView: View {
                         .font(.system(size: 48))
                         .foregroundStyle(.blue.gradient)
 
-                    Text("VivAgents Server")
+                    Text("VivAgents 服务器")
                         .font(.title2)
 
                     if isServerEnabled && VivAgentsClient.isVerified {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text("Connected")
+                            Text("已连接")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -64,7 +64,7 @@ struct CLIServerConfigurationView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
-        .navigationTitle("VivAgents Server")
+        .navigationTitle("VivAgents 服务器")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -75,7 +75,7 @@ struct CLIServerConfigurationView: View {
                     .disabled(!hasUnsavedChanges)
                     .tint(hasUnsavedChanges ? .blue : .gray)
                 } else {
-                    Button("Save") {
+                    Button("保存") {
                         saveSettings()
                     }
                     .disabled(!hasUnsavedChanges)
@@ -99,14 +99,14 @@ struct CLIServerConfigurationView: View {
                 }
             }
         }
-        .alert("Usage Notice", isPresented: $showCLIWarning) {
-            Button("Cancel", role: .cancel) { }
-            Button("Enable") {
+        .alert("使用须知", isPresented: $showCLIWarning) {
+            Button("取消", role: .cancel) { }
+            Button("启用") {
                 isServerEnabled = true
                 hasUnsavedChanges = true
             }
         } message: {
-            Text("CLI agents are designed for software development use. Using them for general text processing may fall outside the intended use and could lead to account restrictions.\n\nBy enabling this feature you proceed at your own risk.")
+            Text("CLI 代理是为软件开发设计的。用于一般文本处理可能超出其预期用途，并可能导致账号受限。\n\n启用此功能风险自担。")
         }
     }
 
@@ -114,14 +114,14 @@ struct CLIServerConfigurationView: View {
 
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Connection")
+            Text("连接")
                 .font(.headline)
 
-            Text("Connect to a server running CLI agents for AI processing. Can be your Mac with VivaDicta app or a remote server.")
+            Text("连接到运行 CLI 代理的服务器做 AI 处理。可以是你装了 VivaDicta 的 Mac，也可以是远程服务器。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Toggle("Enable VivAgents Server", isOn: Binding(
+            Toggle("启用 VivAgents 服务器", isOn: Binding(
                 get: { isServerEnabled },
                 set: { newValue in
                     if newValue {
@@ -134,7 +134,7 @@ struct CLIServerConfigurationView: View {
             ))
 
             if isServerEnabled {
-                TextField("Server URL (e.g. http://192.168.1.5:3456)", text: $serverURL)
+                TextField("服务器 URL（如 http://192.168.1.5:3456）", text: $serverURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -147,7 +147,7 @@ struct CLIServerConfigurationView: View {
                         connectionTestResult = nil
                     }
 
-                SecureField("Auth Token", text: $serverToken)
+                SecureField("授权令牌", text: $serverToken)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding()
@@ -169,7 +169,7 @@ struct CLIServerConfigurationView: View {
                                     ProgressView()
                                         .controlSize(.small)
                                 }
-                                Text("Test & Save")
+                                Text("测试并保存")
                                     .font(.headline.weight(.medium))
                             }
                         }
@@ -187,7 +187,7 @@ struct CLIServerConfigurationView: View {
                                     ProgressView()
                                         .controlSize(.small)
                                 }
-                                Text("Test & Save")
+                                Text("测试并保存")
                                     .font(.headline.weight(.medium))
                                     .foregroundStyle(.primary)
                             }
@@ -226,10 +226,10 @@ struct CLIServerConfigurationView: View {
 
     private var availabilitySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Available Agents")
+            Text("可用的代理")
                 .font(.headline)
 
-            Text("CLI agents detected on the server. Each can be individually enabled from the server configuration.")
+            Text("在服务器上检测到了 CLI 代理。每个都可以在服务器配置里单独启用。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -240,7 +240,7 @@ struct CLIServerConfigurationView: View {
             }
 
             if let version = healthResponse?.version {
-                Text("Server v\(version)")
+                Text("服务器 v\(version)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -275,16 +275,16 @@ struct CLIServerConfigurationView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("How it works", systemImage: "info.circle")
+            Label("工作原理", systemImage: "info.circle")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
-            Text("The VivAgents Server hosts CLI agents and exposes them over the network. Your iPhone or iPad connects to it and routes AI requests through the agents — using your existing accounts with no API keys needed.")
+            Text("VivAgents 服务器托管 CLI 代理并通过网络提供服务。你的 iPhone 或 iPad 连上它，把 AI 请求经代理转发——用你现有的账号，不需要 API Key。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
             Link(destination: URL(string: "https://vivadicta.com/ios/docs/vivagents")!) {
-                Label("Setup Guide", systemImage: "book")
+                Label("设置指南", systemImage: "book")
                     .font(.caption)
             }
         }

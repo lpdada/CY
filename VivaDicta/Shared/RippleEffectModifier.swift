@@ -153,7 +153,7 @@ struct SpatialPressingGesture: UIGestureRecognizerRepresentable {
     @Previewable @State var trigger = false
     @Previewable @State var origin = CGPoint(x: 100, y: 75)
     
-    Text("Test")
+    Text("测试")
         .frame(width: 200, height: 150)
         .background(.blue)
         .onPressingChanged { point in

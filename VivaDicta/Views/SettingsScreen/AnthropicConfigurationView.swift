@@ -38,7 +38,7 @@ struct AnthropicConfigurationView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text(VivAgentsClient.isEnabled && VivAgentsClient.isAnthropicCliActive ? "VivAgents Server Connected" : "API Key Configured")
+                            Text(VivAgentsClient.isEnabled && VivAgentsClient.isAnthropicCliActive ? "VivAgents 服务器已连接" : "API Key 已配置")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -71,13 +71,13 @@ struct AnthropicConfigurationView: View {
             apiKey = existingKey ?? ""
             hasExistingKey = existingKey != nil
         }
-        .alert("Delete API Key", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
+        .alert("删除 API Key", isPresented: $showDeleteConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
                 deleteAPIKey()
             }
         } message: {
-            Text("Are you sure you want to delete the API key for Anthropic? This action cannot be undone.")
+            Text("确定要删除 Anthropic 的 API Key 吗？此操作无法撤销。")
         }
     }
 
@@ -85,7 +85,7 @@ struct AnthropicConfigurationView: View {
 
     private var modelAvailabilityNote: some View {
         Label {
-            Text("CLI agent supports a limited set of models. Use an API key for full model access.")
+            Text("CLI 代理只支持有限的模型。要用全部模型请使用 API Key。")
         } icon: {
             Image(systemName: "info.circle")
         }
@@ -98,11 +98,11 @@ struct AnthropicConfigurationView: View {
 
     private var cliServerStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Anthropic CLI Agent")
+            Text("Anthropic CLI 代理")
                 .font(.headline)
 
             if VivAgentsClient.isEnabled && VivAgentsClient.isAnthropicCliAvailable {
-                Toggle("Use Anthropic CLI Agent", isOn: $isAnthropicCliEnabled)
+                Toggle("使用 Anthropic CLI 代理", isOn: $isAnthropicCliEnabled)
                     .onChange(of: isAnthropicCliEnabled) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: VivAgentsClient.anthropicCliEnabledKey)
                         aiService.refreshConnectedProviders()
@@ -112,19 +112,19 @@ struct AnthropicConfigurationView: View {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                        Text("Anthropic CLI active")
+                        Text("Anthropic CLI 已启用")
                             .font(.callout)
                     }
                 }
             } else {
-                Text("Use VivAgents Server. No API key needed.")
+                Text("使用 VivAgents 服务器。不需要 API Key。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 NavigationLink {
                     CLIServerConfigurationView(aiService: aiService)
                 } label: {
-                    Text("Configure VivAgents Server")
+                    Text("配置 VivAgents 服务器")
                         .font(.callout)
                 }
             }
@@ -144,7 +144,7 @@ struct AnthropicConfigurationView: View {
             Text("API Key")
                 .font(.headline)
 
-            Text("Fastest and most reliable option. No rate limits.")
+            Text("最快、最可靠的选择。没有速率限制。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -152,7 +152,7 @@ struct AnthropicConfigurationView: View {
                 Button {
                     UIApplication.shared.open(apiKeyURL)
                 } label: {
-                    Label("Get API Key", systemImage: "key")
+                    Label("获取 API Key", systemImage: "key")
                         .font(.headline.weight(.medium))
                         .foregroundStyle(.blue)
                 }
@@ -188,7 +188,7 @@ struct AnthropicConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Save API Key")
+                            Text("保存 API Key")
                                 .font(.headline.weight(.medium))
                         }
                     }
@@ -207,7 +207,7 @@ struct AnthropicConfigurationView: View {
                             }
                         }
                     } label: {
-                        Text("Paste")
+                        Text("粘贴")
                             .font(.headline.weight(.medium))
                     }
                     .padding(.vertical, 8)
@@ -221,7 +221,7 @@ struct AnthropicConfigurationView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -240,7 +240,7 @@ struct AnthropicConfigurationView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             }
-                            Text("Save API Key")
+                            Text("保存 API Key")
                                 .font(.headline.weight(.medium))
                                 .foregroundStyle(.primary)
                         }
@@ -263,7 +263,7 @@ struct AnthropicConfigurationView: View {
                             }
                         }
                     } label: {
-                        Text("Paste")
+                        Text("粘贴")
                             .font(.headline.weight(.medium))
                             .foregroundStyle(.primary)
                             .padding(.vertical, 8)
@@ -281,7 +281,7 @@ struct AnthropicConfigurationView: View {
                         showDeleteConfirmation = true
                         HapticManager.warning()
                     } label: {
-                        Text("Delete API Key")
+                        Text("删除 API Key")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.red)
                     }
@@ -306,7 +306,7 @@ struct AnthropicConfigurationView: View {
 
     private var fallbackChainNote: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Fallback Chain", systemImage: "arrow.triangle.branch")
+            Label("降级链", systemImage: "arrow.triangle.branch")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
@@ -329,7 +329,7 @@ struct AnthropicConfigurationView: View {
             }
             .foregroundStyle(.secondary)
 
-            Text("If the first available method fails, the next one is tried automatically.")
+            Text("如果第一个可用方法失败，会自动尝试下一个。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -356,7 +356,7 @@ struct AnthropicConfigurationView: View {
                 hasExistingKey = true
                 HapticManager.success()
             } else {
-                verificationError = "Invalid API key. Please check your key and try again."
+                verificationError = "API Key 无效。请检查你的 Key 后重试。"
                 HapticManager.error()
             }
         }

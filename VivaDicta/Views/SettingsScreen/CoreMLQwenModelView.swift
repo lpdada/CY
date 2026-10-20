@@ -181,17 +181,17 @@ struct CoreMLQwenModelCard: View {
                     showDeleteAlert = true
                     HapticManager.warning()
                 } label: {
-                    Label("Delete Model", systemImage: "trash")
+                    Label("删除模型", systemImage: "trash")
                 }
             }
         }
-        .alert("Delete Model", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
+        .alert("删除模型", isPresented: $showDeleteAlert) {
+            Button("删除", role: .destructive) {
                 Task { await viewModel.delete(variant) }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("Are you sure you want to delete \(variant.displayName)? You can download it again later.")
+            Text("确定要删除 \(variant.displayName) 吗？之后可以重新下载。")
         }
     }
 
@@ -236,29 +236,29 @@ struct CoreMLQwenModelCard: View {
     private var statusLabel: some View {
         switch status {
         case .ready:
-            Label("Ready", systemImage: "checkmark.circle.fill")
+            Label("就绪", systemImage: "checkmark.circle.fill")
                 .font(.subheadline)
                 .foregroundStyle(.green)
         case .downloading:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Downloading...")
+                Text("正在下载…")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
         case .preparing:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Preparing...")
+                Text("正在准备…")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
         case .notDownloaded, .checking:
-            Text("Not downloaded")
+            Text("未下载")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .failed:
-            Label("Failed - tap to retry", systemImage: "exclamationmark.triangle")
+            Label("失败——点按重试", systemImage: "exclamationmark.triangle")
                 .font(.subheadline)
                 .foregroundStyle(.red)
         }
