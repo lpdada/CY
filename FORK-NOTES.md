@@ -90,3 +90,10 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
 - 界面中文化：设置与主界面 650 条文案（1054 处替换，84 个文件）译为简体中文，品牌名 VivaDicta 一律改「畅言」；另把 23 条用户可见的错误/状态提示（API Key 无效、转写超时等，约 66 处）一并中文化。保留英文的只有：给 AI 模型看的内部描述、服务商名（OpenAI/Gemini 等）和格式占位串。
 - 思考开关修复：「让模型思考」开关原来只对写死的模型名单发降档参数，deepseek/glm/kimi 等名单外模型什么都不发、开关关了也带着思考链慢慢想（用户实测反馈润色慢）。开关关闭时，对名单外的 deepseek/glm/kimi/moonshot 模型补发 thinking.type=disabled（OpenCode 网关上实测过：思考 token 219→0）。
 - 本地模型（Parakeet/Whisper）下载：模型在 HuggingFace 上，国内网络直连不通且 hf-mirror 会把文件请求跳回主站，App 内下载注定失败；后续走「电脑下载模型包拷进 App Documents」方案，不在本版内。
+
+## fork5（2026-10-21）：修听写不回插——结果回传改走本地 HTTP
+
+- 用户实测：微信里点键盘话筒听写，主 App 里有转写记录，但宿主输入框里没字、也不报错。
+- 根因：桥的结果回传靠命名剪贴板（com.vivadicta.bridge），在 iOS 27 免费自签环境下跨进程读不到——主 App 写得到、键盘永远读到空，于是键盘拿到空文本后静默放弃插入。与畅言 iOS v1.3.4 修的是同一类问题。
+- 附带发现：主 App 在 VivaDictaApp.swift 里给 onTranscriptionCompleted 设了回调（更新 Live Activity），它收到自己的完成通知后会抢先 getAndConsume 把本地存储里的结果删掉；所以新通道不能现读存储里的结果键，必须独立暂存。
+- 修法：BridgeStateServer 新增结果槽（按 kind 覆盖最新一份、带完成时刻、从不被消费删除）+ GET /vd/result?kind= 端点；四个 share 点（转写文本/文本处理结果/两类错误）在发通知前同步 stash 一份；键盘侧新增 ingestBridgeResult(kind:)——先试剪贴板，没货经 HTTP 拉槽，按完成时刻与本地消费水位（vdBridgeConsumedAt.<kind>）去重后落地，再走原有 getAndConsume 与回调。转写与文本处理两条链都覆盖。
