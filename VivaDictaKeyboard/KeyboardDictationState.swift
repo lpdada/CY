@@ -34,7 +34,7 @@ final class KeyboardDictationState {
 
     var activeTab: KeyboardTab = .keyboard {
         didSet {
-            UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId)?
+            AppGroupCoordinator.shared.clientDefaults
                 .set(activeTab.rawValue, forKey: "keyboardActiveTab")
         }
     }
@@ -84,8 +84,7 @@ final class KeyboardDictationState {
         self.transcriptionStatus = AppGroupCoordinator.shared.transcriptionStatus
 
         // Restore last active tab
-        let savedTab = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId)?
-            .integer(forKey: "keyboardActiveTab") ?? 0
+        let savedTab = AppGroupCoordinator.shared.clientDefaults.integer(forKey: "keyboardActiveTab")
         self.activeTab = KeyboardTab(rawValue: savedTab) ?? .keyboard
     }
 

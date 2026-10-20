@@ -19,8 +19,8 @@ enum KeyboardPresetLoader {
 
     /// Loads all presets from shared UserDefaults.
     static func loadPresets() -> [Preset] {
-        guard let defaults = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId),
-              let data = defaults.data(forKey: storageKey) else {
+        let defaults = AppGroupCoordinator.shared.clientDefaults
+        guard let data = defaults.data(forKey: storageKey) else {
             return []
         }
         return (try? JSONDecoder().decode([Preset].self, from: data)) ?? []
@@ -33,8 +33,8 @@ enum KeyboardPresetLoader {
     }
 
     private static func loadHiddenPresetIDs() -> Set<String> {
-        guard let defaults = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId),
-              let ids = defaults.array(forKey: hiddenPresetIDsStorageKey) as? [String] else {
+        let defaults = AppGroupCoordinator.shared.clientDefaults
+        guard let ids = defaults.array(forKey: hiddenPresetIDsStorageKey) as? [String] else {
             return []
         }
 

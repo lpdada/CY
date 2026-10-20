@@ -13,7 +13,9 @@ import AICore
 @Observable
 final class VivaModeManager {
     private let logger = Logger(category: .vivaModeManager)
-    private let userDefaults = UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId) ?? .standard
+    // 与 AppGroupCoordinator 同一份存储：正版是共享 suite，
+    // 桥模式（自签）是扩展本地缓存，由桥从主 App 拉取 config 填充
+    private let userDefaults = AppGroupCoordinator.shared.clientDefaults
 
     // MARK: - Properties
     public private(set) var availableVivaModes: [VivaMode] = []
@@ -37,6 +39,18 @@ final class VivaModeManager {
     public func refreshVivaModes() {
         loadVivaModes()
         loadSelectedMode()
+        // 桥模式：再异步从主 App 拉一次最新配置，落地缓存后重载，
+        // 保证用户在主 App 里改的模式/预设能同步到键盘
+        if LocalBridge.isEnabled {
+            let defaults = userDefaults
+            Task { @MainActor [weak self] in
+                if let config = await BridgeStateClient.pullConfig() {
+                    BridgeStateClient.applySnapshot(config, to: defaults)
+                }
+                self?.loadVivaModes()
+                self?.loadSelectedMode()
+            }
+        }
     }
 
     // MARK: - Private Methods

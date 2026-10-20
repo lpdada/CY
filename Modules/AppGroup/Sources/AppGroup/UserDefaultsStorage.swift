@@ -12,9 +12,14 @@ public enum UserDefaultsStorage {
     /// For data that MUST be shared between app and extensions
     /// Examples: Flow modes, API keys, transcription settings, selected modes
     public static var shared: UserDefaults {
+        // 桥模式（自签无 App Group）：两进程改用各自本地存储，
+        // 跨进程搬运由 LocalBridge 负责，与 AppGroupCoordinator 收口一致
+        if LocalBridge.isEnabled {
+            return LocalBridge.localDefaults
+        }
         // 自签包没有 App Group 权限，UserDefaults(suiteName:) 会返回 nil；
         // 降级到 App 自己的 defaults，避免启动/读设置闪退（扩展共享功能在自签环境下不可用）
-        UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId) ?? .standard
+        return UserDefaults(suiteName: AppGroupCoordinator.shared.appGroupId) ?? .standard
     }
 
     /// For app-private data that extensions don't need

@@ -189,8 +189,37 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     // MARK: - Initialization
     private init() {
-        sharedDefaults = UserDefaults(suiteName: appGroupId)
+        // 桥模式（自签无 App Group）下，两进程改用各自的本地存储：
+        // 主 App 的是权威数据，扩展的是桥拉取的缓存；跨进程搬运交给 LocalBridge。
+        if LocalBridge.isEnabled {
+            sharedDefaults = LocalBridge.localDefaults
+        } else {
+            sharedDefaults = UserDefaults(suiteName: appGroupId)
+        }
         setupNotificationObservers()
+        startBridgeServerIfNeeded()
+        warmBridgeCacheIfNeeded()
+    }
+
+    /// 供模块外的客户端（键盘的 VivaModeManager / KeyboardPresetLoader 等）
+    /// 读取与 Coordinator 同一份存储：正版是共享 suite，桥模式是本地缓存。
+    public var clientDefaults: UserDefaults {
+        sharedDefaults ?? .standard
+    }
+
+    /// 扩展进程在桥模式下冷启动暖一次缓存，避免键盘刚展开时
+    /// 同步 getter（会话是否激活、当前模式、预设）读到空值。
+    private func warmBridgeCacheIfNeeded() {
+        guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        Task {
+            if let state = await BridgeStateClient.pullState() {
+                BridgeStateClient.applySnapshot(state, to: defaults)
+            }
+            if let config = await BridgeStateClient.pullConfig() {
+                BridgeStateClient.applySnapshot(config, to: defaults)
+            }
+        }
     }
 
     /// Test-only initializer with injectable UserDefaults and no Darwin notification observers.
@@ -200,6 +229,121 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     deinit {
         removeNotificationObservers()
+    }
+
+    // MARK: - Local Bridge（自签无 App Group 时的数据通道）
+
+    private var bridgeServer: BridgeStateServer?
+
+    /// 桥模式且当前是主 App 进程时，启动本地状态/配置服务。
+    /// 服务端只是本地存储的一个只读窗口：每次请求现读现返回，
+    /// 所以主 App 侧的其它写方法不需要为桥做任何额外动作。
+    private func startBridgeServerIfNeeded() {
+        guard LocalBridge.isEnabled, LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        let server = BridgeStateServer(
+            stateProvider: {
+                BridgeStateClient.makeSnapshot(
+                    from: defaults,
+                    stringKeys: [UserDefaultsKeys.transcriptionStatus],
+                    boolKeys: [UserDefaultsKeys.isRecording, UserDefaultsKeys.keyboardSessionActive],
+                    doubleKeys: [
+                        UserDefaultsKeys.audioLevel,
+                        UserDefaultsKeys.keyboardSessionExpiryTime,
+                        UserDefaultsKeys.lastRecordingTimestamp,
+                    ],
+                    dataKeys: [],
+                    arrayKeys: []
+                )
+            },
+            configProvider: {
+                BridgeStateClient.makeSnapshot(
+                    from: defaults,
+                    stringKeys: [
+                        AppGroupCoordinator.selectedVivaModeKey,
+                        AppGroupCoordinator.kGeminiTranscriptionThinkingLevel,
+                        AppGroupCoordinator.kGeminiTranscriptionPrompt,
+                        AppGroupCoordinator.kEnabledKeyboardLanguages,
+                        AppGroupCoordinator.kCurrentKeyboardLanguage,
+                    ],
+                    boolKeys: [
+                        AppGroupCoordinator.kSmartFormattingOnPaste,
+                        AppGroupCoordinator.kKeepTranscriptInClipboard,
+                        AppGroupCoordinator.kIsVADEnabled,
+                        AppGroupCoordinator.kIsSpeakerDiarizationEnabled,
+                        AppGroupCoordinator.kIsKeyboardHapticFeedbackEnabled,
+                        AppGroupCoordinator.kIsKeyboardSoundFeedbackEnabled,
+                    ],
+                    doubleKeys: [],
+                    dataKeys: [
+                        AppGroupCoordinator.vivaModesKey,
+                        UserDefaultsStorage.SharedKeys.presets,
+                    ],
+                    arrayKeys: [UserDefaultsStorage.SharedKeys.hiddenPresetIDs]
+                )
+            }
+        )
+        server.start()
+        bridgeServer = server
+    }
+
+    /// 扩展进程：把状态快照拉回本地缓存（录音状态/电平/会话）。
+    /// 在依赖这些值的通知 handler 之前调用，保证随后走的原有读取逻辑命中新值。
+    private func pullBridgeStateIntoCache() async {
+        guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        if let snapshot = await BridgeStateClient.pullState() {
+            BridgeStateClient.applySnapshot(snapshot, to: defaults)
+        }
+    }
+
+    /// 主 App 进程：把键盘经剪贴板送来的载荷落地到本地存储。
+    /// 在对应通知的 handler 开头调用，赶在业务回调读取之前。
+    private func ingestBridgePayloads() {
+        guard LocalBridge.isEnabled, LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        if let fields = BridgePasteboard.consume(kind: .textProcessing) {
+            defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.textProcessingInput)
+            defaults.set(fields["modeName"] ?? "", forKey: UserDefaultsKeys.textProcessingModeName)
+            if let presetId = fields["presetId"], !presetId.isEmpty {
+                defaults.set(presetId, forKey: UserDefaultsKeys.textProcessingPresetId)
+            } else {
+                defaults.removeObject(forKey: UserDefaultsKeys.textProcessingPresetId)
+            }
+        }
+        if let fields = BridgePasteboard.consume(kind: .voiceInstruction) {
+            defaults.set(fields["targetText"] ?? "", forKey: UserDefaultsKeys.voiceInstructionTargetText)
+            defaults.set(fields["modeName"] ?? "", forKey: UserDefaultsKeys.voiceInstructionModeName)
+        }
+        if let fields = BridgePasteboard.consume(kind: .clipboardContext) {
+            if fields["present"] == "1" {
+                defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.keyboardClipboardContext)
+            } else {
+                defaults.removeObject(forKey: UserDefaultsKeys.keyboardClipboardContext)
+            }
+        }
+        if let fields = BridgePasteboard.consume(kind: .selectedMode) {
+            defaults.set(fields["name"] ?? "", forKey: AppGroupCoordinator.selectedVivaModeKey)
+        }
+    }
+
+    /// 扩展进程：把主 App 经剪贴板回传的结果落地到本地缓存。
+    /// 在结果类通知的 handler 开头调用，随后原有的 getAndConsume* 照常工作。
+    private func ingestBridgeResults() {
+        guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        if let fields = BridgePasteboard.consume(kind: .transcribedText) {
+            defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.transcribedText)
+        }
+        if let fields = BridgePasteboard.consume(kind: .transcriptionError) {
+            defaults.set(fields["message"] ?? "", forKey: UserDefaultsKeys.transcriptionErrorMessage)
+        }
+        if let fields = BridgePasteboard.consume(kind: .textResult) {
+            defaults.set(fields["text"] ?? "", forKey: UserDefaultsKeys.textProcessingResult)
+        }
+        if let fields = BridgePasteboard.consume(kind: .textError) {
+            defaults.set(fields["message"] ?? "", forKey: UserDefaultsKeys.textProcessingErrorMessage)
+        }
     }
 
     // MARK: - App Launch State Management
@@ -390,6 +534,13 @@ public final class AppGroupCoordinator: @unchecked Sendable {
         } else {
             sharedDefaults?.removeObject(forKey: UserDefaultsKeys.keyboardClipboardContext)
         }
+        // 桥模式：上下文要赶在随后开始录音的通知之前到达主 App，走剪贴板
+        if LocalBridge.isEnabled, !LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .clipboardContext, fields: [
+                "present": text == nil ? "0" : "1",
+                "text": text ?? "",
+            ])
+        }
     }
 
     /// Retrieves and clears the keyboard-captured clipboard context.
@@ -414,6 +565,14 @@ public final class AppGroupCoordinator: @unchecked Sendable {
             sharedDefaults?.removeObject(forKey: UserDefaultsKeys.textProcessingPresetId)
         }
         sharedDefaults?.synchronize()
+        // 桥模式：共享存储跨不了进程，同一份载荷同步经剪贴板送出（必须赶在通知之前）
+        if LocalBridge.isEnabled, !LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .textProcessing, fields: [
+                "text": text,
+                "modeName": modeName,
+                "presetId": presetId ?? "",
+            ])
+        }
         postDarwinNotification(NotificationNames.requestTextProcessing)
         logger.logError("📝 Keyboard requested text processing with mode: \(modeName), preset: \(presetId ?? "nil"), text length: \(text.count)")
     }
@@ -446,6 +605,13 @@ public final class AppGroupCoordinator: @unchecked Sendable {
         sharedDefaults?.set(targetText, forKey: UserDefaultsKeys.voiceInstructionTargetText)
         sharedDefaults?.set(modeName, forKey: UserDefaultsKeys.voiceInstructionModeName)
         sharedDefaults?.synchronize()
+        // 桥模式：载荷先经剪贴板送出，随后 requestStartRecording 的通知才发
+        if LocalBridge.isEnabled, !LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .voiceInstruction, fields: [
+                "targetText": targetText,
+                "modeName": modeName,
+            ])
+        }
         logger.logError("🗣️ Keyboard requested voice instruction recording with mode: \(modeName), target length: \(targetText.count)")
         requestStartRecording()
     }
@@ -476,6 +642,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTextProcessingResult(_ text: String) {
         sharedDefaults?.set(text, forKey: UserDefaultsKeys.textProcessingResult)
         sharedDefaults?.synchronize()
+        // 桥模式：结果同步经剪贴板回传（赶在完成通知之前）
+        if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .textResult, fields: ["text": text])
+        }
         postDarwinNotification(NotificationNames.textProcessingCompleted)
         logger.logError("📝 Shared text processing result, length: \(text.count)")
     }
@@ -484,6 +654,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTextProcessingError(_ message: String) {
         sharedDefaults?.set(message, forKey: UserDefaultsKeys.textProcessingErrorMessage)
         sharedDefaults?.synchronize()
+        // 桥模式：错误同步经剪贴板回传（赶在错误通知之前）
+        if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .textError, fields: ["message": message])
+        }
         postDarwinNotification(NotificationNames.textProcessingError)
         logger.logError("📝 Shared text processing error: \(message)")
     }
@@ -535,6 +709,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func shareTranscribedText(_ text: String) {
         sharedDefaults?.set(text, forKey: UserDefaultsKeys.transcribedText)
         updateTranscriptionStatus(.completed)
+        // 桥模式：转写文本同步经剪贴板回传（赶在完成通知之前）
+        if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .transcribedText, fields: ["text": text])
+        }
         postDarwinNotification(NotificationNames.transcriptionCompleted)
         logger.logError("📝 Shared transcribed text: \(text.prefix(50))...")
     }
@@ -602,6 +780,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     /// Convenience to set an error message and notify listeners of an error state.
     public func updateTranscriptionError(_ message: String) {
         sharedDefaults?.set(message, forKey: UserDefaultsKeys.transcriptionErrorMessage)
+        // 桥模式：错误信息同步经剪贴板回传（赶在状态通知之前）
+        if LocalBridge.isEnabled, LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .transcriptionError, fields: ["message": message])
+        }
         updateTranscriptionStatus(.error)
     }
 
@@ -628,6 +810,10 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     public func setSelectedVivaMode(_ modeName: String) {
         sharedDefaults?.set(modeName, forKey: AppGroupCoordinator.selectedVivaModeKey)
         sharedDefaults?.synchronize()
+        // 桥模式：模式选择同步经剪贴板告知主 App（其本地存储随后 ingest 落地）
+        if LocalBridge.isEnabled, !LocalBridge.isMainAppProcess {
+            BridgePasteboard.send(kind: .selectedMode, fields: ["name": modeName])
+        }
         postDarwinNotification(NotificationNames.vivaModeChanged)
         logger.logInfo("📱 Keyboard Extension set selected VivaMode: \(modeName)")
     }
@@ -1316,6 +1502,9 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     // MARK: - Notification Handlers
 
     private func handleStartRecordingNotification() {
+        // 桥模式：先把键盘经剪贴板送来的载荷（语音指令/剪贴板上下文/模式）落地，
+        // 业务回调随后读取本地存储时才能拿到
+        ingestBridgePayloads()
         Task { @MainActor in
             onStartRecordingRequested?()
         }
@@ -1358,6 +1547,7 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTranscriptionCompletedNotification() {
+        ingestBridgeResults()
         Task { @MainActor in
             let text = getAndConsumeTranscribedText() ?? ""
             onTranscriptionCompleted?(text)
@@ -1365,6 +1555,7 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTranscriptionErrorNotification() {
+        ingestBridgeResults()
         Task { @MainActor in
             let message = getAndConsumeTranscriptionErrorMessage() ?? ""
             onTranscriptionError?()
@@ -1382,6 +1573,8 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     private func handleAudioLevelUpdatedNotification() {
         Task { @MainActor in
+            // 桥模式：电平值在主 App 进程里，先拉一次状态快照刷新缓存
+            await pullBridgeStateIntoCache()
             let level = currentAudioLevel
             onAudioLevelUpdated?(level)
         }
@@ -1389,6 +1582,7 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     private func handleRecordingStateChangedNotification() {
         Task { @MainActor in
+            await pullBridgeStateIntoCache()
             let recording = isRecording
             onRecordingStateChanged?(recording)
         }
@@ -1396,12 +1590,14 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     private func handleKeyboardSessionActivatedNotification() {
         Task { @MainActor in
+            await pullBridgeStateIntoCache()
             onKeyboardSessionActivated?()
         }
     }
 
     private func handleKeyboardSessionExpiredNotification() {
         Task { @MainActor in
+            await pullBridgeStateIntoCache()
             onKeyboardSessionExpired?()
         }
     }
@@ -1427,12 +1623,14 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     // Text processing (keyboard rewrite)
 
     private func handleTextProcessingRequestedNotification() {
+        ingestBridgePayloads()
         Task { @MainActor in
             onTextProcessingRequested?()
         }
     }
 
     private func handleTextProcessingCompletedNotification() {
+        ingestBridgeResults()
         Task { @MainActor in
             // Only consume the result if a callback is set — prevents the main app
             // from racing with the keyboard extension and deleting the result first.
@@ -1443,6 +1641,7 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleTextProcessingErrorNotification() {
+        ingestBridgeResults()
         Task { @MainActor in
             guard let callback = onTextProcessingError else { return }
             let message = getAndConsumeTextProcessingError() ?? "Text processing failed"
