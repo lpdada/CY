@@ -144,3 +144,16 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   一次上屏并清空整串；单字仍可逐个音节选。
 - 备注：词频是静态语料，暂无用户输入学习；仓库私有，直链未登录时
   404 属正常，登录 GitHub 后可下。
+
+## fork9（2026-10-21）：修键盘模式不同步——键盘点的模式主 App 跟不上
+
+- 现象：主 App 选了日语翻译后，键盘上点 Default，处理出来还是日语翻译。
+- 根因：桥里 selectedMode 通道本身是通的（键盘点模式 → 剪贴板载荷 +
+  vivaModeChanged 通知），但主 App 的 handleVivaModeChangedNotification
+  漏了 ingestBridgePayloads() 这一行——它是全文件唯一没在 handler 开头
+  ingest 的模式相关 handler。于是主 App 的 selectedVivaModeKey 还是旧值，
+  reloadSelectedModeFromExtension 读到的还是日语翻译，听写继续按旧模式跑。
+- 修复：该 handler 开头补 ingestBridgePayloads()，与文本处理 handler 同款
+  写法；桥模式外 / 键盘进程内 ingest 自带 guard，是 no-op。反向（主 App →
+  键盘）本来就是通的：config 快照 stringKeys 里有 selectedVivaModeKey，
+  键盘 start 时会拉取。

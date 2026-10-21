@@ -1628,6 +1628,11 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     }
 
     private func handleVivaModeChangedNotification() {
+        // 桥模式：先把键盘经剪贴板送来的 selectedMode 落地到主 App 本地存储，
+        // 再让业务回调读取——否则 reloadSelectedModeFromExtension 读到的还是旧模式。
+        // （之前漏了这一行：键盘点 Default，主 App 的 selectedVivaModeKey 仍是旧值，
+        //  听写处理继续用旧模式，这正是“键盘切了模式、后台还是日语翻译”的根因。）
+        ingestBridgePayloads()
         Task { @MainActor in
             onVivaModeChanged?()
         }
