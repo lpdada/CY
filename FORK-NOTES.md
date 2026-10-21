@@ -187,3 +187,11 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   内部代码符号（VivaMode 等）、图标资源名、上游署名链接（n0an/VivaDicta）。
 - 另：fork11 的 release 资产已直接改名重挂为 changyan-unsigned.ipa
   （同字节，无需重编），不在本次提交内。
+
+## fork13（2026-10-21）：图标换成白底 v2 对比度优化版
+
+- 接 fork11 的 v1 白底版：用户反馈图形颜色太浅、跟白底太近看不清，
+  遂优化一版：白底与构图不变，声波加深为宝蓝→深青渐变、笔尖描边
+  与墨孔加深、星芒更饱和，对比度明显上来。
+- 改动：AppIcon3 图层 gpt1.png 与 VivaDictaIcon imageset 三档
+  （341/682/1024）全部换成 v2；图层偏移已是 0，本次不动。
