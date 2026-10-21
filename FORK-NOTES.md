@@ -157,3 +157,13 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   写法；桥模式外 / 键盘进程内 ingest 自带 guard，是 no-op。反向（主 App →
   键盘）本来就是通的：config 快照 stringKeys 里有 selectedVivaModeKey，
   键盘 start 时会拉取。
+
+## fork10（2026-10-21）：图标换成电脑版畅言图标
+
+- 来源：电脑版畅言 v0.1.8 图标（声波汇成钢笔尖，深蓝紫底），与 iOS
+  畅言 v1.2.1 同图；CI 打 Release 用的正是 AppIcon3.icon。
+- 改动：AppIcon3 图层 gpt1.png 换成电脑版图标（1024×1024），并把
+  图层原下移 28.265625pt 的偏移归零（旧图是微调过位置的老 artwork，
+  新图满幅设计，留偏移会被往下推）；App 内三处用的 VivaDictaIcon
+  imageset（开屏/新功能/键盘返回提示）按 341/682/1024 重切了一套。
+  Debug 的 AppIcon5 未动。
