@@ -135,6 +135,11 @@ public final class BridgeStateServer: @unchecked Sendable {
     private let resultLock = NSLock()
     private var resultSlots: [String: (value: String, at: Double)] = [:]
 
+    /// 键盘经 HTTP 推来的模式选择回调（主 App 进程在创建 server 时传入）。
+    /// 桥模式下命名剪贴板跨进程读不到，模式同步不能只靠剪贴板，这条 HTTP 腿是主通道。
+    /// 与 provider 闭包同理：只在服务回调队列上调用，不标 @Sendable。
+    private let onModeReceived: ((String) -> Void)?
+
     /// 主 App 进程：暂存一份刚完成的结果（kind 用 BridgePayloadKind 的 rawValue）。
     public func stashResult(kind: String, value: String) {
         resultLock.lock()
@@ -144,10 +149,12 @@ public final class BridgeStateServer: @unchecked Sendable {
 
     public init(
         stateProvider: @escaping () -> [String: Any],
-        configProvider: @escaping () -> [String: Any]
+        configProvider: @escaping () -> [String: Any],
+        onModeReceived: ((String) -> Void)? = nil
     ) {
         self.stateProvider = stateProvider
         self.configProvider = configProvider
+        self.onModeReceived = onModeReceived
     }
 
     public func start() {
@@ -195,7 +202,9 @@ public final class BridgeStateServer: @unchecked Sendable {
 
     private func respond(_ connection: NWConnection, request: String) {
         let firstLine = request.components(separatedBy: "\r\n").first ?? ""
-        let rawPath = firstLine.components(separatedBy: " ").dropFirst().first ?? ""
+        let requestParts = firstLine.components(separatedBy: " ")
+        let method = requestParts.first ?? ""
+        let rawPath = requestParts.dropFirst().first ?? ""
         let pathParts = rawPath.split(separator: "?", maxSplits: 1)
         let path = pathParts.first.map(String.init) ?? ""
         var query: [String: String] = [:]
@@ -227,6 +236,18 @@ public final class BridgeStateServer: @unchecked Sendable {
                 }
             } else {
                 bodyObject = ["ok": true]
+            }
+        case "/vd/mode":
+            // 键盘经 HTTP 推来的模式选择。桥模式下命名剪贴板跨进程读不到
+            // （fork5 已证实），模式同步不能只靠剪贴板，这条 HTTP 腿是主通道。
+            // 只接受 POST（空 body，名字放 query）；name 经百分号解码。
+            if method == "POST",
+               let rawName = query["name"]?.removingPercentEncoding,
+               !rawName.isEmpty {
+                onModeReceived?(rawName)
+                bodyObject = ["ok": true]
+            } else {
+                bodyObject = ["ok": false]
             }
         default:
             let body = Data("not found".utf8)
@@ -273,6 +294,19 @@ public enum BridgeStateClient {
     /// 拉取配置快照（模式、预设、设置项），交给调用方写入缓存。
     public static func pullConfig() async -> [String: Any]? {
         await fetch(path: "/vd/config")
+    }
+
+    /// 键盘选了模式后经 HTTP 推给主 App（桥模式下剪贴板通道跨进程读不到，
+    /// 模式同步不能只靠它）。Best-effort：主 App 没运行时直接失败丢弃，
+    /// 下次键盘切模式时再推；调用方忽略返回值。
+    public static func pushMode(name: String) async {
+        guard let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "http://127.0.0.1:47821/vd/mode?name=\(encoded)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 2.0
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        _ = try? await URLSession.shared.data(for: request)
     }
 
     /// 拉取主 App 暂存的某一类最近结果（转写文本/处理结果/错误）。

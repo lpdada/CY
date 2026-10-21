@@ -107,7 +107,7 @@ struct RewriteModesView: View {
                     set: { newName in
                         HapticManager.selectionChanged()
                         if let mode = modes.first(where: { $0.name == newName }) {
-                            dictationState.vivaModeManager.selectedVivaMode = mode
+                            dictationState.vivaModeManager.userDidSelectMode(mode)
                         }
                     }
                 )

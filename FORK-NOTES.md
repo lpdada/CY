@@ -195,3 +195,21 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   与墨孔加深、星芒更饱和，对比度明显上来。
 - 改动：AppIcon3 图层 gpt1.png 与 VivaDictaIcon imageset 三档
   （341/682/1024）全部换成 v2；图层偏移已是 0，本次不动。
+
+## fork14（2026-10-22）：键盘与主 App 模式双向同步
+
+- 根因：键盘听写的 AI 处理在主 App，用主 App 的模式；键盘药丸改模式
+  只写键盘本地 + 发剪贴板消息 + 系统通知，而命名剪贴板在自签 iOS 27
+  环境跨进程读不到（fork5 已证实），主 App 收不到，继续用旧模式处理。
+  fork9 只补了主 App handler 的 ingest，但 ingest 的源头本身是断的。
+  反向也不完整：主 App 改模式只写自己本地、不通知键盘；键盘只在
+  viewDidLoad 拉一次配置，会话内 stale。
+- 键盘→后台走 HTTP：桥服务新增 POST /vd/mode；键盘药丸三个入口改走
+  userDidSelectMode，除原有通知外再经 HTTP 把模式推给主 App；主 App
+  接到后写本地键，再走已有 Darwin 链（handler→reload→selectedMode→
+  onModeChange→handleModeChange→transcriptionManager），UI 与处理模式全跟上。
+- 后台→键盘每次出现同步：键盘 viewWillAppear 时 refreshVivaModes，
+  主 App 里改了模式，下次切到键盘药丸就是新的。刻意没接键盘侧 Darwin
+  回调，避免自通知把刚点的模式又拉回旧值。
+- 边界：主 App 没运行时键盘的推送会失败丢弃，主 App 随后仍显示自己的
+  旧模式，直到下次键盘切模式再推。

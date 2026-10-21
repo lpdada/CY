@@ -54,6 +54,14 @@ class KeyboardViewController: KeyboardInputViewController {
     let logger = Logger(category: .keyboardExtension)
     
     // MARK: - View Lifecycle
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // 每次键盘出现都从主 App 拉一次配置：主 App 里改的模式，键盘药丸跟着变。
+        // 只靠 viewDidLoad 拉一次会在会话内 stale；Darwin 通知在键盘进程内不触发刷新，
+        // 所以出现时拉是最稳的兜底（拉取失败时本地缓存不动，不会把药丸刷回旧值）。
+        dictationState.vivaModeManager.refreshVivaModes()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -338,7 +346,7 @@ struct ModeCycleSelector: View {
             newIndex = (currentIndex - 1 + modes.count) % modes.count
         }
 
-        dictationState.vivaModeManager.selectedVivaMode = modes[newIndex]
+        dictationState.vivaModeManager.userDidSelectMode(modes[newIndex])
     }
 }
 

@@ -281,6 +281,15 @@ public final class AppGroupCoordinator: @unchecked Sendable {
                     ],
                     arrayKeys: [UserDefaultsStorage.SharedKeys.hiddenPresetIDs]
                 )
+            },
+            onModeReceived: { [weak self] name in
+                guard let self, let defaults = self.sharedDefaults else { return }
+                defaults.set(name, forKey: AppGroupCoordinator.selectedVivaModeKey)
+                defaults.synchronize()
+                // 走已有的 Darwin 链：主 App 自己的 handler → ingest 兜底 →
+                // onVivaModeChanged → reloadSelectedModeFromExtension，
+                // UI 下拉与转写处理模式全跟上，无需 server 再认识 AIService。
+                self.postDarwinNotification(NotificationNames.vivaModeChanged)
             }
         )
         server.start()

@@ -29,6 +29,17 @@ final class VivaModeManager {
         }
     }
 
+    /// 键盘药丸/模式选择器里用户亲手点的模式：除了本地保存与原有通知，
+    /// 还经 HTTP 推给主 App（桥模式下剪贴板读不到，只靠它主 App 收不到）。
+    /// 重复点同一模式也会再推一次（幂等，可当重试）；load/refresh 走
+    /// 直接赋值，不经过这里，避免启动拉取时把旧模式又推回去。
+    public func userDidSelectMode(_ mode: VivaMode) {
+        selectedVivaMode = mode
+        Task {
+            await BridgeStateClient.pushMode(name: mode.name)
+        }
+    }
+
     // MARK: - Init
     init() {
         loadVivaModes()
