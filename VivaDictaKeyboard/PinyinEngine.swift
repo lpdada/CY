@@ -84,17 +84,77 @@ extension PinyinEngine {
         return nil
     }
 
-    /// 数字串贪心切音节，返回全部完整段编码；切不出的尾巴直接停掉
-    /// （尾巴留在串里，由后续输入/删除处理；整词候选只用完整段）。
-    static func t9SegmentCodes(forDigits digits: String) -> [String] {
-        var rest = digits
-        var codes: [String] = []
-        while !rest.isEmpty {
-            guard let code = t9FirstCode(forDigits: rest) else { break }
-            codes.append(code)
-            rest = String(rest.dropFirst(code.count))
+    // MARK: - 词库（fork8）：拼音串 → 词（按全局词频 rank 排序）
+
+    /// 词库表：PinyinData.wordTableRaw 每行 “拼音串 词:rank 词:rank …”，
+    /// 运行时解析一次。rank 越小越常用。
+    private static let wordTable: [String: [(word: String, rank: Int)]] = {
+        var dict: [String: [(word: String, rank: Int)]] = [:]
+        for line in PinyinData.wordTableRaw.split(separator: "\n") {
+            let parts = line.split(separator: " ")
+            guard parts.count >= 2 else { continue }
+            let key = String(parts[0])
+            var words: [(word: String, rank: Int)] = []
+            for token in parts.dropFirst() {
+                let kv = token.split(separator: ":")
+                guard kv.count == 2, let rank = Int(kv[1]) else { continue }
+                words.append((word: String(kv[0]), rank: rank))
+            }
+            if !words.isEmpty { dict[key] = words }
         }
-        return codes
+        return dict
+    }()
+
+    /// 所有词库 key 的真前缀集合（DFS 剪枝用：当前拼音串还能往下接词时才继续）。
+    private static let wordKeyPrefixes: Set<String> = {
+        var set = Set<String>()
+        for key in wordTable.keys {
+            var prefix = ""
+            for ch in key.dropLast() {
+                prefix.append(ch)
+                set.insert(prefix)
+            }
+        }
+        return set
+    }()
+
+    /// 数字串 → 词候选（按全局词频 rank 排序，去重，取前 limit 个）。
+    /// DFS 枚举全部切分：每步按码长从长到短试音节码，拼出拼音串；
+    /// 只有当拼音串是某词 key 的真前缀时才继续往下接，数字串耗尽且
+    /// 拼音串正好是词 key 时收词。词只在整串耗尽时收，所以每个词候选
+    /// 都覆盖整串数字，点词一次上屏并清空。
+    static func wordCandidates(forDigits digits: String, limit: Int = 20) -> [String] {
+        guard digits.count >= 2 else { return [] }
+        var found: [String: Int] = [:]
+        var nodes = 0
+        func dfs(pos: String.Index, joined: String) {
+            nodes += 1
+            guard nodes < 20000 else { return }
+            let rest = digits[pos...]
+            if rest.isEmpty {
+                if let words = wordTable[joined] {
+                    for (w, r) in words {
+                        if let old = found[w] {
+                            found[w] = min(old, r)
+                        } else {
+                            found[w] = r
+                        }
+                    }
+                }
+                return
+            }
+            // 还能往下接词才继续（剪枝）；空串起步时放行
+            guard joined.isEmpty || wordKeyPrefixes.contains(joined) else { return }
+            let restStr = String(rest)
+            for len in stride(from: min(6, restStr.count), through: 1, by: -1) {
+                let code = String(restStr.prefix(len))
+                for syllable in t9Syllables(forDigits: code) {
+                    dfs(pos: digits.index(pos, offsetBy: len), joined: joined + syllable)
+                }
+            }
+        }
+        dfs(pos: digits.startIndex, joined: "")
+        return found.sorted { $0.value < $1.value }.prefix(limit).map(\.key)
     }
 
     /// 高频音节优先序（同编码多音节时排序与默认选中用）：

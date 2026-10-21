@@ -10,12 +10,14 @@
 //  中间为全圆角胶囊空格。顶部候选栏只在输入时显示数字串，不再放
 //  静态“拼音”二字；回车键已并入双行发送键，不再单占候选栏位置。
 //
-//  输入逻辑：数字串按最长匹配切音节，首段音节出候选；选字后从串头
-//  扣掉首段编码，剩余部分自动成为下一音节的输入，可连续输词；多段
-//  时首位出整词候选（每段首选字拼成词，如 ni+hao → 你好），点词一次
-//  上屏整词；候选字按每页 6 个分页，点“换页”翻页（末页点“首页”回
-//  第一页）。^^ 键切符号页（9 个常用标点，删除键两页都在，再点 ABC
-//  回字母页）。候选栏空闲时收起，不在工具条与按键间留大空隙。
+//  输入逻辑（真输入法三件套）：数字串全部切分后查 3 万词词库，词候选
+//  按词频排在单字候选前面（如 64426 → 你好），点词一次上屏并清空；
+//  单字仍可逐个音节选（选字后从串头扣掉首段编码，剩余部分自动成为
+//  下一音节的输入）。首选候选同步为文档里的 marked text（组字串），
+//  宿主像真输入法一样显示正在组字的词。候选按每页 6 个分页，点“换页”
+//  翻页（末页点“首页”回第一页）。^^ 键切符号页（9 个常用标点，删除
+//  键两页都在，再点 ABC 回字母页）。候选栏空闲时收起，不在工具条与
+//  按键间留大空隙。
 //
 
 import SwiftUI
@@ -65,29 +67,14 @@ struct PinyinT9View: View {
         return PinyinEngine.candidates(for: currentSyllable)
     }
 
-    /// 全部完整段编码（贪心切分）
-    private var segments: [String] {
-        PinyinEngine.t9SegmentCodes(forDigits: digits)
+    /// 词候选：数字串全部切分后查词库，按全局词频排序
+    private var wordCandidates: [String] {
+        PinyinEngine.wordCandidates(forDigits: digits)
     }
 
-    /// 整词候选：多段时取每段首选字拼成词（如 ni+hao → 你好）。
-    /// 首段用当前选中音节（尊重用户在同码音节间的切换），其余段用首选。
-    private var wordCandidate: String? {
-        guard segments.count >= 2, let first = currentSyllable else { return nil }
-        guard let firstChar = PinyinEngine.candidates(for: first).first else { return nil }
-        var word = String(firstChar)
-        for code in segments.dropFirst() {
-            guard let syllable = PinyinEngine.t9Syllables(forDigits: code).first,
-                  let ch = PinyinEngine.candidates(for: syllable).first else { return nil }
-            word.append(ch)
-        }
-        return word
-    }
-
-    /// 展示用候选：整词在首位，其后是首段单字候选
+    /// 展示用候选：词在前（按词频），其后是首段单字候选
     private var displayCandidates: [String] {
-        if let wordCandidate { return [wordCandidate] + allCandidateChars }
-        return allCandidateChars
+        wordCandidates + allCandidateChars
     }
 
     private var pageCount: Int {
@@ -111,6 +98,8 @@ struct PinyinT9View: View {
         .padding(.horizontal, 6)
         .padding(.top, 4)
         .padding(.bottom, 6)
+        // 切回拼音页时若数字串还在，把组字串重新同步给宿主
+        .onAppear { syncMarkedText() }
     }
 
     // MARK: - 候选栏（输入时显示数字串 + 同码音节 + 当页候选字 + 换页）
@@ -130,6 +119,7 @@ struct PinyinT9View: View {
                 Button {
                     selectedSyllable = syllable
                     candidatePage = 0
+                    syncMarkedText()
                     HapticManager.selectionChanged()
                 } label: {
                     Text(syllable)
@@ -417,6 +407,7 @@ struct PinyinT9View: View {
         digits += digit
         selectedSyllable = nil
         candidatePage = 0
+        syncMarkedText()
     }
 
     private func tapDelete() {
@@ -427,6 +418,7 @@ struct PinyinT9View: View {
         } else {
             proxy.deleteBackward()
         }
+        syncMarkedText()
     }
 
     private func nextPage() {
@@ -449,20 +441,31 @@ struct PinyinT9View: View {
         // 页码必须显式复位：候选栏空闲时收起，栏消失那次变化里
         // onChange 未必触发，只靠它会在下次输入时停在旧页。
         candidatePage = 0
+        syncMarkedText()
     }
 
-    /// 点展示候选：整词上屏并扣掉全部段编码；单字走原有首段扣减。
-    /// 单字串不可能等于多字词，故按字符串相等区分是安全的。
+    /// 点展示候选：词候选覆盖整串数字，一次上屏并清空；单字走首段扣减。
+    /// 词恒为多字、单字恒为单字，按是否在词候选里区分是安全的。
     private func commitDisplay(_ item: String) {
-        if let word = wordCandidate, item == word {
-            proxy.insertText(word)
+        if wordCandidates.contains(item) {
+            proxy.insertText(item)
             HapticManager.lightImpact()
-            let total = segments.reduce(0) { $0 + $1.count }
-            digits = String(digits.dropFirst(min(total, digits.count)))
+            digits = ""
             selectedSyllable = nil
             candidatePage = 0
+            syncMarkedText()
         } else {
             commit(item)
+        }
+    }
+
+    /// 把首选候选同步为文档里的 marked text（组字串），让宿主像真输入法
+    /// 一样显示正在组字的词；不支持 marked text 的宿主会忽略它，选字流程不受影响。
+    private func syncMarkedText() {
+        if digits.isEmpty || displayCandidates.isEmpty {
+            proxy.unmarkText()
+        } else if let top = displayCandidates.first {
+            proxy.setMarkedText(top, selectedRange: NSRange(location: top.utf16.count, length: 0))
         }
     }
 
