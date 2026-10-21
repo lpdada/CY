@@ -70,6 +70,20 @@ extension PinyinEngine {
         return t9Index[digits] ?? []
     }
 
+    /// 数字串的首段编码：从头取最长有效 T9 编码前缀（最长 6 位）。
+    /// 连续输词就靠它：选字后扣掉首段，剩余部分下次重切，自动成为
+    /// 下一音节；整串只按单音节精确匹配时，多音节连输会无候选。
+    /// 歧义时取最长匹配（与 segment() 的贪心策略一致）；逐个音节
+    /// 选字一定准，整词连输时个别歧义（如西安/先）以最长匹配为准。
+    static func t9FirstCode(forDigits digits: String) -> String? {
+        guard !digits.isEmpty else { return nil }
+        for len in stride(from: min(6, digits.count), through: 1, by: -1) {
+            let head = String(digits.prefix(len))
+            if !t9Syllables(forDigits: head).isEmpty { return head }
+        }
+        return nil
+    }
+
     /// 高频音节优先序（同编码多音节时排序与默认选中用）：
     /// 表里越靠前越常用；不在表里的排后面、按字母序。
     private static let hotSyllables: [String] = [
