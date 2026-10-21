@@ -351,32 +351,33 @@ struct VivaDictaKeyboardToolbarView: View {
     var onShowFullAccessPrompt: (() -> Void)?
 
     var body: some View {
+        // 顶部图标水平平均分配：每个图标各占等宽一段、居中放。
+        // 拼音模式 3 段（✨/模式/话筒），英文模式 4 段（多一个“拼”）。
         HStack(spacing: 0) {
-            // Tab switcher button + Mode selector on the left
-            HStack(spacing: 24) {
-                KeyboardTabToggle(dictationState: dictationState)
-                ModeCycleSelector(dictationState: dictationState)
-                // 拼音模式下藏起切换键：九宫格左下角已有“英文”键，再放一个
-                // “英”就是重复；英文模式下仍显示“拼”，否则切过去回不来。
-                if !dictationState.isPinyinMode {
-                    Button {
-                        dictationState.isPinyinMode.toggle()
-                        HapticManager.selectionChanged()
-                    } label: {
-                        Text("拼")
-                            .font(.system(size: 13, weight: .semibold))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Color.secondary.opacity(0.15), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
+            KeyboardTabToggle(dictationState: dictationState)
+                .frame(maxWidth: .infinity)
+            ModeCycleSelector(dictationState: dictationState)
+                .frame(maxWidth: .infinity)
+            // 拼音模式下藏起切换键：九宫格左下角已有“英文”键，再放一个
+            // “英”就是重复；英文模式下仍显示“拼”，否则切过去回不来。
+            if !dictationState.isPinyinMode {
+                Button {
+                    dictationState.isPinyinMode.toggle()
+                    HapticManager.selectionChanged()
+                } label: {
+                    Text("拼")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color.secondary.opacity(0.15), in: Capsule())
                 }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
             }
-
-            Spacer()
 
             // Always show MicButton - it handles notReady state by opening main app
             KeyboardMicButton(onTapAction: handleMic)
+                .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 16)
         .padding(.top, 6)

@@ -84,6 +84,19 @@ extension PinyinEngine {
         return nil
     }
 
+    /// 数字串贪心切音节，返回全部完整段编码；切不出的尾巴直接停掉
+    /// （尾巴留在串里，由后续输入/删除处理；整词候选只用完整段）。
+    static func t9SegmentCodes(forDigits digits: String) -> [String] {
+        var rest = digits
+        var codes: [String] = []
+        while !rest.isEmpty {
+            guard let code = t9FirstCode(forDigits: rest) else { break }
+            codes.append(code)
+            rest = String(rest.dropFirst(code.count))
+        }
+        return codes
+    }
+
     /// 高频音节优先序（同编码多音节时排序与默认选中用）：
     /// 表里越靠前越常用；不在表里的排后面、按字母序。
     private static let hotSyllables: [String] = [

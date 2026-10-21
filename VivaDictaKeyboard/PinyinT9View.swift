@@ -11,9 +11,11 @@
 //  静态“拼音”二字；回车键已并入双行发送键，不再单占候选栏位置。
 //
 //  输入逻辑：数字串按最长匹配切音节，首段音节出候选；选字后从串头
-//  扣掉首段编码，剩余部分自动成为下一音节的输入，可连续输词；候选
-//  字按每页 6 个分页，点“换页”翻页（末页点“首页”回到第一页）。
-//  ^^ 键切符号页（9 个常用标点，删除键两页都在，再点 ABC 回字母页）。
+//  扣掉首段编码，剩余部分自动成为下一音节的输入，可连续输词；多段
+//  时首位出整词候选（每段首选字拼成词，如 ni+hao → 你好），点词一次
+//  上屏整词；候选字按每页 6 个分页，点“换页”翻页（末页点“首页”回
+//  第一页）。^^ 键切符号页（9 个常用标点，删除键两页都在，再点 ABC
+//  回字母页）。候选栏空闲时收起，不在工具条与按键间留大空隙。
 //
 
 import SwiftUI
@@ -63,19 +65,47 @@ struct PinyinT9View: View {
         return PinyinEngine.candidates(for: currentSyllable)
     }
 
+    /// 全部完整段编码（贪心切分）
+    private var segments: [String] {
+        PinyinEngine.t9SegmentCodes(forDigits: digits)
+    }
+
+    /// 整词候选：多段时取每段首选字拼成词（如 ni+hao → 你好）。
+    /// 首段用当前选中音节（尊重用户在同码音节间的切换），其余段用首选。
+    private var wordCandidate: String? {
+        guard segments.count >= 2, let first = currentSyllable else { return nil }
+        guard let firstChar = PinyinEngine.candidates(for: first).first else { return nil }
+        var word = String(firstChar)
+        for code in segments.dropFirst() {
+            guard let syllable = PinyinEngine.t9Syllables(forDigits: code).first,
+                  let ch = PinyinEngine.candidates(for: syllable).first else { return nil }
+            word.append(ch)
+        }
+        return word
+    }
+
+    /// 展示用候选：整词在首位，其后是首段单字候选
+    private var displayCandidates: [String] {
+        if let wordCandidate { return [wordCandidate] + allCandidateChars }
+        return allCandidateChars
+    }
+
     private var pageCount: Int {
-        max(1, (allCandidateChars.count + candidatePageSize - 1) / candidatePageSize)
+        max(1, (displayCandidates.count + candidatePageSize - 1) / candidatePageSize)
     }
 
     private var pageChars: [String] {
         let start = candidatePage * candidatePageSize
-        guard start < allCandidateChars.count else { return [] }
-        return Array(allCandidateChars[start..<min(start + candidatePageSize, allCandidateChars.count)])
+        guard start < displayCandidates.count else { return [] }
+        return Array(displayCandidates[start..<min(start + candidatePageSize, displayCandidates.count)])
     }
 
     var body: some View {
         VStack(spacing: 6) {
-            candidateBar
+            // 空闲时收起候选栏，不在工具条与按键间留大空隙
+            if !digits.isEmpty {
+                candidateBar
+            }
             keyGrid
         }
         .padding(.horizontal, 6)
@@ -99,6 +129,7 @@ struct PinyinT9View: View {
             ForEach(syllables.dropFirst(), id: \.self) { syllable in
                 Button {
                     selectedSyllable = syllable
+                    candidatePage = 0
                     HapticManager.selectionChanged()
                 } label: {
                     Text(syllable)
@@ -110,11 +141,11 @@ struct PinyinT9View: View {
                 .buttonStyle(.plain)
             }
 
-            // 当页候选字：全局首选高亮
+            // 当页候选：全局首选高亮（多段时首位是整词）
             ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
                 let globalIndex = candidatePage * candidatePageSize + offset
                 Button {
-                    commit(char)
+                    commitDisplay(char)
                 } label: {
                     Text(char)
                         .font(.system(size: 18))
@@ -150,13 +181,13 @@ struct PinyinT9View: View {
         .onChange(of: selectedSyllable) { _, _ in candidatePage = 0 }
     }
 
-    // MARK: - 键阵（4 列；右列功能键加宽，双行高发送键）
+    // MARK: - 键阵（4 列等宽，双行高发送键）
 
     private var keyGrid: some View {
         GeometryReader { geo in
             let total = geo.size.width
-            let col4 = (total - 3 * keyGap) * 0.272
-            let col = (total - 3 * keyGap - col4) / 3
+            let col = (total - 3 * keyGap) / 4
+            let col4 = col
             VStack(spacing: rowGap) {
                 HStack(spacing: keyGap) {
                     if symbolMode {
@@ -385,12 +416,14 @@ struct PinyinT9View: View {
         HapticManager.lightImpact()
         digits += digit
         selectedSyllable = nil
+        candidatePage = 0
     }
 
     private func tapDelete() {
         if !digits.isEmpty {
             digits = String(digits.dropLast())
             selectedSyllable = nil
+            candidatePage = 0
         } else {
             proxy.deleteBackward()
         }
@@ -413,11 +446,29 @@ struct PinyinT9View: View {
         HapticManager.lightImpact()
         digits = String(digits.dropFirst(min(code.count, digits.count)))
         selectedSyllable = nil
+        // 页码必须显式复位：候选栏空闲时收起，栏消失那次变化里
+        // onChange 未必触发，只靠它会在下次输入时停在旧页。
+        candidatePage = 0
+    }
+
+    /// 点展示候选：整词上屏并扣掉全部段编码；单字走原有首段扣减。
+    /// 单字串不可能等于多字词，故按字符串相等区分是安全的。
+    private func commitDisplay(_ item: String) {
+        if let word = wordCandidate, item == word {
+            proxy.insertText(word)
+            HapticManager.lightImpact()
+            let total = segments.reduce(0) { $0 + $1.count }
+            digits = String(digits.dropFirst(min(total, digits.count)))
+            selectedSyllable = nil
+            candidatePage = 0
+        } else {
+            commit(item)
+        }
     }
 
     private func commitFirstIfNeeded() {
-        if let first = allCandidateChars.first {
-            commit(first)
+        if let first = displayCandidates.first {
+            commitDisplay(first)
         }
     }
 }
