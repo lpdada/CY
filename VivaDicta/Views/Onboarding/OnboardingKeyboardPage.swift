@@ -47,7 +47,7 @@ struct OnboardingKeyboardPage: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 OnboardingInstructionRow(number: 1, text: "Tap **Open Settings** below")
                                 OnboardingInstructionRow(number: 2, text: "Go to **Keyboards** section")
-                                OnboardingInstructionRow(number: 3, text: "Enable **VivaDicta** Keyboard")
+                                OnboardingInstructionRow(number: 3, text: "Enable **畅言** Keyboard")
                                 OnboardingInstructionRow(number: 4, text: "Enable **Allow Full Access**")
                             }
 
@@ -100,7 +100,7 @@ private struct SettingsTogglesPreview: View {
     var body: some View {
         VStack(spacing: 0) {
             // VivaDicta toggle row
-            SettingsToggleRow(title: "VivaDicta", icon: nil, isOn: true)
+            SettingsToggleRow(title: "畅言", icon: nil, isOn: true)
 
             Divider()
                 .padding(.leading, 16)

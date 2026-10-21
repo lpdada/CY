@@ -61,7 +61,7 @@ enum RecordError: LocalizedError, Equatable {
         case .avInitError:
             return "Failed to initialize audio recording system. Please restart the app and try again."
         case .userDenied:
-            return "Microphone access is required for recording. Please go to Settings > Privacy & Security > Microphone and enable access for VivaDicta."
+            return "Microphone access is required for recording. Please go to Settings > Privacy & Security > Microphone and enable access for Changyan."
         case .recordError:
             return "Failed to start recording. Check that no other app is using the microphone and try again."
         case .interrupted:

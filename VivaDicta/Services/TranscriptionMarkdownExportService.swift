@@ -171,7 +171,7 @@ enum TranscriptionMarkdownExportService {
         let minute = components.minute ?? 0
         let second = components.second ?? 0
 
-        return "VivaDicta-\(year)-\(twoDigit(month))-\(twoDigit(day))_\(twoDigit(hour))\(twoDigit(minute))\(twoDigit(second)).md"
+        return "Changyan-\(year)-\(twoDigit(month))-\(twoDigit(day))_\(twoDigit(hour))\(twoDigit(minute))\(twoDigit(second)).md"
     }
 
     nonisolated private static func uniquedFilename(_ filename: String, seenFilenames: inout [String: Int]) -> String {

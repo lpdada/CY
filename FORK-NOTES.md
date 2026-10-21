@@ -175,3 +175,15 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   银色钢笔尖带金边点缀、浅金与亮青星芒，构图不变。
 - 改动：AppIcon3 图层 gpt1.png 与 VivaDictaIcon imageset 三档
   （341/682/1024）全部换成白底版；图层偏移 fork10 已归零，本次不动。
+
+## fork12（2026-10-21）：IPA 文件名与界面文案改名
+
+- IPA 文件名：workflow 打包改成 `changyan-unsigned.ipa`（产物名同步
+  改）；附带修了打包后 `ls` 那行漏改的旧文件名（否则 CI 会在这步失败）。
+- 界面文案（28 文件、纯改名，无逻辑改动）：快捷指令描述、开屏键盘
+  开关（改成“畅言”，与设置里实际键盘名一致）、设置里“畅言的 Mac”、
+  邮件主题与版本页脚、导出文件名、键盘报错、新功能页全文。
+- 刻意未动：Bundle ID / App Group / iCloud 容器、桥通知名与剪贴板名、
+  内部代码符号（VivaMode 等）、图标资源名、上游署名链接（n0an/VivaDicta）。
+- 另：fork11 的 release 资产已直接改名重挂为 changyan-unsigned.ipa
+  （同字节，无需重编），不在本次提交内。

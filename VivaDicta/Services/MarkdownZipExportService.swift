@@ -45,7 +45,7 @@ enum MarkdownZipExportService {
         let second = components.second ?? 0
         let noteLabel = count == 1 ? "note" : "notes"
 
-        return "VivaDicta-\(count)-\(noteLabel)-\(year)-\(twoDigit(month))-\(twoDigit(day))_\(twoDigit(hour))\(twoDigit(minute))\(twoDigit(second)).zip"
+        return "Changyan-\(count)-\(noteLabel)-\(year)-\(twoDigit(month))-\(twoDigit(day))_\(twoDigit(hour))\(twoDigit(minute))\(twoDigit(second)).zip"
     }
 
     nonisolated private static func twoDigit(_ value: Int) -> String {

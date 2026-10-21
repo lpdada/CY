@@ -1,6 +1,6 @@
 //
 //  CancelRecordIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.18
 //
@@ -11,7 +11,7 @@ import AppGroup
 struct CancelRecordIntent: AppIntent {
     static let title: LocalizedStringResource = "Cancel Recording"
     static let description = IntentDescription(
-        "Cancels the current VivaDicta recording without saving a transcription."
+        "Cancels the current Changyan recording without saving a transcription."
     )
 
     static let openAppWhenRun: Bool = true

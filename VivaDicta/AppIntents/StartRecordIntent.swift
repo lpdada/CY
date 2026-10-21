@@ -1,6 +1,6 @@
 //
 //  StartRecordIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.18
 //
@@ -11,7 +11,7 @@ import AppGroup
 struct StartRecordIntent: AppIntent {
     static let title: LocalizedStringResource = "Start Recording"
     static let description = IntentDescription(
-        "Starts a new recording in VivaDicta. Use with Stop Recording to control the session from a shortcut."
+        "Starts a new recording in Changyan. Use with Stop Recording to control the session from a shortcut."
     )
 
     static let openAppWhenRun: Bool = true

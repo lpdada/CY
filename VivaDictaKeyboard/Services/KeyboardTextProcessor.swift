@@ -58,7 +58,7 @@ final class KeyboardTextProcessor {
         if mode.aiProvider == .local, !AIProvider.localModelRunsOnNeuralEngine(mode.aiModel) {
             logger.logInfo("📝 [TextProcessor] GPU on-device mode '\(mode.name)' unavailable from keyboard (GPU blocked in background)")
             HapticManager.error()
-            dictationState.textProcessingPhase = .error("This on-device model runs on the GPU and needs the VivaDicta app open. Use a CoreML model, Apple Foundation Model, or a cloud model from the keyboard.")
+            dictationState.textProcessingPhase = .error("This on-device model runs on the GPU and needs the Changyan app open. Use a CoreML model, Apple Foundation Model, or a cloud model from the keyboard.")
             autoDismissError(dictationState: dictationState)
             return
         }
@@ -99,7 +99,7 @@ final class KeyboardTextProcessor {
 
         guard dictationState.isSessionActive else {
             HapticManager.error()
-            dictationState.textProcessingPhase = .error("Open VivaDicta to use voice instructions.")
+            dictationState.textProcessingPhase = .error("Open Changyan to use voice instructions.")
             autoDismissError(dictationState: dictationState)
             return
         }
@@ -241,7 +241,7 @@ final class KeyboardTextProcessor {
             // Session expiry = main app went away
             dictationState.onSessionExpired = { [weak self] in
                 self?.logger.logInfo("📝 [TextProcessor] Session expired during text processing")
-                self?.resultContinuation?.resume(throwing: TextProcessingError.processingFailed("Session expired. Open VivaDicta and try again."))
+                self?.resultContinuation?.resume(throwing: TextProcessingError.processingFailed("Session expired. Open Changyan and try again."))
                 self?.resultContinuation = nil
             }
 

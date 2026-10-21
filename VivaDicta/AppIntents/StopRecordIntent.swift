@@ -1,6 +1,6 @@
 //
 //  StopRecordIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.18
 //
@@ -11,7 +11,7 @@ import AppGroup
 struct StopRecordIntent: AppIntent {
     static let title: LocalizedStringResource = "Stop Recording"
     static let description = IntentDescription(
-        "Stops the current VivaDicta recording and begins transcription."
+        "Stops the current Changyan recording and begins transcription."
     )
 
     static let openAppWhenRun: Bool = true

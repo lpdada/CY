@@ -1,6 +1,6 @@
 //
 //  RecordAndReturnTranscriptionIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.18
 //
@@ -12,7 +12,7 @@ import AppGroup
 struct RecordAndReturnTranscriptionIntent: AppIntent {
     static let title: LocalizedStringResource = "Record and Get Note"
     static let description = IntentDescription(
-        "Starts recording in VivaDicta, waits for you to stop, and returns the transcribed note for use in other shortcut actions.",
+        "Starts recording in Changyan, waits for you to stop, and returns the transcribed note for use in other shortcut actions.",
         categoryName: "Notes",
         searchKeywords: ["record", "dictate", "transcribe", "note", "obsidian"],
         resultValueName: "Recorded Note"
@@ -105,7 +105,7 @@ struct RecordAndReturnTranscriptionIntent: AppIntent {
                // save and our poll tick. Don't "tighten" this to `.completed` only.
                status == .completed || status == .idle {
                 // `sawActiveSession` is required so a CloudKit-synced row from
-                // another device (VivaDictaMac) during the wait can't satisfy
+                // another device (ChangyanMac) during the wait can't satisfy
                 // `timestamp > startTime` and be returned as this intent's result.
                 return latest.entity
             }
@@ -148,7 +148,7 @@ enum RecordAndReturnIntentError: Error, CustomLocalizedStringResourceConvertible
         case .cancelled:
             "Recording was cancelled."
         case .alreadyInProgress:
-            "A recording is already in progress in VivaDicta. Stop it first, then try again."
+            "A recording is already in progress in Changyan. Stop it first, then try again."
         }
     }
 }

@@ -86,14 +86,14 @@ jobs:
           rm -rf Payload
           mkdir -p Payload
           cp -R "$APP" Payload/
-          zip -qry VivaDicta-unsigned.ipa Payload
-          ls -lh VivaDicta-unsigned.ipa
+          zip -qry changyan-unsigned.ipa Payload
+          ls -lh changyan-unsigned.ipa
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: VivaDicta-unsigned-ipa
-          path: VivaDicta-unsigned.ipa
+          name: changyan-unsigned-ipa
+          path: changyan-unsigned.ipa
           if-no-files-found: error
 
       - name: Upload build log (only useful on failure)

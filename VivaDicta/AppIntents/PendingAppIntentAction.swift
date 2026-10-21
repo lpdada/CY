@@ -1,6 +1,6 @@
 //
 //  PendingAppIntentAction.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.19
 //

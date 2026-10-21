@@ -1571,7 +1571,7 @@ class RecordViewModel: NSObject, AVAudioPlayerDelegate {
                 // so say so rather than letting it hang until session expiry.
                 if voiceInstruction != nil {
                     self.isAwaitingVoiceInstructionResult = true
-                    self.failPendingVoiceInstruction("Could not start recording. Open VivaDicta and try again.")
+                    self.failPendingVoiceInstruction("Could not start recording. Open Changyan and try again.")
                 }
                 return
             }

@@ -1,6 +1,6 @@
 //
 //  ShortcutsProvider.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2025.11.16
 //

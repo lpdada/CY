@@ -117,7 +117,7 @@ struct CLIServerConfigurationView: View {
             Text("连接")
                 .font(.headline)
 
-            Text("连接到运行 CLI 代理的服务器做 AI 处理。可以是你装了 VivaDicta 的 Mac，也可以是远程服务器。")
+            Text("连接到运行 CLI 代理的服务器做 AI 处理。可以是你装了畅言的 Mac，也可以是远程服务器。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

@@ -109,7 +109,7 @@ struct ReplacementsView: View {
                 Text("""
                     For example:
                         "My website link" -> "https://vivadicta.com"
-                        "Vivo dicte" -> "VivaDicta"
+                        "Vivo dicte" -> "Changyan"
                     """)
                     .font(.caption)
                     .foregroundStyle(.secondary)

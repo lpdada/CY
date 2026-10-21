@@ -738,7 +738,7 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showMailCompose) {
             MailComposeView(
-                subject: "VivaDicta Support Request",
+                subject: "Changyan Support Request",
                 recipients: ["support@vivadicta.com"],
                 body: supportEmailBody
             )
@@ -793,7 +793,7 @@ iOS Version: \(systemVersion)
     }
 
     private func openSupportEmailFallback() {
-        let subject = "VivaDicta Support Request"
+        let subject = "Changyan Support Request"
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = supportEmailBody.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 
@@ -898,7 +898,7 @@ private struct AppVersionFooter: View {
     private var versionText: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-        return "VivaDicta \(version) (\(build))"
+        return "Changyan \(version) (\(build))"
     }
 
     var body: some View {

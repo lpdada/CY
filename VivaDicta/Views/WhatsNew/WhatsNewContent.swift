@@ -1,6 +1,6 @@
 //
 //  WhatsNewContent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.02.26
 //
@@ -52,7 +52,7 @@ enum WhatsNewCatalog {
     // 2026-10-03
     private static let release_3_12 = WhatsNewRelease(
         id: "3.12",
-        headline: "What's New in VivaDicta 3.12.0",
+        headline: "What's New in Changyan 3.12.0",
         features: [
             WhatsNewFeature(
                 icon: "calendar.badge.plus",
@@ -96,7 +96,7 @@ enum WhatsNewCatalog {
     // 2026-09-12
     private static let release_3_11 = WhatsNewRelease(
         id: "3.11",
-        headline: "What's New in VivaDicta 3.11.0",
+        headline: "What's New in Changyan 3.11.0",
         features: [
             WhatsNewFeature(
                 icon: "person.2.wave.2.fill",
@@ -135,7 +135,7 @@ enum WhatsNewCatalog {
     // 2026-09-07
     private static let release_3_10 = WhatsNewRelease(
         id: "3.10",
-        headline: "What's New in VivaDicta 3.10.0",
+        headline: "What's New in Changyan 3.10.0",
         features: [
             WhatsNewFeature(
                 icon: "text.badge.xmark",
@@ -186,13 +186,13 @@ enum WhatsNewCatalog {
     // 2026-08-30
     private static let release_3_9 = WhatsNewRelease(
         id: "3.9",
-        headline: "What's New in VivaDicta 3.9.0",
+        headline: "What's New in Changyan 3.9.0",
         features: [
             WhatsNewFeature(
                 icon: "arrow.uturn.backward.circle.fill",
                 iconColors: [.indigo, .purple],
                 title: "No App Switching",
-                description: "Dictate from the keyboard in any app and VivaDicta sends you straight back to where you were typing."
+                description: "Dictate from the keyboard in any app and Changyan sends you straight back to where you were typing."
             ),
             WhatsNewFeature(
                 icon: "bolt.fill",
@@ -237,7 +237,7 @@ enum WhatsNewCatalog {
     // 2026-08-09
     private static let release_3_8 = WhatsNewRelease(
         id: "3.8",
-        headline: "What's New in VivaDicta 3.8.0",
+        headline: "What's New in Changyan 3.8.0",
         features: [
             WhatsNewFeature(
                 icon: "person.badge.key.fill",
@@ -267,7 +267,7 @@ enum WhatsNewCatalog {
                 icon: "headphones",
                 iconColors: [.blue, .cyan],
                 title: "Your Headphones' Microphone",
-                description: "Wearing AirPods or a Bluetooth headset? VivaDicta now records through them instead of the iPhone mic. A new Microphone setting lets you pin the iPhone mic if you prefer."
+                description: "Wearing AirPods or a Bluetooth headset? Changyan now records through them instead of the iPhone mic. A new Microphone setting lets you pin the iPhone mic if you prefer."
             ),
             WhatsNewFeature(
                 icon: "text.badge.minus",
@@ -287,7 +287,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_7 = WhatsNewRelease(
         id: "3.7",
-        headline: "What's New in VivaDicta 3.7.0",
+        headline: "What's New in Changyan 3.7.0",
         features: [
             WhatsNewFeature(
                 icon: "cpu.fill",
@@ -313,7 +313,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_6 = WhatsNewRelease(
         id: "3.6",
-        headline: "What's New in VivaDicta 3.6.0",
+        headline: "What's New in Changyan 3.6.0",
         features: [
             WhatsNewFeature(
                 icon: "person.2.wave.2.fill",
@@ -345,7 +345,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_5 = WhatsNewRelease(
         id: "3.5",
-        headline: "What's New in VivaDicta 3.5.0",
+        headline: "What's New in Changyan 3.5.0",
         features: [
             WhatsNewFeature(
                 icon: "waveform.badge.plus",
@@ -383,7 +383,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_4 = WhatsNewRelease(
         id: "3.4",
-        headline: "What's New in VivaDicta 3.4.0",
+        headline: "What's New in Changyan 3.4.0",
         features: [
             WhatsNewFeature(
                 icon: "tag.fill",
@@ -422,12 +422,12 @@ enum WhatsNewCatalog {
                 description: "Added Claude Opus 4.8, refreshed the Grok, Z.AI, Kimi, and Gemini lineups, and removed retired models."
             )
         ],
-        tagline: "Tag as you talk. Make VivaDicta yours."
+        tagline: "Tag as you talk. Make Changyan yours."
     )
 
     private static let release_3_3 = WhatsNewRelease(
         id: "3.3",
-        headline: "What's New in VivaDicta 3.3.0",
+        headline: "What's New in Changyan 3.3.0",
         features: [
             WhatsNewFeature(
                 icon: "globe",
@@ -471,7 +471,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_2 = WhatsNewRelease(
         id: "3.2",
-        headline: "What's New in VivaDicta 3.2",
+        headline: "What's New in Changyan 3.2",
         features: [
             WhatsNewFeature(
                 icon: "globe.americas.fill",
@@ -529,7 +529,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_1 = WhatsNewRelease(
         id: "3.1",
-        headline: "What's New in VivaDicta 3.1",
+        headline: "What's New in Changyan 3.1",
         features: [
             WhatsNewFeature(
                 icon: "keyboard.fill",
@@ -579,7 +579,7 @@ enum WhatsNewCatalog {
 
     private static let release_3_0 = WhatsNewRelease(
         id: "3.0",
-        headline: "What's New in VivaDicta 3.0",
+        headline: "What's New in Changyan 3.0",
         features: [
             WhatsNewFeature(
                 icon: "bubble.left.and.text.bubble.right.fill",
@@ -591,7 +591,7 @@ enum WhatsNewCatalog {
                 icon: "magnifyingglass.circle.fill",
                 iconColors: [.green, .mint],
                 title: "Smart AI Search",
-                description: "Find notes by meaning, not just keywords. Ask \"what did I say about the pricing idea?\" and VivaDicta finds it - even without those exact words. Fully on-device, so your data stays private."
+                description: "Find notes by meaning, not just keywords. Ask \"what did I say about the pricing idea?\" and Changyan finds it - even without those exact words. Fully on-device, so your data stays private."
             ),
             WhatsNewFeature(
                 icon: "globe.badge.chevron.backward",
@@ -631,7 +631,7 @@ enum WhatsNewCatalog {
 
     private static let release_2_2 = WhatsNewRelease(
         id: "2.2",
-        headline: "What's New in VivaDicta 2.2",
+        headline: "What's New in Changyan 2.2",
         features: [
             WhatsNewFeature(
                 icon: "applewatch",
@@ -665,18 +665,18 @@ enum WhatsNewCatalog {
             )
         ],
         learnMoreURL: URL(string: "https://vivadicta.com/ios/docs/watch-general-usage"),
-        learnMoreTitle: "Learn more about VivaDicta Watch app"
+        learnMoreTitle: "Learn more about Changyan Watch app"
     )
 
     private static let release_2_1 = WhatsNewRelease(
         id: "2.1",
-        headline: "What's New in VivaDicta 2.1",
+        headline: "What's New in Changyan 2.1",
         features: [
             WhatsNewFeature(
                 icon: "keyboard.badge.ellipsis",
                 iconColors: [.purple, .pink],
                 title: "Keyboard AI Processing",
-                description: "Process text directly from the VivaDicta keyboard. Translate, rewrite, or summarize in any app."
+                description: "Process text directly from the Changyan keyboard. Translate, rewrite, or summarize in any app."
             ),
             WhatsNewFeature(
                 icon: "doc.on.clipboard",
@@ -719,12 +719,12 @@ enum WhatsNewCatalog {
 
     private static let release_2_0 = WhatsNewRelease(
         id: "2.0",
-        headline: "What's New in VivaDicta 2.0",
+        headline: "What's New in Changyan 2.0",
         features: [
             WhatsNewFeature(
                 icon: "macbook.and.iphone",
                 iconColors: [.blue, .cyan],
-                title: "VivaDicta for Mac",
+                title: "Changyan for Mac",
                 description: "Now available on macOS with the same transcription and AI workflow, fully synced via iCloud."
             ),
             WhatsNewFeature(
@@ -737,7 +737,7 @@ enum WhatsNewCatalog {
                 icon: "bubble.left.and.text.bubble.right",
                 iconColors: [.purple, .pink],
                 title: "AI Assistant",
-                description: "A new preset turns VivaDicta into a voice-powered AI assistant. Speak a question — get a formatted answer."
+                description: "A new preset turns Changyan into a voice-powered AI assistant. Speak a question — get a formatted answer."
             ),
             WhatsNewFeature(
                 icon: "translate",

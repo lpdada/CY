@@ -110,7 +110,7 @@ struct IntegrationsView: View {
         if isAnyObsidianEnabled {
             if isObsidianCustomURLEnabled {
                 // Verbatim: the literal "%2F" must not be read as a format specifier.
-                Text(verbatim: "VivaDicta opens this URL after filling in the placeholders: \(NoteTemplate.placeholderList). {text} is the final text (AI-processed if a preset ran), {original} is the raw transcription. Values are URL-encoded automatically; type literal slashes in paths as %2F. Example for a daily note: \(Self.customURLExample). Any app's URL scheme works. The text is also copied to the clipboard, so &clipboard works too. Leave the field empty to use the standard note.")
+                Text(verbatim: "Changyan opens this URL after filling in the placeholders: \(NoteTemplate.placeholderList). {text} is the final text (AI-processed if a preset ran), {original} is the raw transcription. Values are URL-encoded automatically; type literal slashes in paths as %2F. Example for a daily note: \(Self.customURLExample). Any app's URL scheme works. The text is also copied to the clipboard, so &clipboard works too. Leave the field empty to use the standard note.")
             } else {
                 Text("新转写会创建一篇 Obsidian 笔记；已有同名笔记时追加进去。占位符：\(NoteTemplate.placeholderList)。想改为追加到日记笔记，把名称只设为 {date}。每个模式的设置里可以单独关掉自动打开。每次都会覆盖剪贴板。")
             }

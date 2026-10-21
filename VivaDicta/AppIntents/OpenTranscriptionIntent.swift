@@ -1,6 +1,6 @@
 //
 //  OpenTranscriptionIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2025.12.15
 //

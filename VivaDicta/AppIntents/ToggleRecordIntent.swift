@@ -1,6 +1,6 @@
 //
 //  ToggleRecordIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2025.11.13
 //
@@ -11,7 +11,7 @@ import AppGroup
 
 struct ToggleRecordIntent: SetValueIntent {
     static let title: LocalizedStringResource = "Toggle Recording"
-    static let description = IntentDescription("Start or stop recording in VivaDicta")
+    static let description = IntentDescription("Start or stop recording in Changyan")
 
     static let openAppWhenRun: Bool = true
 

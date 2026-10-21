@@ -1,6 +1,6 @@
 //
 //  OpenSearchIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.19
 //
@@ -10,7 +10,7 @@ import AppIntents
 struct OpenSearchIntent: AppIntent {
     static let title: LocalizedStringResource = "Search"
     static let description = IntentDescription(
-        "Opens VivaDicta and focuses the notes search field.",
+        "Opens Changyan and focuses the notes search field.",
         categoryName: "Navigation",
         searchKeywords: ["search", "find", "filter", "notes", "lookup"]
     )

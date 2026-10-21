@@ -1,6 +1,6 @@
 //
 //  OpenAskAIIntent.swift
-//  VivaDicta
+//  Changyan
 //
 //  Created by Anton Novoselov on 2026.04.19
 //
@@ -10,7 +10,7 @@ import AppIntents
 struct OpenAskAIIntent: AppIntent {
     static let title: LocalizedStringResource = "Ask AI"
     static let description = IntentDescription(
-        "Opens VivaDicta and shows the Ask AI chats screen.",
+        "Opens Changyan and shows the Ask AI chats screen.",
         categoryName: "Navigation",
         searchKeywords: ["ask", "ai", "chat", "assistant", "notes"]
     )
