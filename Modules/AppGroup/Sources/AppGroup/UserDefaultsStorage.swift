@@ -70,6 +70,7 @@ public enum UserDefaultsStorage {
         public static let huggingFaceModels = "huggingFaceModels"
         public static let ollamaModels = "ollamaModels"
         public static let ollamaServerURL = "ollamaServerURL"
+        public static let selfHostedServerURL = "selfHostedServerURL"
         public static let ollamaCloudModels = "ollamaCloudModels"
         public static let opencodeZenModels = "opencodeZenModels"
         public static let opencodeGoModels = "opencodeGoModels"

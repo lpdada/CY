@@ -241,3 +241,25 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   importFailed。导入只管放文件，不跑预热，第一次转写时预热。
 - 未动：Parakeet 不加导入；下载、删除、预热逻辑不动；不改 Bundle ID
   与 App Group 等。
+
+## fork17（2026-10-22）：自建服务器转写通道（SenseVoice + Qwen3-ASR）
+
+- 新增 provider 自建服务器：模型目录出现两个新模型，SenseVoice
+  Small（自建）与 Qwen3-ASR 0.6B（自建），转写走新加坡服务器
+  https://asr.ysloving.com/v1/transcribe，不在手机上下载模型。
+- 实现：CloudTranscription 模块新增 SelfHostedTranscriptionService
+  （multipart 上传，form 字段 model + audio，Bearer 鉴权，超时 300
+  秒对齐服务器端 nginx，401 映射为 key 无效）；TranscriptionKit
+  的 TranscriptionProvider 与 DefaultTranscriptionEngine 各加
+  selfHosted 一路；TranscriptionManager 的 makeProvider 加一路。
+  目录、模式编辑的 provider 列表、卡片配置态都自动跟上。
+- 配置：设置页自建服务器分支填服务器地址（默认
+  asr.ysloving.com）+ API key；地址存 UserDefaults，key 存钥匙串
+  （与云厂商的 mappedAIProvider 路径平行，不动 AIProvider 枚举）。
+  保存后跑公开健康检查验证服务器可达，key 有效性在首次转写时见
+  分晓。删除 key 只清 key 不动地址。
+- SenseVoice 日语输出带词间空格（“抜群 の 運動 神経 …”），服务层
+  在文本含假名时去掉全部空格；中文无此空格、英文需要空格，不受
+  影响。Qwen3-ASR 输出无此问题。
+- 未动：Whisper / Parakeet / 各云厂商路径不动；不改 Bundle ID 与
+  App Group 等；1.7B 官方暂无 int8 包，本版不上。

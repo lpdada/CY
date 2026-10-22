@@ -492,6 +492,13 @@ class TranscriptionManager: Transcriber {
                 isSpeakerDiarizationEnabled: diarizationEnabled
             ))
 
+        case .selfHosted:
+            return .selfHosted(.init(
+                baseURL: SelfHostedTranscriptionConfig.serverURL,
+                apiKey: try requireAPIKey(model),
+                modelName: model.name
+            ))
+
         case .customTranscription:
             guard let customModel = model as? CustomTranscriptionModel else {
                 throw CloudTranscriptionError.unsupportedProvider

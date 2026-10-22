@@ -25,6 +25,7 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
     case xai
     case assemblyAI
     case customTranscription
+    case selfHosted
     
     var id: Self { self }
 
@@ -96,6 +97,8 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
             "AssemblyAI"
         case .customTranscription:
             "Custom"
+        case .selfHosted:
+            "自建服务器"
         }
     }
     
@@ -207,7 +210,8 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
         .elevenLabs,
         .gemini,
         .openAI,
-        .customTranscription]
+        .customTranscription,
+        .selfHosted]
     
     var cloudTranscriptionModelsNames: [String] {
         switch self {
@@ -797,6 +801,30 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
                 speed: 0.7,
                 accuracy: 0.93,
                 cost: 0.9,  // $0.006/min
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "sensevoice",
+                displayName: "SenseVoice Small（自建）",
+                description: "自建服务器上的 SenseVoice Small，中英日韩粤多语，手机不下载模型，走云端转写",
+                provider: .selfHosted,
+                speed: 0.9,
+                accuracy: 0.85,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "qwen3-0.6b",
+                displayName: "Qwen3-ASR 0.6B（自建）",
+                description: "自建服务器上的 Qwen3-ASR 0.6B，中文准确率高，手机不下载模型，走云端转写",
+                provider: .selfHosted,
+                speed: 0.7,
+                accuracy: 0.9,
+                cost: 0.05,  // 自建服务器，无按量费用
                 supportManyLanguages: true,
                 supportedLanguages: allLanguages
             ),

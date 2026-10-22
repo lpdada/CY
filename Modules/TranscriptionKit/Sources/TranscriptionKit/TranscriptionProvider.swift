@@ -31,6 +31,7 @@ public enum TranscriptionProvider: Sendable {
     case assemblyAI(AssemblyAITranscriptionService.Config)
     case xai(XaiTranscriptionService.Config)
     case custom(CustomTranscriptionService.Config)
+    case selfHosted(SelfHostedTranscriptionService.Config)
     case whisperKit(
         modelName: String,
         displayName: String? = nil,

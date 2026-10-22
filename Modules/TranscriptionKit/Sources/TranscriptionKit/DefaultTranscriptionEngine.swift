@@ -144,6 +144,8 @@ public actor DefaultTranscriptionEngine {
             return XaiTranscriptionService(config: config)
         case .custom(let config):
             return CustomTranscriptionService(config: config)
+        case .selfHosted(let config):
+            return SelfHostedTranscriptionService(config: config)
         case .whisperKit(let modelName, let displayName, let options):
             return whisperKit().operation(
                 modelName: modelName,

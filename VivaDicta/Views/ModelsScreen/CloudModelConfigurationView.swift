@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AICore
+import AppGroup
 
 struct CloudModelConfigurationView: View {
     @Environment(\.dismiss) var dismiss
@@ -15,6 +16,7 @@ struct CloudModelConfigurationView: View {
     var onSave: (CloudModel) -> Void
 
     @State var apiKey: String = ""
+    @State private var serverURL: String = ""
     @State private var isVerifying: Bool = false
     @State private var verificationError: String? = nil
     @State private var showDeleteConfirmation: Bool = false
@@ -32,6 +34,19 @@ struct CloudModelConfigurationView: View {
 
             Text("\(model.provider.displayName) API Key")
                 .font(.title2)
+            if model.provider == .selfHosted {
+                TextField("服务器地址", text: $serverURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .padding()
+                    .background {
+                        Capsule()
+                            .stroke(.gray, lineWidth: 0.5)
+                    }
+                Text("默认 https://asr.ysloving.com，换服务器时改这里")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             TextField("API Key", text: $apiKey)
                 .privacySensitive()
                 .textInputAutocapitalization(.never)
@@ -179,7 +194,11 @@ struct CloudModelConfigurationView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: clearButtonVisible)
         .onAppear {
-            apiKey = model.provider.mappedAIProvider?.apiKey ?? ""
+            apiKey = model.apiKey ?? ""
+            if model.provider == .selfHosted {
+                let stored = UserDefaultsStorage.appPrivate.string(forKey: UserDefaultsStorage.Keys.selfHostedServerURL) ?? ""
+                serverURL = stored.isEmpty ? "https://asr.ysloving.com" : stored
+            }
             clearButtonVisible = !apiKey.isEmpty
         }
         .padding()
@@ -189,9 +208,9 @@ struct CloudModelConfigurationView: View {
                 deleteAPIKey()
             }
         } message: {
-            Text("确定要删除 \(model.provider.rawValue.capitalized) 的 API Key 吗？此操作无法撤销。")
+            Text("确定要删除 \(model.provider.displayName) 的 API Key 吗？此操作无法撤销。")
         }
-        .navigationTitle("API Key")
+        .navigationTitle(model.provider == .selfHosted ? "自建服务器" : "API Key")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -202,13 +221,13 @@ struct CloudModelConfigurationView: View {
                         Button(role: .confirm) {
                             saveKey()
                         }
-                        .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(isSaveDisabled)
                         .tint(.blue)
                     } else {
                         Button("保存") {
                             saveKey()
                         }
-                        .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(isSaveDisabled)
                     }
                 }
             }
@@ -216,7 +235,18 @@ struct CloudModelConfigurationView: View {
     }
     
     
+    private var isSaveDisabled: Bool {
+        if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        if model.provider == .selfHosted,
+           serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        return false
+    }
+
     func saveKey() {
+        if model.provider == .selfHosted {
+            saveSelfHostedKey()
+            return
+        }
         Task {
             guard let aiProvider = model.provider.mappedAIProvider else {
                 verificationError = "API verification not supported for this provider"
@@ -240,7 +270,37 @@ struct CloudModelConfigurationView: View {
         }
     }
 
+    /// 自建服务器：地址 + key 直接保存，不走云厂商的 key 校验接口。
+    /// 保存后跑一次公开健康检查，只验证服务器可达；key 是否有效在首次
+    /// 转写时见分晓。健康检查失败时不关闭页面，让用户修正地址重试，
+    /// 配置本身已经存下了。
+    func saveSelfHostedKey() {
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        SelfHostedTranscriptionConfig.saveServerURL(trimmedURL)
+        SelfHostedTranscriptionConfig.saveAPIKey(trimmedKey)
+        HapticManager.mediumImpact()
+
+        Task {
+            isVerifying = true
+            verificationError = nil
+            let reachable = await SelfHostedTranscriptionConfig.checkHealth()
+            isVerifying = false
+            if reachable {
+                onSave(model)
+            } else {
+                verificationError = "已保存，但服务器连接失败，请检查地址。"
+            }
+        }
+    }
+
     func deleteAPIKey() {
+        if model.provider == .selfHosted {
+            SelfHostedTranscriptionConfig.deleteAPIKey()
+            apiKey = ""
+            onSave(model)
+            return
+        }
         HapticManager.heavyImpact()
         // Remove the API key from Keychain
         if let aiProvider = model.provider.mappedAIProvider {
