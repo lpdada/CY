@@ -24,6 +24,7 @@ struct MainView: View {
     @State private var showingRecordingSheet = false
     @State private var showingSettings = false
     @State private var showingLiveTranslation = false
+    @State private var showingSelfHostedTranslation = false
     @State private var showingNotesFilter = false
     @State private var showingFileImport = false
     @State private var searchText = ""
@@ -267,6 +268,9 @@ struct MainView: View {
         .fullScreenCover(isPresented: $showingLiveTranslation) {
             LiveTranslationView()
                 .navigationTransition(.zoom(sourceID: "LiveTranslationSheetTransition", in: sheetTransitions))
+        }
+        .fullScreenCover(isPresented: $showingSelfHostedTranslation) {
+            SelfHostedTranslationView()
         }
         .fullScreenCover(isPresented: $showMultiNoteChats) {
             MultiNoteChatsListView()
@@ -542,6 +546,16 @@ struct MainView: View {
                     .matchedTransitionSource(id: "LiveTranslationSheetTransition", in: sheetTransitions)
                     .popoverTip(LiveTranslationDiscoveryTip())
                 }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    HapticManager.lightImpact()
+                    showingSelfHostedTranslation = true
+                } label: {
+                    Image(systemName: "translate")
+                }
+                .accessibilityLabel("自建翻译")
             }
 
             if #available(iOS 26.0, *) {

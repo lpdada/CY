@@ -55,6 +55,7 @@ public enum LogCategory: String {
     case liveTranslationSTT = "LiveTranslationSTT"
     case liveTranslationTTS = "LiveTranslationTTS"
     case liveTranslationAudio = "LiveTranslationAudio"
+    case selfHostedTranslation = "SelfHostedTranslation"
 
     // MARK: - Services - Other
     case aiService = "AIService"

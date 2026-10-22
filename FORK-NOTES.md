@@ -313,3 +313,23 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   慢且同丢字，仅作备选。
 - 未动：转写通道、钥匙串、地址存储、模式编辑修复均不动；
   本地 Whisper / Parakeet 路径不动。
+
+## fork21（2026-10-23）：新增自建句子级翻译
+
+- 新增：主界面工具栏“自建翻译”入口（translate 图标），进双语
+  会话页：源语言/目标语言（中/日/英）、自建转写模型、朗读开关；
+  说话时按静音自动分句，每句依次走自建 ASR 转写、AI 翻译，
+  原文 + 译文对照滚动显示，可选系统语音朗读译文。
+- 实现：复用 StreamingAudioCapture 的 16kHz PCM 流；新
+  SentenceAudioChunker 按能量静音分句（0.9 秒静音成句、
+  最长 30 秒强制成句），句音频写临时 WAV 走
+  SelfHostedTranscriptionService；翻译走 AIService
+  generateVariation（自建翻译 preset，复用当前模式的 AI
+  服务商，不新增 key）；朗读走 AVSpeechSynthesizer 系统声音。
+- 关键设计：分句任务只做同步计算不碰网络，处理任务串行
+  消费成句队列——处理跟不上时只表现为延迟变大，不丢音频
+  （capture 流本身只有约 1 秒缓冲，直接串行会丢尾巴）。
+  单句失败不中断会话（转写失败记状态行，翻译失败挂在该句）。
+- 范围：仅主 App，会话不存档；不支持键盘扩展；各模型本身
+  的语言限制（如 x-asr-punct 不支持日语）以模型描述为准。
+- 未动：Soniox 实时翻译、转写通道、模型目录、钥匙串均不动。
