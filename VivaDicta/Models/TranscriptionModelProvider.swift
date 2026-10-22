@@ -865,6 +865,54 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
                 supportedLanguages: allLanguages
             ),
 
+            CloudModel(
+                name: "funasr-nano",
+                displayName: "FunASR Nano（自建）",
+                description: "自建服务器上的 FunASR Nano，中英日多语，日语最强，手机不下载模型，走云端转写（注：混说英文全大写粘连，首次加载慢）",
+                provider: .selfHosted,
+                speed: 0.75,
+                accuracy: 0.92,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "x-asr-punct",
+                displayName: "X-ASR 中英（自建）",
+                description: "自建服务器上的 X-ASR，中英混说 + 自带标点，速度最快，手机不下载模型，走云端转写（注：中英专用，不支持日语）",
+                provider: .selfHosted,
+                speed: 0.95,
+                accuracy: 0.87,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "whisper-large-v3",
+                displayName: "Whisper Large V3（自建）",
+                description: "自建服务器上的 Whisper large-v3，多语，手机不下载模型，走云端转写（注：云端约 2.4 倍实时，比 Turbo 慢，仅作备选）",
+                provider: .selfHosted,
+                speed: 0.4,
+                accuracy: 0.87,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "paraformer-zh-2024",
+                displayName: "Paraformer 中文 2024（自建）",
+                description: "自建服务器上的 Paraformer 中文 2024 版，手机不下载模型，走云端转写（注：与现有 Paraformer 中文输出一致，无标点）",
+                provider: .selfHosted,
+                speed: 0.95,
+                accuracy: 0.9,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
         ]
     }
     

@@ -295,3 +295,21 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   粤语包用户明确不要，不开 sensevoice-yue。
 - 未动：转写通道、钥匙串、地址存储、fork18 的模式编辑修复
   均不动；本地 Whisper / Parakeet 路径不动。
+
+## fork20（2026-10-23）：自建服务器模型目录加 4 个
+
+- 新增：FunASR Nano、X-ASR 中英、Whisper Large V3、Paraformer
+  中文 2024 四个自建模型条目（CloudModel，provider 自建），
+  名字与服务器 /health 一致：funasr-nano、x-asr-punct、
+  whisper-large-v3、paraformer-zh-2024，发送时原样作 model
+  字段；地址、key 走 fork17 的自建一路。
+- 服务器侧已先行：Hermes 第二批部署完成并同段音频对比
+  （10 秒中英混说热：x-asr-punct 0.55 秒、paraformer-2024
+  0.51 秒、funasr-nano 2.64 秒、large-v3 23.69 秒约 2.4 倍实时）。
+- 注意：x-asr-punct 中英专用，不支持日语（日语输出罗马字
+  乱码），描述里已标注；funasr-nano 混说英文全大写粘连、
+  首次加载慢（冷 17.8 秒）；paraformer-2024 与 2023 版输出
+  一致，属重复条目，用户坚持全加；large-v3 云端比 Turbo
+  慢且同丢字，仅作备选。
+- 未动：转写通道、钥匙串、地址存储、模式编辑修复均不动；
+  本地 Whisper / Parakeet 路径不动。
