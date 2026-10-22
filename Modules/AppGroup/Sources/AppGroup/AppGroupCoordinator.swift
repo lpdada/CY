@@ -315,9 +315,11 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     /// 键盘侧最近一次递交给 UI 的录音态。电平 tick 对账时用它判断
     /// 缓存里的录音态是否变了，避免每次电平更新都重复递交。
-    private var lastDeliveredRecordingState: Bool?
+    /// 与回调一样标 MainActor：回调本身是 MainActor 隔离的，非隔离
+    /// 方法里读它在 Swift 6 下直接编译失败（fork23 首版 CI 即此错）。
+    @MainActor private var lastDeliveredRecordingState: Bool?
 
-    private func deliverRecordingState() {
+    @MainActor private func deliverRecordingState() {
         let recording = isRecording
         lastDeliveredRecordingState = recording
         onRecordingStateChanged?(recording)

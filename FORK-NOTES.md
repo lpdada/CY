@@ -364,7 +364,8 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   （AppGroupCoordinator）：拉取返回成败；录音状态通知拉取
   失败时 1 秒后重拉并重新递交；电平 tick 时拿缓存录音态与
   最近递交值对账，变了就补递交——录音进行中电平一直在流，
-  这条就是自愈路径。
+  这条就是自愈路径。递交 helper 与记录值均标 MainActor
+  （首版 CI 编译失败即此原因：回调是 MainActor 隔离的）。
 - 翻译“转写失败：Empty response from API”偶发：那是服务端
   对一段音频没有识别出内容（静音、过短、杂音）时抛的
   noTranscriptionReturned，之前被当成故障刷状态。修复：这
