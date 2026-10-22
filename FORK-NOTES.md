@@ -263,3 +263,17 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   影响。Qwen3-ASR 输出无此问题。
 - 未动：Whisper / Parakeet / 各云厂商路径不动；不改 Bundle ID 与
   App Group 等；1.7B 官方暂无 int8 包，本版不上。
+
+## fork18（2026-10-22）：修模式编辑页自建服务器 key 判定
+
+- 现象：模型卡片上自建模型的钥匙已是绿色（已配置），但模式编辑
+  页选自建服务器仍提示要添加 API key，且没有入口可点，卡住。
+- 根因：两处走了不同的 key 路径。模型卡片读 CloudModel.apiKey
+  （fork17 已扩展到自建钥匙串），模式编辑页的
+  isTranscriptionProviderConfigured 却直接读 mappedAIProvider，
+  自建没有映射厂商，恒返回未配置；“添加 API Key”入口同样只认
+  mappedAIProvider，自建下根本不渲染。
+- 修：isTranscriptionProviderConfigured 加 selfHosted 分支，直接读
+  自建钥匙串；模式编辑页未配置链上加自建分支，点“配置自建服务
+  器”进自建配置页（地址 + key）；未配置提示文案改中文。
+- 未动：转写通道、模型目录、钥匙串与地址存储均不动。

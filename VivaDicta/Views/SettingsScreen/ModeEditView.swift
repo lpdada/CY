@@ -311,6 +311,34 @@ struct ModeEditView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                    } else if viewModel.transcriptionProvider == .selfHosted,
+                              let selfHostedModel = TranscriptionModelProvider.allCloudModels.first(where: { $0.provider == .selfHosted }) {
+                        // 自建服务器的配置不在 AddAPIKeyView 里（它只认云厂商
+                        // 的 AIProvider），直接进自建服务器的配置页。
+                        NavigationLink {
+                            CloudModelConfigurationView(
+                                model: selfHostedModel,
+                                aiService: viewModel.aiService,
+                                onSave: { _ in
+                                    let availableModels = viewModel.getAvailableTranscriptionModels(for: viewModel.transcriptionProvider)
+                                    if let firstModel = availableModels.first {
+                                        viewModel.transcriptionModel = firstModel
+                                    }
+                                })
+                        } label: {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text("配置自建服务器")
+                                Spacer()
+                                Text("必填")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .foregroundStyle(.primary)
                     } else {
                         if let mappedProvider = viewModel.transcriptionProvider.mappedAIProvider {
                             NavigationLink {

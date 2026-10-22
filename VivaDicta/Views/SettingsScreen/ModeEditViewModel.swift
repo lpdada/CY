@@ -105,6 +105,8 @@ class ModeEditViewModel {
                 return "Download a model to continue"
             } else if transcriptionProvider == .customTranscription {
                 return "Configure custom model to continue"
+            } else if transcriptionProvider == .selfHosted {
+                return "配置自建服务器后继续"
             } else {
                 return "Add API key to continue"
             }
@@ -264,6 +266,11 @@ class ModeEditViewModel {
             return !TranscriptionModelProvider.allWhisperKitModels.filter { $0.isDownloaded }.isEmpty
         case .customTranscription:
             return CustomTranscriptionModelManager.shared.isConfigured
+        case .selfHosted:
+            // 自建服务器的 key 不走 mappedAIProvider（它只认云厂商），
+            // 直接读钥匙串里自建那把 key，否则模型卡片显示已配置、
+            // 模式编辑页却判未配置。
+            return SelfHostedTranscriptionConfig.apiKey != nil
         default:
             // Cloud transcription needs an actual API key - a CLI or an OAuth
             // sign-in doesn't reach these endpoints. xAI is the exception: its
