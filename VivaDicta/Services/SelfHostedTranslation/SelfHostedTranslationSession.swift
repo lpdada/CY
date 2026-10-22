@@ -9,14 +9,20 @@ import TranscriptionCore
 /// -> self-hosted ASR -> AI translation -> bilingual list, with optional
 /// TTS readout of each translation.
 ///
-/// The pipeline is two tasks by design. The chunker task only ever does
+/// The pipeline is three tasks by design. The chunker task only ever does
 /// synchronous work (RMS + WAV writes), so it never stalls the capture
-/// stream, which drops audio when its ~1s buffer fills. A second task
-/// drains completed chunks serially through ASR + translation, so pairs
-/// always append in spoken order; if processing falls behind, the lag
+/// stream, which drops audio when its ~1s buffer fills. An ASR task
+/// drains completed chunks and appends pairs in spoken order, while a
+/// separate translation task fills translations in the same order, so
+/// originals show up as soon as recognition finishes instead of waiting
+/// behind the previous translation. If processing falls behind, the lag
 /// grows instead of audio being lost. A failed chunk never kills the
-/// session: ASR failures surface as a status line, translation failures
-/// attach to their pair, and the next chunk still runs.
+/// session: real ASR failures surface as a status line, translation
+/// failures attach to their pair, and the next chunk still runs.
+/// Empty ASR results (silence, too short, noise) are skipped silently:
+/// they are not failures. While TTS is reading a translation aloud,
+/// mic buffers are dropped, so the speaker output is not re-transcribed
+/// into a repeat of earlier content.
 @MainActor
 @Observable
 final class SelfHostedTranslationSession {
@@ -80,7 +86,8 @@ final class SelfHostedTranslationSession {
     private let synthesizer = AVSpeechSynthesizer()
     private var capture: StreamingAudioCapture?
     private var chunkerTask: Task<Void, Never>?
-    private var processorTask: Task<Void, Never>?
+    private var asrTask: Task<Void, Never>?
+    private var translationTask: Task<Void, Never>?
     private var sessionWAVURL: URL?
 
     init(aiService: AIService) {
@@ -118,6 +125,12 @@ final class SelfHostedTranslationSession {
         let (chunkStream, chunkContinuation) = AsyncStream<URL>.makeStream()
         chunkerTask = Task {
             for await pcm in stream {
+                // 朗读译文时跳过拾音：否则喇叭里的译文会被话筒重新
+                // 收进来，再转录、再翻译、再朗读，形成“重复前面
+                // 说过的内容”的回路。朗读结束后的说话不受影响。
+                if synthesizer.isSpeaking {
+                    continue
+                }
                 if let url = chunker.feed(pcm) {
                     chunkContinuation.yield(url)
                 }
@@ -127,9 +140,18 @@ final class SelfHostedTranslationSession {
             }
             chunkContinuation.finish()
         }
-        processorTask = Task {
+        let (translationStream, translationContinuation) = AsyncStream<Int>.makeStream()
+        asrTask = Task {
             for await url in chunkStream {
-                await process(url)
+                if let index = await transcribeChunk(url) {
+                    translationContinuation.yield(index)
+                }
+            }
+            translationContinuation.finish()
+        }
+        translationTask = Task {
+            for await index in translationStream {
+                await translatePair(index)
             }
         }
     }
@@ -141,8 +163,10 @@ final class SelfHostedTranslationSession {
         await capture?.stop()
         await chunkerTask?.value
         chunkerTask = nil
-        await processorTask?.value
-        processorTask = nil
+        await asrTask?.value
+        asrTask = nil
+        await translationTask?.value
+        translationTask = nil
         synthesizer.stopSpeaking(at: .immediate)
         if let url = sessionWAVURL {
             try? FileManager.default.removeItem(at: url)
@@ -185,7 +209,10 @@ final class SelfHostedTranslationSession {
         }
     }
 
-    private func process(_ url: URL) async {
+    /// ASR stage: one chunk -> one pair with its original text, or nil
+    /// when the chunk carries nothing worth showing. Runs ahead of
+    /// translation, so originals appear as soon as recognition finishes.
+    private func transcribeChunk(_ url: URL) async -> Int? {
         defer { try? FileManager.default.removeItem(at: url) }
         let service = SelfHostedTranscriptionService(
             config: .init(
@@ -198,14 +225,25 @@ final class SelfHostedTranslationSession {
         do {
             text = try await service.transcribe(audioURL: url).text
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch CloudTranscriptionError.noTranscriptionReturned {
+            // 服务端对这段音频没有识别出内容（静音、过短、杂音）：
+            // 不是故障，静默跳过，不刷“转写失败”，也不占一个 pair。
+            return nil
         } catch {
             logger.logError("自建翻译：转写失败：\(error.localizedDescription)")
             status = "转写失败：\(error.localizedDescription)"
-            return
+            return nil
         }
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty else { return nil }
         let index = pairs.count
         pairs.append(Pair(original: text))
+        return index
+    }
+
+    /// Translation stage: fills one pair's translation in spoken order.
+    private func translatePair(_ index: Int) async {
+        guard index < pairs.count else { return }
+        let text = pairs[index].original
         do {
             let preset = Self.translationPreset(from: sourceLanguage, to: targetLanguage)
             let (translated, _) = try await aiService.generateVariation(text: text, preset: preset)

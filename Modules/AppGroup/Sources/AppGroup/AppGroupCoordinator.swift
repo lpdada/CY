@@ -298,12 +298,29 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     /// 扩展进程：把状态快照拉回本地缓存（录音状态/电平/会话）。
     /// 在依赖这些值的通知 handler 之前调用，保证随后走的原有读取逻辑命中新值。
-    private func pullBridgeStateIntoCache() async {
+    /// 返回值说明缓存是否可信：非桥模式或主 App 进程里直接返回 true；
+    /// 桥模式下拉取失败时返回 false——调用方不能把旧缓存当新值读，
+    /// 否则一次失败的拉取会让键盘整场录音都停留在普通界面（主 App
+    /// 后台明明在录音），而录音状态通知整场只发一次，不会再纠正。
+    @discardableResult
+    private func pullBridgeStateIntoCache() async -> Bool {
         guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
-              let defaults = sharedDefaults else { return }
+              let defaults = sharedDefaults else { return true }
         if let snapshot = await BridgeStateClient.pullState() {
             BridgeStateClient.applySnapshot(snapshot, to: defaults)
+            return true
         }
+        return false
+    }
+
+    /// 键盘侧最近一次递交给 UI 的录音态。电平 tick 对账时用它判断
+    /// 缓存里的录音态是否变了，避免每次电平更新都重复递交。
+    private var lastDeliveredRecordingState: Bool?
+
+    private func deliverRecordingState() {
+        let recording = isRecording
+        lastDeliveredRecordingState = recording
+        onRecordingStateChanged?(recording)
     }
 
     /// 主 App 进程：把键盘经剪贴板送来的载荷落地到本地存储。
@@ -1599,14 +1616,28 @@ public final class AppGroupCoordinator: @unchecked Sendable {
             await pullBridgeStateIntoCache()
             let level = currentAudioLevel
             onAudioLevelUpdated?(level)
+            // 对账：录音进行中电平一直在流。即使录音状态通知那次拉取
+            // 失败导致键盘 UI 没翻到录音态，这里也能在下一次电平 tick
+            // 把它纠回来，而不是整场都停留在普通键盘界面。
+            if isRecording != lastDeliveredRecordingState {
+                deliverRecordingState()
+            }
         }
     }
 
     private func handleRecordingStateChangedNotification() {
         Task { @MainActor in
-            await pullBridgeStateIntoCache()
-            let recording = isRecording
-            onRecordingStateChanged?(recording)
+            let pulled = await pullBridgeStateIntoCache()
+            deliverRecordingState()
+            if !pulled {
+                // 拉取失败时缓存还是旧值，上面递交的可能是错的；而且
+                // 录音状态通知整场只发一次，不补一次就永远错下去。
+                // 1 秒后重拉一次并重新递交，覆盖掉这次错误递交。
+                try? await Task.sleep(for: .seconds(1))
+                if await pullBridgeStateIntoCache() {
+                    deliverRecordingState()
+                }
+            }
         }
     }
 

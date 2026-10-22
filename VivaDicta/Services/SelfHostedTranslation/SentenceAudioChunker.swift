@@ -20,7 +20,7 @@ final class SentenceAudioChunker {
     var speechThreshold: Float = 0.02
     var silenceDuration: TimeInterval = 0.9
     var minSpeechDuration: TimeInterval = 0.3
-    var maxChunkDuration: TimeInterval = 30
+    var maxChunkDuration: TimeInterval = 15
 
     private var samples: [Int16] = []
     private var trailingSilenceSamples = 0
