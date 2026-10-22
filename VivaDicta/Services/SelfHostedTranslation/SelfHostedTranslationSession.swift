@@ -3,6 +3,7 @@ import CloudTranscription
 import Foundation
 import os
 import Presets
+import TranscriptionCore
 
 /// One self-hosted sentence-translation session: mic -> silence chunking
 /// -> self-hosted ASR -> AI translation -> bilingual list, with optional
