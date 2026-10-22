@@ -277,3 +277,21 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   自建钥匙串；模式编辑页未配置链上加自建分支，点“配置自建服务
   器”进自建配置页（地址 + key）；未配置提示文案改中文。
 - 未动：转写通道、模型目录、钥匙串与地址存储均不动。
+
+## fork19（2026-10-22）：自建服务器模型目录加 3 个
+
+- 新增：Paraformer 中文、FireRedASR2、Whisper Turbo 三个自建
+  模型条目（CloudModel，provider 自建），名字与服务器 /health
+  一致：paraformer-zh、fire-red-asr2-ctc、whisper-turbo，发送时
+  原样作 model 字段；地址、key、钥匙串走 fork17 的自建一路，
+  不用每个模型单独配。
+- 服务器侧已先行：Hermes 部署完成并公网实测（10 秒中文 2 线
+  程热/冷：paraformer 0.51/1.99 秒最快无标点、fire-red
+  3.67/5.50 秒、whisper-turbo 9.72/11.67 秒约 1 倍实时）。
+- 注意包身份陷阱（说明文档曾写错，Hermes 实测纠正）：
+  SenseVoice 2025-09-09 int8 是粤语微调、Paraformer
+  2025-10-07 int8 是川渝方言微调，均不上；本版 sensevoice
+  仍用 2024-07-17 包，paraformer 用通用包 2023-03-28。
+  粤语包用户明确不要，不开 sensevoice-yue。
+- 未动：转写通道、钥匙串、地址存储、fork18 的模式编辑修复
+  均不动；本地 Whisper / Parakeet 路径不动。

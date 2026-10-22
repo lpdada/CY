@@ -829,6 +829,42 @@ enum TranscriptionModelProvider: String, Sendable, Codable, CaseIterable, Identi
                 supportedLanguages: allLanguages
             ),
 
+            CloudModel(
+                name: "paraformer-zh",
+                displayName: "Paraformer 中文（自建）",
+                description: "自建服务器上的 Paraformer 中文，中文准确率高、中英混说好，速度最快，手机不下载模型，走云端转写（注：无标点）",
+                provider: .selfHosted,
+                speed: 0.95,
+                accuracy: 0.9,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "fire-red-asr2-ctc",
+                displayName: "FireRedASR2（自建）",
+                description: "自建服务器上的 FireRedASR2 CTC，中文强，手机不下载模型，走云端转写",
+                provider: .selfHosted,
+                speed: 0.75,
+                accuracy: 0.88,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
+            CloudModel(
+                name: "whisper-turbo",
+                displayName: "Whisper Turbo（自建）",
+                description: "自建服务器上的 Whisper large-v3-turbo，多语可用，手机不下载模型，走云端转写（云端版约 1 倍实时，比本地版慢）",
+                provider: .selfHosted,
+                speed: 0.6,
+                accuracy: 0.87,
+                cost: 0.05,  // 自建服务器，无按量费用
+                supportManyLanguages: true,
+                supportedLanguages: allLanguages
+            ),
+
         ]
     }
     
