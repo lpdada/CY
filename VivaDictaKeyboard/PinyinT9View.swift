@@ -4,11 +4,15 @@
 //
 //  汉语拼音九宫格（T9）输入视图，畅言 iOS 的 T9 引擎与字库移植。
 //
-//  布局（2026-10-21 v6 样板定稿）：4 列键阵，玻璃质感键面（浅顶深底
-//  渐变 + 顶部高光 + 圆角），右列为功能键（删除、符号、双行高发送键，
-//  发送键紫→青渐变 + 发光），底行左为“英文”键（点按切回英文键盘）、
-//  中间为全圆角胶囊空格。顶部候选栏只在输入时显示数字串，不再放
-//  静态“拼音”二字；回车键已并入双行发送键，不再单占候选栏位置。
+//  布局（2026-10-22 置换版）：候选区永久置顶在最上面（两行：上行数字串
+//  与同码音节、下行候选字与换页），空闲时两行空白占位、高度与打字时
+//  一致，键盘总高度全程不变；工具条（✨/模式药丸/话筒）移到候选区与
+//  按键之间、紧贴按键。4 列键阵，玻璃质感键面（浅顶深底渐变 + 顶部
+//  高光 + 圆角），右列为功能键（删除、符号、双行高发送键，发送键
+//  紫→青渐变 + 发光），底行左为“英文”键（点按切回英文键盘）、中间
+//  为全圆角胶囊空格；回车键已并入双行发送键，不再单占候选栏位置。
+//  左上 123 键切数字页（1–9、0 直接输数字本身，点 ABC 回字母页），
+//  与符号页同机制；标点统一收进 ^^ 符号页。
 //
 //  输入逻辑（真输入法三件套）：数字串全部切分后查 3 万词词库，词候选
 //  按词频排在单字候选前面（如 64426 → 你好），点词一次上屏并清空；
@@ -16,22 +20,38 @@
 //  下一音节的输入）。首选候选同步为文档里的 marked text（组字串），
 //  宿主像真输入法一样显示正在组字的词。候选按每页 6 个分页，点“换页”
 //  翻页（末页点“首页”回第一页）。^^ 键切符号页（9 个常用标点，删除
-//  键两页都在，再点 ABC 回字母页）。候选栏空闲时收起，不在工具条与
-//  按键间留大空隙。
+//  键两页都在，再点 ABC 回字母页）。候选区永久置顶、高度全程不变，
+//  空闲时两行空白占位。
 //
 
 import SwiftUI
 import UIKit
 
-struct PinyinT9View: View {
+struct PinyinT9View<Toolbar: View>: View {
     let proxy: UITextDocumentProxy
     /// 切回 KeyboardKit 键盘（英文等语言布局）
     let onSwitchToAlphabet: () -> Void
+    /// 工具条（✨/模式药丸/话筒）：由调用方传入，放在候选区与按键之间、紧贴按键。
+    /// 候选区置顶后工具条不再是九宫格视图的上方，而是中间段。
+    let toolbar: Toolbar
+
+    init(
+        proxy: UITextDocumentProxy,
+        onSwitchToAlphabet: @escaping () -> Void,
+        @ViewBuilder toolbar: () -> Toolbar
+    ) {
+        self.proxy = proxy
+        self.onSwitchToAlphabet = onSwitchToAlphabet
+        self.toolbar = toolbar()
+    }
 
     @State private var digits: String = ""
     @State private var selectedSyllable: String?
     @State private var candidatePage: Int = 0
     @State private var symbolMode: Bool = false
+    /// 数字键盘模式：与符号页同机制，键阵换成 1–9、0，直接输数字本身
+    /// （九宫格字母键按下去是拼拼音，不是数字）。与 symbolMode 互斥。
+    @State private var numberMode: Bool = false
 
     // MARK: - 尺寸（v6 样板按 3x 换算为 pt：键 264x168px → 88x56pt，倒角 30px → 10pt）
 
@@ -88,85 +108,102 @@ struct PinyinT9View: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
-            // 空闲时收起候选栏，不在工具条与按键间留大空隙
-            if !digits.isEmpty {
-                candidateBar
-            }
+        VStack(spacing: 0) {
+            // 候选区永久置顶：空闲时两行空白占位，高度与打字时一致，
+            // 键盘总高度全程不变，首按键不再跳。
+            candidateArea
+                .padding(.horizontal, 6)
+                .padding(.top, 4)
+                .padding(.bottom, 4)
+            toolbar
             keyGrid
+                .padding(.horizontal, 6)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
         }
-        .padding(.horizontal, 6)
-        .padding(.top, 4)
-        .padding(.bottom, 6)
         // 切回拼音页时若数字串还在，把组字串重新同步给宿主
         .onAppear { syncMarkedText() }
     }
 
-    // MARK: - 候选栏（输入时显示数字串 + 同码音节 + 当页候选字 + 换页）
+    // MARK: - 候选区（永久置顶，两行：上行数字串 + 同码音节，下行候选字 + 换页）
 
-    private var candidateBar: some View {
-        HStack(spacing: 6) {
-            if !digits.isEmpty {
-                Text(digits)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 40, alignment: .leading)
-                    .lineLimit(1)
-            }
-
-            // 同编码的其他音节：点按切换
-            ForEach(syllables.dropFirst(), id: \.self) { syllable in
-                Button {
-                    selectedSyllable = syllable
-                    candidatePage = 0
-                    syncMarkedText()
-                    HapticManager.selectionChanged()
-                } label: {
-                    Text(syllable)
-                        .font(.system(size: 13))
+    /// 候选区永远在最上面、永远占据同样高度：空闲时两行空白占位，
+    /// 打字时上行放数字串与同码音节、下行放候选字与换页。
+    /// 两行分开后候选字一行不再与数字串、音节挤在同一行，
+    /// 之前截断成 …、互相重叠的问题也随之缓解。
+    private var candidateArea: some View {
+        VStack(spacing: 4) {
+            // 上行：数字串 + 同编码的其他音节（点按切换）
+            HStack(spacing: 6) {
+                if !digits.isEmpty {
+                    Text(digits)
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.plain)
-            }
+                        .frame(width: 40, alignment: .leading)
+                        .lineLimit(1)
 
-            // 当页候选：全局首选高亮（多段时首位是整词）
-            ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
-                let globalIndex = candidatePage * candidatePageSize + offset
-                Button {
-                    commitDisplay(char)
-                } label: {
-                    Text(char)
-                        .font(.system(size: 18))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(
-                            globalIndex == 0 && !digits.isEmpty
-                                ? Color.primary
-                                : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 13)
-                        )
-                        .foregroundStyle(globalIndex == 0 && !digits.isEmpty ? Color(uiColor: .systemBackground) : .primary)
+                    ForEach(syllables.dropFirst(), id: \.self) { syllable in
+                        Button {
+                            selectedSyllable = syllable
+                            candidatePage = 0
+                            syncMarkedText()
+                            HapticManager.selectionChanged()
+                        } label: {
+                            Text(syllable)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
+            .frame(height: 28)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // 换页：多页时出现，末页点“首页”回到第一页
-            if pageCount > 1 {
-                Button {
-                    nextPage()
-                } label: {
-                    Text(candidatePage >= pageCount - 1 ? "首页" : "换页")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
+            // 下行：当页候选（全局首选高亮，多段时首位是整词）+ 换页
+            HStack(spacing: 6) {
+                if !digits.isEmpty {
+                    ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
+                        let globalIndex = candidatePage * candidatePageSize + offset
+                        Button {
+                            commitDisplay(char)
+                        } label: {
+                            Text(char)
+                                .font(.system(size: 18))
+                                .lineLimit(1)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(
+                                    globalIndex == 0
+                                        ? Color.primary
+                                        : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 13)
+                                )
+                                .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // 换页：多页时出现，末页点“首页”回到第一页
+                    if pageCount > 1 {
+                        Button {
+                            nextPage()
+                        } label: {
+                            Text(candidatePage >= pageCount - 1 ? "首页" : "换页")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
+            .frame(height: 38)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 38)
         .onChange(of: digits) { _, _ in candidatePage = 0 }
         .onChange(of: selectedSyllable) { _, _ in candidatePage = 0 }
     }
@@ -180,20 +217,30 @@ struct PinyinT9View: View {
             let col4 = col
             VStack(spacing: rowGap) {
                 HStack(spacing: keyGap) {
-                    if symbolMode {
+                    if numberMode {
+                        numberKey("1", width: col)
+                        numberKey("2", width: col)
+                        numberKey("3", width: col)
+                        deleteKey(width: col4)
+                    } else if symbolMode {
                         symbolKey("，", width: col)
                         symbolKey("。", width: col)
                         symbolKey("？", width: col)
                         deleteKey(width: col4)
                     } else {
-                        punctKey(width: col)
+                        numberModeKey(width: col)
                         lettersKey("ABC", digit: "2", width: col)
                         lettersKey("DEF", digit: "3", width: col)
                         deleteKey(width: col4)
                     }
                 }
                 HStack(spacing: keyGap) {
-                    if symbolMode {
+                    if numberMode {
+                        numberKey("4", width: col)
+                        numberKey("5", width: col)
+                        numberKey("6", width: col)
+                        backToLettersKey(width: col4)
+                    } else if symbolMode {
                         symbolKey("、", width: col)
                         symbolKey("；", width: col)
                         symbolKey("：", width: col)
@@ -208,7 +255,11 @@ struct PinyinT9View: View {
                 HStack(spacing: keyGap) {
                     VStack(spacing: rowGap) {
                         HStack(spacing: keyGap) {
-                            if symbolMode {
+                            if numberMode {
+                                numberKey("7", width: col)
+                                numberKey("8", width: col)
+                                numberKey("9", width: col)
+                            } else if symbolMode {
                                 symbolKey("（", width: col)
                                 symbolKey("）", width: col)
                                 symbolKey("！", width: col)
@@ -219,8 +270,15 @@ struct PinyinT9View: View {
                             }
                         }
                         HStack(spacing: keyGap) {
-                            englishKey(width: col)
-                            spaceKey(width: col * 2 + keyGap)
+                            if numberMode {
+                                // 数字页底行：0 + 空格（电话号码分段用）；
+                                // 回字母页走第二行末尾的 ABC，英文键在字母页。
+                                numberKey("0", width: col)
+                                spaceKey(width: col * 2 + keyGap)
+                            } else {
+                                englishKey(width: col)
+                                spaceKey(width: col * 2 + keyGap)
+                            }
                         }
                     }
                     .frame(width: col * 3 + 2 * keyGap)
@@ -301,15 +359,34 @@ struct PinyinT9View: View {
         }
     }
 
-    private func punctKey(width: CGFloat) -> some View {
+    /// 数字键盘入口（左上）：先把未完成的组字上屏，再切数字页。
+    /// 原来的 ，。？! 键只输 ，、键面却印四个符号，且 ，。？ 在符号页
+    /// 里已有，两处标点重合，故换成九宫格缺失的直接输数字入口。
+    private func numberModeKey(width: CGFloat) -> some View {
         keyButton(width: width, height: keyHeight, cornerRadius: keyRadius, face: .glass) {
             commitFirstIfNeeded()
-            proxy.insertText("，")
+            numberMode = true
+            symbolMode = false
+            HapticManager.selectionChanged()
+        } label: {
+            Text("123")
+                .font(.system(size: 14))
+                .foregroundStyle(.white)
+                .tracking(1)
+        }
+    }
+
+    /// 数字页的数字键：直接上屏数字本身（字母页按 2–9 是在拼拼音）。
+    private func numberKey(_ digit: String, width: CGFloat) -> some View {
+        keyButton(width: width, height: keyHeight, cornerRadius: keyRadius, face: .glass) {
+            commitFirstIfNeeded()
+            proxy.insertText(digit)
             HapticManager.lightImpact()
         } label: {
-            Text("，。？!")
-                .font(.system(size: 12))
+            Text(digit)
+                .font(.system(size: 14))
                 .foregroundStyle(.white)
+                .tracking(1)
         }
     }
 
@@ -317,6 +394,7 @@ struct PinyinT9View: View {
         keyButton(width: width, height: keyHeight, cornerRadius: keyRadius, face: .glass) {
             commitFirstIfNeeded()
             symbolMode = true
+            numberMode = false
             HapticManager.selectionChanged()
         } label: {
             VStack(spacing: 0) {
@@ -332,6 +410,7 @@ struct PinyinT9View: View {
     private func backToLettersKey(width: CGFloat) -> some View {
         keyButton(width: width, height: keyHeight, cornerRadius: keyRadius, face: .glass) {
             symbolMode = false
+            numberMode = false
             HapticManager.selectionChanged()
         } label: {
             Text("ABC")
@@ -438,8 +517,8 @@ struct PinyinT9View: View {
         HapticManager.lightImpact()
         digits = String(digits.dropFirst(min(code.count, digits.count)))
         selectedSyllable = nil
-        // 页码必须显式复位：候选栏空闲时收起，栏消失那次变化里
-        // onChange 未必触发，只靠它会在下次输入时停在旧页。
+        // 页码显式复位（候选区现为永久保留，onChange 也会复位，
+        // 这里再保一层，避免上屏后停在旧页）。
         candidatePage = 0
         syncMarkedText()
     }

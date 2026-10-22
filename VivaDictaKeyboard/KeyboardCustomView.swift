@@ -212,8 +212,12 @@ struct KeyboardCustomView: View {
 
                     case .notReady, .ready:
                         if dictationState.isPinyinMode {
-                            // 拼音九宫格模式：共用同一条工具栏，下方换成 T9 输入面
-                            VStack(spacing: 0) {
+                            // 拼音九宫格模式：候选区永久置顶（两行），工具条
+                            // 作为中间段传进九宫格视图、紧贴按键（2026-10-22 置换版）。
+                            PinyinT9View(
+                                proxy: controller.textDocumentProxy,
+                                onSwitchToAlphabet: { dictationState.isPinyinMode = false }
+                            ) {
                                 VivaDictaKeyboardToolbarView(
                                     controller: keyboardVC,
                                     hasFullAccess: hasFullAccess,
@@ -224,10 +228,6 @@ struct KeyboardCustomView: View {
                                     }
                                 )
                                 .environment(dictationState)
-                                PinyinT9View(
-                                    proxy: controller.textDocumentProxy,
-                                    onSwitchToAlphabet: { dictationState.isPinyinMode = false }
-                                )
                             }
                         } else {
                         // Show normal keyboard for idle and ready states
