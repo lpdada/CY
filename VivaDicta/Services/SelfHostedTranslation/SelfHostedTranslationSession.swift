@@ -65,6 +65,9 @@ final class SelfHostedTranslationSession {
     var targetLanguage: Language = .japanese
     var asrModelName = "sensevoice"
     var ttsEnabled = true
+    var summary: String?
+    var isSummarizing = false
+    private(set) var startedAt: Date?
 
     var hasSelfHostedKey: Bool {
         guard let key = SelfHostedTranscriptionConfig.apiKey else { return false }
@@ -72,6 +75,7 @@ final class SelfHostedTranslationSession {
     }
 
     private let aiService: AIService
+    private let store = TranslationSessionStore()
     private let logger = Logger(category: .selfHostedTranslation)
     private let synthesizer = AVSpeechSynthesizer()
     private var capture: StreamingAudioCapture?
@@ -90,6 +94,8 @@ final class SelfHostedTranslationSession {
             return
         }
         pairs = []
+        summary = nil
+        startedAt = Date()
         status = "正在聆听…"
         isRunning = true
 
@@ -142,7 +148,41 @@ final class SelfHostedTranslationSession {
             try? FileManager.default.removeItem(at: url)
         }
         sessionWAVURL = nil
-        status = "已停止"
+        if let record = makeRecord(), !record.pairs.isEmpty {
+            status = store.save(record) ? "已停止，记录已保存" : "已停止，记录保存失败"
+        } else {
+            status = "已停止"
+        }
+    }
+
+    /// The current session as a savable record, or nil before start.
+    func makeRecord() -> TranslationSessionRecord? {
+        guard let startedAt else { return nil }
+        let pairRecords = pairs
+            .filter { !$0.original.isEmpty }
+            .map { TranslationPairRecord(original: $0.original, translation: $0.translation) }
+        return TranslationSessionRecord(
+            startedAt: startedAt,
+            sourceLanguage: sourceLanguage.rawValue,
+            targetLanguage: targetLanguage.rawValue,
+            asrModelName: asrModelName,
+            pairs: pairRecords,
+            summary: summary
+        )
+    }
+
+    /// One-tap AI summary: key points, a short summary, and fixes for
+    /// obvious transcription or translation mistakes in the record.
+    func summarize() async {
+        guard !isSummarizing, !pairs.isEmpty, let record = makeRecord() else { return }
+        isSummarizing = true
+        defer { isSummarizing = false }
+        do {
+            summary = try await TranslationSummarizer.summarize(record: record, aiService: aiService)
+        } catch {
+            logger.logError("自建翻译：总结失败：\(error.localizedDescription)")
+            status = "总结失败：\(error.localizedDescription)"
+        }
     }
 
     private func process(_ url: URL) async {

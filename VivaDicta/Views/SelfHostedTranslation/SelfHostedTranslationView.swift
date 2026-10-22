@@ -2,7 +2,9 @@ import SwiftUI
 
 /// Self-hosted sentence translation: mic -> silence chunking -> the
 /// user's own ASR server -> AI translation -> bilingual list, with
-/// optional TTS readout. Session-only: pairs are not saved anywhere.
+/// optional TTS readout. Stopped sessions auto-save to
+/// Documents/TranslationSessions; open 历史 for past records, export,
+/// share, or one-tap AI summary.
 struct SelfHostedTranslationView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -21,6 +23,7 @@ struct SelfHostedTranslationView: View {
                 if let session {
                     SelfHostedTranslationContentView(
                         session: session,
+                        aiService: appState.aiService,
                         selfHostedModels: selfHostedModels,
                         hasSelfHostedKey: hasSelfHostedKey,
                         onConfigureKey: { showingConfig = true }
@@ -54,9 +57,14 @@ struct SelfHostedTranslationView: View {
 
 private struct SelfHostedTranslationContentView: View {
     @Bindable var session: SelfHostedTranslationSession
+    let aiService: AIService
     let selfHostedModels: [CloudModel]
     let hasSelfHostedKey: Bool
     let onConfigureKey: () -> Void
+
+    @State private var showingHistory = false
+    @State private var isSharing = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         VStack(spacing: 16) {
@@ -66,10 +74,33 @@ private struct SelfHostedTranslationContentView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            if session.isSummarizing {
+                HStack(spacing: 6) {
+                    ProgressView()
+                    Text("总结中…")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let summary = session.summary {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("总结")
+                        .font(.headline)
+                    Text(summary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             pairsList
             startStopButton
+            actionRow
         }
         .padding()
+        .sheet(isPresented: $showingHistory) {
+            TranslationHistoryView(aiService: aiService)
+        }
+        .sheet(isPresented: $isSharing) {
+            ActivityView(activityItems: shareItems)
+        }
     }
 
     private var controls: some View {
@@ -165,6 +196,37 @@ private struct SelfHostedTranslationContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
+        }
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: 12) {
+            Button("总结") {
+                Task { await session.summarize() }
+            }
+            .buttonStyle(.bordered)
+            .disabled(session.pairs.isEmpty || session.isRunning || session.isSummarizing)
+            Menu("分享") {
+                Button("导出 TXT") { share(format: .txt) }
+                Button("导出 PDF") { share(format: .pdf) }
+            }
+            .buttonStyle(.bordered)
+            .disabled(session.pairs.isEmpty || session.isRunning)
+            Button("历史") {
+                showingHistory = true
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func share(format: TranslationSessionExporter.Format) {
+        guard let record = session.makeRecord() else { return }
+        do {
+            let url = try TranslationSessionExporter.fileURL(for: record, format: format)
+            shareItems = [url]
+            isSharing = true
+        } catch {
+            session.status = "导出失败：\(error.localizedDescription)"
         }
     }
 }
