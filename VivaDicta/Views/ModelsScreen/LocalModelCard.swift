@@ -8,6 +8,7 @@
 import SwiftUI
 import DesignSystem
 import TipKit
+import UniformTypeIdentifiers
 import os
 
 struct LocalModelCard: View {
@@ -17,6 +18,10 @@ struct LocalModelCard: View {
     @State private var selectedTab: TranscriptionModelType = .local
     @State private var showDownloadAlert = false
     @State private var showDeleteAlert = false
+    @State private var showImportPicker = false
+    @State private var isImporting = false
+    @State private var showImportErrorAlert = false
+    @State private var importErrorMessage = ""
 
     private let logger = Logger(category: .modelDownloadManager)
 
@@ -141,6 +146,19 @@ struct LocalModelCard: View {
                             .background(Color(.systemGray6), in: .capsule)
                     }
                     
+                    if isWhisperKit && downloadStatus == .download {
+                        Button {
+                            HapticManager.lightImpact()
+                            showImportPicker = true
+                        } label: {
+                            Label(isImporting ? "导入中…" : "导入", systemImage: "folder.badge.plus")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isImporting)
+                    }
+
                     Button {
                         switch downloadStatus {
                         case .download:
@@ -235,6 +253,27 @@ struct LocalModelCard: View {
         } message: {
             Text("确定要删除 \(model.displayName) 吗？之后可以重新下载。")
         }
+        .fileImporter(
+            isPresented: $showImportPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            Task { @MainActor in
+                switch result {
+                case .success(let urls):
+                    guard let folderURL = urls.first else { return }
+                    await importPickedFolder(folderURL)
+                case .failure(let error):
+                    importErrorMessage = error.localizedDescription
+                    showImportErrorAlert = true
+                }
+            }
+        }
+        .alert("导入失败", isPresented: $showImportErrorAlert) {
+            Button("好", role: .cancel) { }
+        } message: {
+            Text(importErrorMessage)
+        }
     }
 
     private func downloadLocalModel() {
@@ -278,6 +317,23 @@ struct LocalModelCard: View {
             } catch {
                 logger.logError("Failed to delete model: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func importPickedFolder(_ folderURL: URL) async {
+        guard let whisperModel = model as? WhisperKitModel else { return }
+        isImporting = true
+        defer { isImporting = false }
+        do {
+            try await downloadManager.importWhisperKitModel(whisperModel, from: folderURL)
+            HapticManager.heavyImpact()
+
+            // Hide "Select Transcription model" tips
+            await SelectTranscriptionModelTipMainView.selectModelEvent.donate()
+            await SelectTranscriptionModelTipSettingsView.selectModelEvent.donate()
+        } catch {
+            importErrorMessage = (error as? ModelDownloadError)?.failureReason ?? error.localizedDescription
+            showImportErrorAlert = true
         }
     }
 }

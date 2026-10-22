@@ -227,3 +227,17 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   数字页（与符号页同机制，互斥）：1–9、0 直接上屏数字本身，底行
   0 + 空格，第二行末尾 ABC 回字母页；进数字页前先把未完成组字上
   屏。标点统一收进 ^^ 符号页；快速 ，从一键变两键（^^ 再点 ，）。
+
+## fork16（2026-10-22）：Whisper 模型导入按钮
+
+- 模型卡片新增“导入”按钮（仅 Whisper、仅未下载状态）：点开系统文件
+  选择器选模型文件夹，App 把它拷进 Documents 下 WhisperKit 期望的
+  模型目录，拷完卡片直接变“已下载”，不再走网络下载。解决国内
+  直连 HuggingFace 下不了模型的问题：电脑下好模型文件夹，经
+  AirDrop / 网盘 / 微信（zip + 解压）弄到手机 Files 里，再点导入。
+- 实现：ModelDownloadManager 新增 importWhisperKitModel（后台拷贝约
+  600MB 不卡界面，空文件夹报错，已有目录先删后拷）；LocalModelCard
+  加导入按钮、文件夹选择器与失败提示；ModelDownloadError 新增
+  importFailed。导入只管放文件，不跑预热，第一次转写时预热。
+- 未动：Parakeet 不加导入；下载、删除、预热逻辑不动；不改 Bundle ID
+  与 App Group 等。

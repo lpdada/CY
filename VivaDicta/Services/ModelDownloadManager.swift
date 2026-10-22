@@ -204,6 +204,54 @@ class ModelDownloadManager {
         }
     }
 
+    // MARK: - WhisperKit Model Import
+
+    /// Imports a WhisperKit model folder picked by the user (e.g. from the
+    /// Files app) into the model's expected directory, so the app treats it
+    /// as downloaded without going through the network download.
+    ///
+    /// The picked folder must contain the model files (e.g. the
+    /// `openai_whisper-large-v3-turbo_632MB` folder downloaded from
+    /// `argmaxinc/whisperkit-coreml`). If a folder already exists at the
+    /// destination it is replaced.
+    ///
+    /// - Parameters:
+    ///   - model: The WhisperKit model the folder belongs to.
+    ///   - folderURL: The user-picked folder URL (security-scoped).
+    /// - Throws: ``ModelDownloadError`` if the folder is empty or the copy fails.
+    public func importWhisperKitModel(_ model: WhisperKitModel, from folderURL: URL) async throws {
+        let destination = WhisperKitModelPath.directory(forModelName: model.whisperKitModelName)
+
+        let didAccess = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        // Copy off the main actor: a model folder can be ~600MB.
+        try await Task.detached {
+            let fileManager = FileManager.default
+            let contents = try fileManager.contentsOfDirectory(atPath: folderURL.path)
+            guard !contents.isEmpty else {
+                throw ModelDownloadError.importFailed("所选文件夹为空")
+            }
+            if fileManager.fileExists(atPath: destination.path) {
+                try fileManager.removeItem(at: destination)
+            }
+            try fileManager.createDirectory(
+                at: destination.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try fileManager.copyItem(at: folderURL, to: destination)
+        }.value
+
+        downloadStatuses[model.name] = .downloaded
+        downloadProgress.removeValue(forKey: model.name)
+        logger.logNotice("✅ Imported \(model.displayName) from user-picked folder")
+        onModelDownloaded?(model)
+    }
+
     // MARK: - Parakeet Model Download
 
     private func downloadParakeetModel(_ model: ParakeetModel) async throws {
@@ -409,11 +457,12 @@ class ModelDownloadManager {
 }
 
 /// Errors that can occur during model download operations.
-enum ModelDownloadError: LocalizedError {
+enum ModelDownloadError: LocalizedError, Sendable {
     case invalidURL
     case unzipFailed
     case downloadFailed(String)
     case unsupportedModelType
+    case importFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -425,6 +474,8 @@ enum ModelDownloadError: LocalizedError {
             return "Download failed"
         case .unsupportedModelType:
             return "不支持的模型类型"
+        case .importFailed:
+            return "导入失败"
         }
     }
 
@@ -438,6 +489,8 @@ enum ModelDownloadError: LocalizedError {
             return "Failed to download the model: \(message). Please check your internet connection and try again."
         case .unsupportedModelType:
             return "This model type is not supported for download."
+        case .importFailed(let message):
+            return "导入模型失败：\(message)，请重新选择模型文件夹。"
         }
     }
 }
