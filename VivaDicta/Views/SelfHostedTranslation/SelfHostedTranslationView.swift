@@ -95,6 +95,9 @@ private struct SelfHostedTranslationContentView: View {
             actionRow
         }
         .padding()
+        .task {
+            await session.refreshServerVoices()
+        }
         .sheet(isPresented: $showingHistory) {
             TranslationHistoryView(aiService: aiService)
         }
@@ -132,6 +135,21 @@ private struct SelfHostedTranslationContentView: View {
             .disabled(session.isRunning)
 
             Toggle("朗读译文", isOn: $session.ttsEnabled)
+
+            if session.ttsEnabled {
+                Picker("朗读声音", selection: $session.ttsVoiceID) {
+                    Text("系统默认").tag(nil as String?)
+                    ForEach(session.serverVoices.filter { $0.language == session.targetLanguage.rawValue }) { voice in
+                        Text(voice.displayName).tag(voice.id as String?)
+                    }
+                }
+                .pickerStyle(.menu)
+                if let error = session.serverVoicesError {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if session.sourceLanguage == session.targetLanguage {
                 Text("源语言与目标语言相同，翻译结果与原文一致")

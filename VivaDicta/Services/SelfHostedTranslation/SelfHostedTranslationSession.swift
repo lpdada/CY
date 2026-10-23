@@ -68,9 +68,27 @@ final class SelfHostedTranslationSession {
     var pairs: [Pair] = []
     var status = ""
     var sourceLanguage: Language = .chinese
-    var targetLanguage: Language = .japanese
+    var targetLanguage: Language = .japanese {
+        didSet {
+            ttsVoiceID = ServerTTSVoiceSelection.voiceID(forLanguageCode: targetLanguage.rawValue)
+        }
+    }
     var asrModelName = "sensevoice"
     var ttsEnabled = true
+    /// Server voices offered by GET /v1/voices (empty until fetched, or
+    /// when the server is unreachable: the picker then shows only the
+    /// system default and readout keeps working).
+    var serverVoices: [ServerTTSVoice] = []
+    /// Non-nil when the last voice-list fetch failed; shown as a footnote
+    /// under the voice picker. Never blocks readout.
+    var serverVoicesError: String?
+    /// The server voice id chosen for the current target language, or nil
+    /// for the system default voice. Persisted per language.
+    var ttsVoiceID: String? {
+        didSet {
+            ServerTTSVoiceSelection.setVoiceID(ttsVoiceID, forLanguageCode: targetLanguage.rawValue)
+        }
+    }
     var summary: String?
     var isSummarizing = false
     private(set) var startedAt: Date?
@@ -84,6 +102,11 @@ final class SelfHostedTranslationSession {
     private let store = TranslationSessionStore()
     private let logger = Logger(category: .selfHostedTranslation)
     private let synthesizer = AVSpeechSynthesizer()
+    /// Server-voice playback queue: sentences play in order, never
+    /// overlapping, mirroring AVSpeechSynthesizer's own queueing.
+    private let serverPlayer = AVQueuePlayer()
+    private var ttsTempFiles: [URL] = []
+    private var isServerAudioPlaying: Bool { serverPlayer.timeControlStatus == .playing }
     private var capture: StreamingAudioCapture?
     private var chunkerTask: Task<Void, Never>?
     private var asrTask: Task<Void, Never>?
@@ -92,6 +115,23 @@ final class SelfHostedTranslationSession {
 
     init(aiService: AIService) {
         self.aiService = aiService
+        ttsVoiceID = ServerTTSVoiceSelection.voiceID(forLanguageCode: targetLanguage.rawValue)
+    }
+
+    /// Fetches the server voice list for the picker. Never throws to the
+    /// UI: on failure the picker just shows the system default.
+    func refreshServerVoices() async {
+        guard let apiKey = SelfHostedTranscriptionConfig.apiKey, !apiKey.isEmpty else { return }
+        let client = ServerTTSClient(baseURL: SelfHostedTranscriptionConfig.serverURL, apiKey: apiKey)
+        do {
+            serverVoices = try await client.fetchVoices()
+            serverVoicesError = nil
+        } catch is CancellationError {
+            // View dismissed mid-fetch: not a failure.
+        } catch {
+            logger.logError("自建翻译：服务器声音列表加载失败：\(error.localizedDescription)")
+            serverVoicesError = "服务器声音加载失败"
+        }
     }
 
     func start() async {
@@ -128,7 +168,7 @@ final class SelfHostedTranslationSession {
                 // 朗读译文时跳过拾音：否则喇叭里的译文会被话筒重新
                 // 收进来，再转录、再翻译、再朗读，形成“重复前面
                 // 说过的内容”的回路。朗读结束后的说话不受影响。
-                if synthesizer.isSpeaking {
+                if synthesizer.isSpeaking || isServerAudioPlaying {
                     continue
                 }
                 if let url = chunker.feed(pcm) {
@@ -168,6 +208,11 @@ final class SelfHostedTranslationSession {
         await translationTask?.value
         translationTask = nil
         synthesizer.stopSpeaking(at: .immediate)
+        serverPlayer.removeAllItems()
+        for url in ttsTempFiles {
+            try? FileManager.default.removeItem(at: url)
+        }
+        ttsTempFiles = []
         if let url = sessionWAVURL {
             try? FileManager.default.removeItem(at: url)
         }
@@ -261,10 +306,46 @@ final class SelfHostedTranslationSession {
     }
 
     private func speak(_ text: String) {
+        if let voiceID = ttsVoiceID {
+            Task { await speakViaServer(text, voiceID: voiceID) }
+        } else {
+            speakViaSystem(text)
+        }
+    }
+
+    private func speakViaSystem(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: targetLanguage.ttsCode)
         utterance.rate = 0.5
         synthesizer.speak(utterance)
+    }
+
+    /// Server-voice readout: one sentence at a time through the queue
+    /// player, so sentences never overlap. Any failure (server down,
+    /// bad voice, bad audio) falls back to the system voice for this
+    /// sentence instead of dropping it.
+    private func speakViaServer(_ text: String, voiceID: String) async {
+        guard let apiKey = SelfHostedTranscriptionConfig.apiKey, !apiKey.isEmpty else {
+            speakViaSystem(text)
+            return
+        }
+        let client = ServerTTSClient(baseURL: SelfHostedTranscriptionConfig.serverURL, apiKey: apiKey)
+        do {
+            let audio = try await client.synthesize(
+                text: text,
+                voiceID: voiceID,
+                languageCode: targetLanguage.rawValue
+            )
+            let url = FileManager.default.temporaryDirectory
+                .appending(path: "tts-\(UUID().uuidString).wav")
+            try audio.write(to: url)
+            ttsTempFiles.append(url)
+            serverPlayer.insert(AVPlayerItem(url: url), after: nil)
+            serverPlayer.play()
+        } catch {
+            logger.logError("自建翻译：服务器语音失败，回落系统语音：\(error.localizedDescription)")
+            speakViaSystem(text)
+        }
     }
 
     private static func translationPreset(from: Language, to: Language) -> Preset {
