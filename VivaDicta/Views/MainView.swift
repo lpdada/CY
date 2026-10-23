@@ -25,6 +25,7 @@ struct MainView: View {
     @State private var showingSettings = false
     @State private var showingLiveTranslation = false
     @State private var showingSelfHostedTranslation = false
+    @State private var showingMeetingNotes = false
     @State private var showingNotesFilter = false
     @State private var showingFileImport = false
     @State private var searchText = ""
@@ -271,6 +272,9 @@ struct MainView: View {
         }
         .fullScreenCover(isPresented: $showingSelfHostedTranslation) {
             SelfHostedTranslationView()
+        }
+        .fullScreenCover(isPresented: $showingMeetingNotes) {
+            MeetingNotesView()
         }
         .fullScreenCover(isPresented: $showMultiNoteChats) {
             MultiNoteChatsListView()
@@ -556,6 +560,16 @@ struct MainView: View {
                     Image(systemName: "translate")
                 }
                 .accessibilityLabel("自建翻译")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    HapticManager.lightImpact()
+                    showingMeetingNotes = true
+                } label: {
+                    Image(systemName: "list.clipboard")
+                }
+                .accessibilityLabel("会议记录")
             }
 
             if #available(iOS 26.0, *) {

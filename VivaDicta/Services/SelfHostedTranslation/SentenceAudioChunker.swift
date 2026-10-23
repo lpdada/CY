@@ -25,6 +25,14 @@ final class SentenceAudioChunker {
     private var samples: [Int16] = []
     private var trailingSilenceSamples = 0
     private var speechSamples = 0
+    private var speechEnergySum: Float = 0
+    private var speechBufferCount = 0
+
+    /// Mean RMS of the speech buffers in the most recently emitted
+    /// chunk. The meeting session reads this right after feed()/flush()
+    /// returns a URL to tell a near speaker (loud, phone holder) from a
+    /// far speaker (quiet) — a volume heuristic, not voice identification.
+    private(set) var lastChunkMeanSpeechRMS: Float = 0
 
     private var silenceSampleCount: Int {
         Int(silenceDuration * Double(Self.sampleRate))
@@ -43,13 +51,16 @@ final class SentenceAudioChunker {
     func feed(_ data: Data) -> URL? {
         let count = data.count / 2
         guard count > 0 else { return nil }
-        let isSpeech = Self.rms(of: data) >= speechThreshold
+        let rms = Self.rms(of: data)
+        let isSpeech = rms >= speechThreshold
         if samples.isEmpty, !isSpeech {
             return nil
         }
         samples.append(contentsOf: data.withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) })
         if isSpeech {
             speechSamples += count
+            speechEnergySum += rms
+            speechBufferCount += 1
             trailingSilenceSamples = 0
         } else {
             trailingSilenceSamples += count
@@ -78,6 +89,7 @@ final class SentenceAudioChunker {
         if trailingSilenceSamples > 0, trailingSilenceSamples < body.count {
             body.removeLast(trailingSilenceSamples)
         }
+        lastChunkMeanSpeechRMS = speechBufferCount > 0 ? speechEnergySum / Float(speechBufferCount) : 0
         reset()
         guard !body.isEmpty else { return nil }
         return Self.writeWAV(samples: body)
@@ -87,6 +99,8 @@ final class SentenceAudioChunker {
         samples = []
         trailingSilenceSamples = 0
         speechSamples = 0
+        speechEnergySum = 0
+        speechBufferCount = 0
     }
 
     private static func rms(of data: Data) -> Float {
