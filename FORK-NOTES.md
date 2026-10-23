@@ -452,3 +452,6 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   直接打开，含结构化总结＋全文；会议按说话人 A（蓝）/
   B（橙）色标，翻译双语对照；支持深色模式。
 - 翻译分享菜单同步加“导出 HTML”；TXT 格式不动。
+- 首版 CI 因两处编译错误失败（Swift 6 下 UIPrintPageRenderer 子类的
+  paperRect/printableRect/init 须显式标 nonisolated；HTML 转义函数名
+  escaped 与调用处 escape 不一致），补修后重打。

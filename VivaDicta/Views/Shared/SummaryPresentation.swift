@@ -227,7 +227,7 @@ enum RecordHTMLBuilder {
         SelfHostedTranslationSession.Language(rawValue: rawValue)?.displayName ?? rawValue
     }
 
-    private static func escaped(_ string: String) -> String {
+    private static func escape(_ string: String) -> String {
         var result = ""
         for char in string {
             switch char {
@@ -263,7 +263,12 @@ enum RecordPDFPrinter {
     }
 
     private final class RecordPrintRenderer: UIPrintPageRenderer {
-        override var paperRect: CGRect { CGRect(x: 0, y: 0, width: 595.2, height: 841.8) }
-        override var printableRect: CGRect { paperRect.insetBy(dx: 48, dy: 48) }
+        // UIPrintPageRenderer is MainActor-inferred in Swift 6, but these
+        // geometry members are nonisolated in the base class: the overrides
+        // (and the initializer) must say so explicitly, or the build fails
+        // with an actor-isolation mismatch.
+        override nonisolated var paperRect: CGRect { CGRect(x: 0, y: 0, width: 595.2, height: 841.8) }
+        override nonisolated var printableRect: CGRect { paperRect.insetBy(dx: 48, dy: 48) }
+        override nonisolated init() { super.init() }
     }
 }
