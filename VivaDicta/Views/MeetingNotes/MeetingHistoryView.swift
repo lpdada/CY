@@ -57,6 +57,8 @@ private struct MeetingRecordDetailView: View {
     @State private var summaryLanguage: MeetingSummarizer.Language = .chinese
     @State private var isSummarizing = false
     @State private var status = ""
+    @State private var isSharing = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         ScrollView {
@@ -79,9 +81,9 @@ private struct MeetingRecordDetailView: View {
                 }
                 if let summary = record.summary {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("总结（\(record.summaryLanguage ?? "")）")
+                        Text("总结（\(summaryLanguageName)）")
                             .font(.headline)
-                        Text(summary)
+                        SummarySectionsView(text: summary)
                     }
                 }
                 if !status.isEmpty {
@@ -96,22 +98,39 @@ private struct MeetingRecordDetailView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(isSummarizing)
-                Button("总结") {
-                    Task { await summarize() }
+                HStack(spacing: 12) {
+                    Button("总结") {
+                        Task { await summarize() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(record.segments.isEmpty || isSummarizing)
+                    Menu("分享") {
+                        Button("导出 TXT") { share(format: .txt) }
+                        Button("导出 PDF") { share(format: .pdf) }
+                        Button("导出 HTML") { share(format: .html) }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(record.segments.isEmpty)
                 }
-                .buttonStyle(.bordered)
-                .disabled(record.segments.isEmpty || isSummarizing)
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("会议详情")
+        .sheet(isPresented: $isSharing) {
+            ActivityView(activityItems: shareItems)
+        }
         .onAppear {
             if let saved = record.summaryLanguage,
                let language = MeetingSummarizer.Language(rawValue: saved) {
                 summaryLanguage = language
             }
         }
+    }
+
+    private var summaryLanguageName: String {
+        MeetingSummarizer.Language(rawValue: record.summaryLanguage ?? "")?.displayName
+            ?? (record.summaryLanguage ?? "")
     }
 
     private func summarize() async {
@@ -133,6 +152,16 @@ private struct MeetingRecordDetailView: View {
             }
         } catch {
             status = "总结失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func share(format: MeetingRecordExporter.Format) {
+        do {
+            let url = try MeetingRecordExporter.fileURL(for: record, format: format)
+            shareItems = [url]
+            isSharing = true
+        } catch {
+            status = "导出失败：\(error.localizedDescription)"
         }
     }
 }

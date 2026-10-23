@@ -63,6 +63,8 @@ private struct MeetingNotesContentView: View {
     let onConfigureKey: () -> Void
 
     @State private var showingHistory = false
+    @State private var isSharing = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         VStack(spacing: 16) {
@@ -84,7 +86,7 @@ private struct MeetingNotesContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("总结（\(session.summaryLanguage.displayName)）")
                         .font(.headline)
-                    Text(summary)
+                    SummarySectionsView(text: summary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -95,6 +97,9 @@ private struct MeetingNotesContentView: View {
         .padding()
         .sheet(isPresented: $showingHistory) {
             MeetingHistoryView(aiService: aiService)
+        }
+        .sheet(isPresented: $isSharing) {
+            ActivityView(activityItems: shareItems)
         }
     }
 
@@ -182,11 +187,29 @@ private struct MeetingNotesContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing)
+                Menu("分享") {
+                    Button("导出 TXT") { share(format: .txt) }
+                    Button("导出 PDF") { share(format: .pdf) }
+                    Button("导出 HTML") { share(format: .html) }
+                }
+                .buttonStyle(.bordered)
+                .disabled(session.segments.isEmpty || session.isRunning)
                 Button("历史") {
                     showingHistory = true
                 }
                 .buttonStyle(.bordered)
             }
+        }
+    }
+
+    private func share(format: MeetingRecordExporter.Format) {
+        guard let record = session.makeRecord() else { return }
+        do {
+            let url = try MeetingRecordExporter.fileURL(for: record, format: format)
+            shareItems = [url]
+            isSharing = true
+        } catch {
+            session.status = "导出失败：\(error.localizedDescription)"
         }
     }
 }

@@ -86,7 +86,7 @@ private struct SelfHostedTranslationContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("总结")
                         .font(.headline)
-                    Text(summary)
+                    SummarySectionsView(text: summary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -227,6 +227,7 @@ private struct SelfHostedTranslationContentView: View {
             Menu("分享") {
                 Button("导出 TXT") { share(format: .txt) }
                 Button("导出 PDF") { share(format: .pdf) }
+                Button("导出 HTML") { share(format: .html) }
             }
             .buttonStyle(.bordered)
             .disabled(session.pairs.isEmpty || session.isRunning)

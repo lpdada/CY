@@ -83,7 +83,7 @@ private struct TranslationRecordDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("总结")
                             .font(.headline)
-                        Text(summary)
+                        SummarySectionsView(text: summary)
                     }
                 }
                 if isSummarizing {
@@ -121,6 +121,7 @@ private struct TranslationRecordDetailView: View {
                     Menu("分享") {
                         Button("导出 TXT") { share(format: .txt) }
                         Button("导出 PDF") { share(format: .pdf) }
+                        Button("导出 HTML") { share(format: .html) }
                     }
                     .buttonStyle(.bordered)
                     Button("删除", role: .destructive) {
