@@ -15,7 +15,7 @@ struct BatchSummarySheet: View {
     @State private var language: MeetingSummarizer.Language = .chinese
     @State private var isSummarizing = false
     @State private var summary = ""
-    @State private var error = ""
+    @State private var errorMessage = ""
     @State private var isSharing = false
     @State private var shareItems: [Any] = []
 
@@ -45,8 +45,8 @@ struct BatchSummarySheet: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    if !error.isEmpty {
-                        Text(error)
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
                             .foregroundStyle(.red)
                     }
                     if !summary.isEmpty {
@@ -77,7 +77,7 @@ struct BatchSummarySheet: View {
             }
             .onChange(of: language) { _, _ in
                 summary = ""
-                error = ""
+                errorMessage = ""
             }
         }
     }
@@ -85,12 +85,12 @@ struct BatchSummarySheet: View {
     private func run() async {
         guard !isSummarizing else { return }
         isSummarizing = true
-        error = ""
+        errorMessage = ""
         defer { isSummarizing = false }
         do {
             summary = try await summarize(language)
         } catch {
-            error = "总结失败：\(error.localizedDescription)"
+            errorMessage = "总结失败：\(error.localizedDescription)"
         }
     }
 
@@ -101,7 +101,7 @@ struct BatchSummarySheet: View {
             shareItems = [url]
             isSharing = true
         } catch {
-            error = "导出失败：\(error.localizedDescription)"
+            errorMessage = "导出失败：\(error.localizedDescription)"
         }
     }
 }

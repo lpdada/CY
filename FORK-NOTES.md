@@ -470,3 +470,5 @@ Watch 目录，产物只含主 App + 键盘（40MB），Sideloadly 免费 Apple 
   出一个综合总结（会议可挑总结语言；翻译与单条同一提示词
   体系）；总结只在页内展示、可分享 TXT，不写回任何一条记录。
   输入过长时截取前 10000 字并在输入中注明是截取的部分内容。
+- 首版 CI 编译失败（BatchSummarySheet 里 @State error 与 catch 隐式
+  error 同名遮蔽），改名 errorMessage 后重打。
