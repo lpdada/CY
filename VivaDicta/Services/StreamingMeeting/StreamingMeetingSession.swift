@@ -38,6 +38,11 @@ final class StreamingMeetingSession {
         /// Provisional until the matching final frame arrives.
         var isProvisional: Bool
         var speakerStatus: StreamingSpeakerStatus
+        /// Script-heuristic language tag for automatic mode (the
+        /// server frames carry no language field). Set on every
+        /// interim/final update; indicative only, recording itself
+        /// is unaffected because the multilingual model hears audio.
+        var detectedLanguage: Language
         var confidence: Double?
         var start: Double
         var end: Double
@@ -48,12 +53,19 @@ final class StreamingMeetingSession {
         case chinese = "zh"
         case japanese = "ja"
         case english = "en"
+        /// Automatic: the client sends "auto" and the server records
+        /// with its multilingual model (Chinese, Japanese, English and
+        /// more in one session). Needs the server to accept "auto";
+        /// until then the probe fails and the view falls back, exactly
+        /// like any other unsupported language.
+        case automatic = "auto"
 
         var displayName: String {
             switch self {
             case .chinese: "中文"
             case .japanese: "日语"
             case .english: "英语"
+            case .automatic: "自动"
             }
         }
     }
@@ -186,6 +198,11 @@ final class StreamingMeetingSession {
         streamingUnsupportedLanguage = false
         lastProbeErrorCode = nil
         translationSession?.reset()
+        // Translation source follows the session language (in
+        // automatic mode the prompt carries no source language, so
+        // the AI detects it per segment). Previously this stayed
+        // fixed on Chinese even for a Japanese session.
+        translationSession?.sourceLanguage = StreamingTranslationSession.Language(rawValue: language.rawValue) ?? .automatic
         startedAt = Date()
         status = "正在连接流式服务器…"
         connectionReady = false
@@ -393,6 +410,48 @@ final class StreamingMeetingSession {
         }
     }
 
+    /// Script heuristic for the per-row language tag in automatic
+    /// mode. Kana means Japanese; CJK ideographs without kana mean
+    /// Chinese; Latin letters mean English. Pure-kanji Japanese
+    /// misreads as Chinese, and anything else defaults to Chinese:
+    /// the tag is indicative only, never fed back into recognition.
+    static func detectLanguage(for text: String) -> Language {
+        for scalar in text.unicodeScalars {
+            if (0x3040...0x309F).contains(scalar.value) || (0x30A0...0x30FF).contains(scalar.value) {
+                return .japanese
+            }
+        }
+        for scalar in text.unicodeScalars {
+            if (0x4E00...0x9FFF).contains(scalar.value) {
+                return .chinese
+            }
+        }
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            if (0x41...0x5A).contains(value) || (0x61...0x7A).contains(value) {
+                return .english
+            }
+        }
+        return .chinese
+    }
+
+    /// Re-translates every final segment that has no translation yet.
+    /// Used when translation is switched on mid-session, or after the
+    /// target language changes (the caller resets first, so every
+    /// final re-translates to the new target). Each segment runs as
+    /// its own task, like the live forward, so a slow translation
+    /// never stalls the caller.
+    func retranslateAllFinals() {
+        guard let translationSession, translationSession.isEnabled else { return }
+        for segment in segments where !segment.isProvisional && !segment.text.isEmpty {
+            if let existing = translationSession.translation(for: segment.segmentID),
+               !existing.translation.isEmpty {
+                continue
+            }
+            Task { await translationSession.handleFinalSegment(segment) }
+        }
+    }
+
     /// Excel-style label for a speaker index: 0 -> A, 25 -> Z,
     /// 26 -> AA, 27 -> AB, and so on. The server normally assigns
     /// labels itself; this is the shared rule for any locally derived
@@ -430,6 +489,7 @@ final class StreamingMeetingSession {
                 segments[index].speakerLabel = speakerLabel
                 segments[index].isProvisional = true
                 segments[index].speakerStatus = .provisional
+                segments[index].detectedLanguage = Self.detectLanguage(for: text)
                 segments[index].start = start
                 segments[index].end = end
             } else {
@@ -439,6 +499,7 @@ final class StreamingMeetingSession {
                     speakerLabel: speakerLabel,
                     isProvisional: true,
                     speakerStatus: .provisional,
+                    detectedLanguage: Self.detectLanguage(for: text),
                     confidence: nil,
                     start: start,
                     end: end,
@@ -454,6 +515,7 @@ final class StreamingMeetingSession {
                 segments[index].speakerLabel = speakerLabel
                 segments[index].isProvisional = false
                 segments[index].speakerStatus = status
+                segments[index].detectedLanguage = Self.detectLanguage(for: text)
                 segments[index].confidence = confidence
                 segments[index].start = start
                 segments[index].end = end
@@ -465,6 +527,7 @@ final class StreamingMeetingSession {
                     speakerLabel: speakerLabel,
                     isProvisional: false,
                     speakerStatus: status,
+                    detectedLanguage: Self.detectLanguage(for: text),
                     confidence: confidence,
                     start: start,
                     end: end,

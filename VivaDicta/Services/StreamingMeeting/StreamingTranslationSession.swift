@@ -44,12 +44,18 @@ final class StreamingTranslationSession {
         case chinese = "zh"
         case japanese = "ja"
         case english = "en"
+        /// Automatic source: the prompt carries no source language
+        /// and the AI detects it per segment. Never a translation
+        /// target; the target picker lists only the three real
+        /// languages.
+        case automatic = "auto"
 
         var displayName: String {
             switch self {
             case .chinese: "中文"
             case .japanese: "日语"
             case .english: "英语"
+            case .automatic: "自动"
             }
         }
 
@@ -58,12 +64,20 @@ final class StreamingTranslationSession {
             case .chinese: "Chinese"
             case .japanese: "Japanese"
             case .english: "English"
+            // Never read: the automatic branch builds its prompt
+            // without a source name (see translationPreset).
+            case .automatic: ""
             }
         }
     }
 
     var sourceLanguage: Language = .chinese
     var targetLanguage: Language = .japanese
+    /// Master switch, on by default to preserve the previous
+    /// always-on behavior. While off, no translation runs and the
+    /// view hides existing translations; switching back on
+    /// backfills finals that have none yet.
+    var isEnabled = true
     var segments: [TranslatedSegment] = []
 
     private let aiService: AIService
@@ -84,6 +98,7 @@ final class StreamingTranslationSession {
     /// Translates one FINAL meeting segment. Provisional segments and
     /// empty text are ignored, never translated.
     func handleFinalSegment(_ segment: StreamingMeetingSession.Segment) async {
+        guard isEnabled else { return }
         guard !segment.isProvisional else { return }
         let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
@@ -141,12 +156,22 @@ final class StreamingTranslationSession {
     /// output contract matches the old translation path: translation
     /// only, no explanation, notes, or quotation marks.
     private static func translationPreset(from: Language, to: Language) -> Preset {
-        Preset(
+        // Automatic source: no "from X" clause, so the AI detects
+        // the segment's language itself instead of mistranslating
+        // under a wrong fixed source (e.g. kanji-only Japanese read
+        // as Chinese by the script heuristic).
+        let instruction: String
+        if from == .automatic {
+            instruction = "Translate the following text to \(to.translationName). Output only the translation, without any explanation, notes, or quotation marks."
+        } else {
+            instruction = "Translate the following text from \(from.translationName) to \(to.translationName). Output only the translation, without any explanation, notes, or quotation marks."
+        }
+        return Preset(
             id: "streamingTranslation",
             name: "翻译",
             icon: "translate",
             category: "Translate",
-            promptInstructions: "Translate the following text from \(from.translationName) to \(to.translationName). Output only the translation, without any explanation, notes, or quotation marks.",
+            promptInstructions: instruction,
             useSystemTemplate: false
         )
     }

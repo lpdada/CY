@@ -80,7 +80,7 @@ struct StreamingMeetingContentView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                StreamingMeetingControlsView(session: session, showingRename: $showingRename)
+                StreamingMeetingControlsView(session: session, translationSession: translationSession, showingRename: $showingRename)
                 if !session.status.isEmpty {
                     Text(session.status)
                         .font(.footnote)
@@ -108,6 +108,9 @@ struct StreamingMeetingContentView: View {
             .onChange(of: session.language) { _, newLanguage in
                 // Re-probe on language switch (not while running: the
                 // picker is disabled then, so this only fires idle).
+                // Translation source follows the session language;
+                // automatic mode leaves the source out of the prompt.
+                translationSession.sourceLanguage = StreamingTranslationSession.Language(rawValue: newLanguage.rawValue) ?? .automatic
                 Task {
                     streamingAvailable = await session.checkStreamingAvailable(language: newLanguage)
                 }
@@ -135,7 +138,12 @@ struct StreamingMeetingContentView: View {
 
 struct StreamingMeetingControlsView: View {
     @Bindable var session: StreamingMeetingSession
+    @Bindable var translationSession: StreamingTranslationSession
     @Binding var showingRename: Bool
+
+    @State private var showingHistory = false
+    @State private var isSharing = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         VStack(spacing: 12) {
@@ -146,6 +154,12 @@ struct StreamingMeetingControlsView: View {
             }
             .pickerStyle(.segmented)
             .disabled(session.isRunning)
+
+            if session.language == .automatic {
+                Text("自动档用多语模型记录中、日、英混合发言；行首语种标签按文字脚本推断，仅供参考")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
 
             Text("说话人由服务器声纹区分（A、B、C…动态扩展），临时文本先出、定稿再纠")
                 .font(.footnote)
@@ -171,6 +185,22 @@ struct StreamingMeetingControlsView: View {
                 .disabled(session.knownSpeakerLabels.isEmpty)
             }
 
+            // Translation switch (on by default, preserving the
+            // previous always-on behavior) plus its target language.
+            // Switching on backfills finals that have no translation
+            // yet; changing the target re-translates everything.
+            Toggle("翻译", isOn: $translationSession.isEnabled)
+            if translationSession.isEnabled {
+                Picker("翻译目标语言", selection: $translationSession.targetLanguage) {
+                    ForEach([StreamingTranslationSession.Language.chinese,
+                             StreamingTranslationSession.Language.japanese,
+                             StreamingTranslationSession.Language.english], id: \.self) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             Picker("总结语言", selection: $session.summaryLanguage) {
                 ForEach(MeetingSummarizer.Language.allCases, id: \.self) { language in
                     Text(language.displayName).tag(language)
@@ -179,11 +209,56 @@ struct StreamingMeetingControlsView: View {
             .pickerStyle(.segmented)
             .disabled(session.isRunning || session.isSummarizing)
 
-            Button("总结") {
-                Task { await session.summarize() }
+            HStack(spacing: 12) {
+                Button("总结") {
+                    Task { await session.summarize() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing)
+                Menu("分享") {
+                    Button("导出 TXT") { share(format: .txt) }
+                    Button("导出 PDF") { share(format: .pdf) }
+                    Button("导出 HTML") { share(format: .html) }
+                }
+                .buttonStyle(.bordered)
+                .disabled(session.segments.isEmpty || session.isRunning)
+                Button("历史") {
+                    showingHistory = true
+                }
+                .buttonStyle(.bordered)
+                .disabled(session.aiService == nil)
             }
-            .buttonStyle(.bordered)
-            .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing)
+        }
+        .onChange(of: translationSession.isEnabled) { _, enabled in
+            if enabled {
+                session.retranslateAllFinals()
+            }
+        }
+        .onChange(of: translationSession.targetLanguage) { _, _ in
+            translationSession.reset()
+            session.retranslateAllFinals()
+        }
+        .sheet(isPresented: $showingHistory) {
+            if let aiService = session.aiService {
+                MeetingHistoryView(aiService: aiService)
+            }
+        }
+        .sheet(isPresented: $isSharing) {
+            ActivityView(activityItems: shareItems)
+        }
+    }
+
+    /// Shares the current session as a saved record (same exporter
+    /// the history view uses). Only after stop: sharing mid-session
+    /// would snapshot a moving transcript.
+    private func share(format: MeetingRecordExporter.Format) {
+        guard let record = session.makeRecord(), !record.segments.isEmpty else { return }
+        do {
+            let url = try MeetingRecordExporter.fileURL(for: record, format: format)
+            shareItems = [url]
+            isSharing = true
+        } catch {
+            session.status = "导出失败：\(error.localizedDescription)"
         }
     }
 }
@@ -200,8 +275,9 @@ struct StreamingMeetingSegmentListView: View {
                         StreamingMeetingSegmentRowView(
                             segment: segment,
                             displayName: session.displayName(for: segment.speakerLabel),
-                            translation: translationSession.translation(for: segment.segmentID)?.translation,
-                            isTranslating: translationSession.translation(for: segment.segmentID)?.isTranslating ?? false
+                            detectedLanguageName: session.language == .automatic ? segment.detectedLanguage.displayName : nil,
+                            translation: translationSession.isEnabled ? translationSession.translation(for: segment.segmentID)?.translation : nil,
+                            isTranslating: translationSession.isEnabled && (translationSession.translation(for: segment.segmentID)?.isTranslating ?? false)
                         )
                         .id(segment.id)
                     }
@@ -222,6 +298,9 @@ struct StreamingMeetingSegmentListView: View {
 struct StreamingMeetingSegmentRowView: View {
     let segment: StreamingMeetingSession.Segment
     let displayName: String
+    /// Script-heuristic language tag, only in automatic mode
+    /// (nil otherwise); indicative only, see detectLanguage.
+    let detectedLanguageName: String?
     let translation: String?
     let isTranslating: Bool
 
@@ -238,6 +317,11 @@ struct StreamingMeetingSegmentRowView: View {
                 Text(displayName)
                     .font(.footnote)
                     .bold()
+                if let detectedLanguageName {
+                    Text(detectedLanguageName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if segment.isProvisional {
                     Text("临时")
                         .font(.caption)
