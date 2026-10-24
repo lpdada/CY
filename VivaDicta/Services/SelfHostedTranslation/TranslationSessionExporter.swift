@@ -64,6 +64,28 @@ enum TranslationSessionExporter {
         return url
     }
 
+    /// Several records merged into one document, oldest first. The UI
+    /// only offers this with a non-empty selection; an empty list still
+    /// yields a header-only file rather than a crash.
+    static func fileURL(for records: [TranslationSessionRecord], format: Format) throws -> URL {
+        let ordered = records.sorted { $0.startedAt < $1.startedAt }
+        let data: Data
+        switch format {
+        case .txt:
+            var lines = ["自建翻译记录（合并导出，共 \(ordered.count) 条）", ""]
+            lines.append(ordered.map { text(for: $0) }.joined(separator: "\n\n----------\n\n"))
+            data = Data(lines.joined(separator: "\n").utf8)
+        case .pdf:
+            data = RecordPDFPrinter.pdfData(html: RecordHTMLBuilder.combinedTranslationHTML(records: ordered))
+        case .html:
+            data = Data(RecordHTMLBuilder.combinedTranslationHTML(records: ordered).utf8)
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "translation-records-combined.\(format.fileExtension)")
+        try data.write(to: url, options: .atomic)
+        return url
+    }
+
     private static func languageName(_ rawValue: String) -> String {
         SelfHostedTranslationSession.Language(rawValue: rawValue)?.displayName ?? rawValue
     }

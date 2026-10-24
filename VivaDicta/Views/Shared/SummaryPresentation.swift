@@ -121,6 +121,28 @@ struct SummarySectionsView: View {
 /// file opens correctly in any browser after sharing.
 enum RecordHTMLBuilder {
     static func meetingHTML(record: MeetingRecord) -> String {
+        pageHTML(title: "会议记录", body: meetingBodyHTML(record: record))
+    }
+
+    /// Several records in one page, oldest first, separated by rules.
+    /// The single-record output is unchanged: it is the same body helper.
+    static func combinedMeetingHTML(records: [MeetingRecord]) -> String {
+        let ordered = records.sorted { $0.startedAt < $1.startedAt }
+        let body = ordered.map { meetingBodyHTML(record: $0) }.joined(separator: "<hr>")
+        return pageHTML(title: "会议记录（合并导出）", body: body)
+    }
+
+    static func translationHTML(record: TranslationSessionRecord) -> String {
+        pageHTML(title: "自建翻译记录", body: translationBodyHTML(record: record))
+    }
+
+    static func combinedTranslationHTML(records: [TranslationSessionRecord]) -> String {
+        let ordered = records.sorted { $0.startedAt < $1.startedAt }
+        let body = ordered.map { translationBodyHTML(record: $0) }.joined(separator: "<hr>")
+        return pageHTML(title: "自建翻译记录（合并导出）", body: body)
+    }
+
+    private static func meetingBodyHTML(record: MeetingRecord) -> String {
         var body = "<h1>会议记录</h1>"
         body += "<p class=\"meta\">\(escape(record.startedAt.formatted(date: .abbreviated, time: .shortened))) · \(escape(record.asrModelName))</p>"
         if let summary = record.summary, !summary.isEmpty {
@@ -133,10 +155,10 @@ enum RecordHTMLBuilder {
             let speakerClass = segment.speaker == "A" ? "speaker-a" : "speaker-b"
             body += "<div class=\"segment\"><span class=\"speaker \(speakerClass)\">\(escape(segment.speaker))</span><p>\(escape(segment.text))</p></div>"
         }
-        return pageHTML(title: "会议记录", body: body)
+        return body
     }
 
-    static func translationHTML(record: TranslationSessionRecord) -> String {
+    private static func translationBodyHTML(record: TranslationSessionRecord) -> String {
         var body = "<h1>自建翻译记录</h1>"
         body += "<p class=\"meta\">\(escape(record.startedAt.formatted(date: .abbreviated, time: .shortened))) · \(escape(languageName(record.sourceLanguage))) → \(escape(languageName(record.targetLanguage))) · \(escape(record.asrModelName))</p>"
         if let summary = record.summary, !summary.isEmpty {
@@ -154,7 +176,7 @@ enum RecordHTMLBuilder {
             }
             body += "</div>"
         }
-        return pageHTML(title: "自建翻译记录", body: body)
+        return body
     }
 
     private static func summaryHTML(_ summary: String) -> String {
@@ -195,6 +217,7 @@ enum RecordHTMLBuilder {
         body { font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; max-width: 720px; margin: 0 auto; padding: 24px 16px; color: #1d1d1f; line-height: 1.7; }
         h1 { font-size: 24px; margin: 0 0 4px; }
         h2 { font-size: 17px; margin: 24px 0 8px; }
+        hr { border: none; border-top: 1px solid #d2d2d7; margin: 32px 0; }
         .meta { color: #86868b; font-size: 14px; margin: 0 0 16px; }
         .summary { background: #f5f5f7; border-radius: 12px; padding: 16px 20px; }
         .summary h2 { margin-top: 16px; }
@@ -213,6 +236,7 @@ enum RecordHTMLBuilder {
           body { background: #000; color: #f5f5f7; }
           .summary { background: #1c1c1e; }
           .meta, .pair .original, .pair .translation.missing { color: #98989d; }
+          hr { border-top-color: #38383a; }
         }
         </style>
         </head>

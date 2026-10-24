@@ -59,4 +59,35 @@ enum MeetingSummarizer {
         let (text, _) = try await aiService.generateVariation(text: body, preset: preset)
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// One summary over several records, oldest first. The input is
+    /// capped so a long selection cannot blow up the prompt; the cap
+    /// note is part of the input, so the model knows it saw a part.
+    static func summarize(
+        records: [MeetingRecord],
+        language: Language,
+        aiService: AIService
+    ) async throws -> String {
+        let ordered = records.sorted { $0.startedAt < $1.startedAt }
+        var body = ordered.map { record in
+            var lines = ["【\(record.startedAt.formatted(date: .abbreviated, time: .shortened)) · \(record.asrModelName)】"]
+            for segment in record.segments where !segment.text.isEmpty {
+                lines.append("\(segment.speaker)：\(segment.text)")
+            }
+            return lines.joined(separator: "\n")
+        }.joined(separator: "\n\n")
+        if body.count > 10000 {
+            body = String(body.prefix(10000)) + "\n（以上为截取的部分内容）"
+        }
+        let preset = Preset(
+            id: "selfHostedMeetingSummaryBatch\(language.rawValue.capitalized)",
+            name: "多条会议记录总结",
+            icon: "list.clipboard",
+            category: "Summary",
+            promptInstructions: "你是会议记录的整理助手。以下是多场会议的转写，A 是离手机近的发言人，B 是离手机远的发言人。请完成：1）归纳核心观点与讨论要点；2）给出简明总结；3）列出待办事项（如有）；4）指出并修正明显的转写错误。全文只用\(language.promptName)写，分点陈述，不要复述全部原文。",
+            useSystemTemplate: false
+        )
+        let (text, _) = try await aiService.generateVariation(text: body, preset: preset)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
