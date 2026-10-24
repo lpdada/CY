@@ -69,11 +69,7 @@ private struct SelfHostedTranslationContentView: View {
     var body: some View {
         VStack(spacing: 12) {
             controls
-            if !session.status.isEmpty {
-                Text(session.status)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+            ListeningStatusView(status: session.status, isRunning: session.isRunning)
             if session.isSummarizing {
                 HStack(spacing: 6) {
                     ProgressView()
@@ -89,12 +85,17 @@ private struct SelfHostedTranslationContentView: View {
                     SummarySectionsView(text: summary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(.white)
+                .clipShape(.rect(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
             }
             pairsList
             startStopButton
             actionRow
         }
         .padding()
+        .background(Color(.systemGroupedBackground))
         .task {
             await session.refreshServerVoices()
         }
@@ -106,69 +107,75 @@ private struct SelfHostedTranslationContentView: View {
         }
     }
 
+    /// Control card: everything that configures the session lives in
+    /// one white card, so the live subtitles below it get the space.
+    /// Only the card styling is new here; every binding, disabled
+    /// rule, and warning below keeps its previous behavior.
     private var controls: some View {
         VStack(spacing: 8) {
-            // 双向对话开关与语言选择并成一行：上面每省一行，
-            // 下面的实时字幕区就多一行。
-            HStack(spacing: 8) {
+            VStack(spacing: 0) {
                 Toggle("双向对话", isOn: $session.isConversationMode)
-                    .fixedSize()
-                Picker(session.isConversationMode ? "语言 A" : "源语言", selection: $session.sourceLanguage) {
-                    ForEach(SelfHostedTranslationSession.Language.allCases, id: \.self) { language in
-                        Text(language.displayName).tag(language)
-                    }
-                }
-                .pickerStyle(.menu)
-                Image(systemName: session.isConversationMode ? "arrow.left.arrow.right" : "arrow.right")
-                    .foregroundStyle(.secondary)
-                Picker(session.isConversationMode ? "语言 B" : "目标语言", selection: $session.targetLanguage) {
-                    ForEach(SelfHostedTranslationSession.Language.allCases, id: \.self) { language in
-                        Text(language.displayName).tag(language)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            .disabled(session.isRunning)
-
-            // 转写模型与朗读开关并成一行；朗读开关运行中也可拨动，
-            // 声音切换不依赖开关重拨。
-            HStack(spacing: 8) {
-                Picker("转写模型", selection: $session.asrModelName) {
-                    ForEach(selfHostedModels) { model in
-                        Text(model.displayName).tag(model.name)
-                    }
-                }
-                .pickerStyle(.menu)
-                .disabled(session.isRunning)
-                Spacer()
-                Toggle("朗读译文", isOn: $session.ttsEnabled)
-                    .fixedSize()
-            }
-
-            if session.ttsEnabled {
-                if session.isConversationMode {
-                    TTSVoicePickerRow(language: session.sourceLanguage, serverVoices: session.serverVoices) {
-                        session.voiceSelectionChanged(for: session.sourceLanguage)
-                    }
-                    TTSVoicePickerRow(language: session.targetLanguage, serverVoices: session.serverVoices) {
-                        session.voiceSelectionChanged(for: session.targetLanguage)
-                    }
-                } else {
-                    Picker("朗读声音", selection: fixedVoiceBinding) {
-                        Text("系统默认").tag(nil as String?)
-                        ForEach(session.serverVoices.filter { $0.language == session.targetLanguage.rawValue }) { voice in
-                            Text(voice.displayName).tag(voice.id as String?)
+                    .padding(.vertical, 10)
+                Divider()
+                LanguagePillRow(
+                    sourceLanguage: $session.sourceLanguage,
+                    targetLanguage: $session.targetLanguage,
+                    isConversationMode: session.isConversationMode,
+                    disabled: session.isRunning
+                )
+                Divider()
+                LabeledPickerRow(label: "转写模型") {
+                    Picker("转写模型", selection: $session.asrModelName) {
+                        ForEach(selfHostedModels) { model in
+                            Text(model.displayName).tag(model.name)
                         }
                     }
                     .pickerStyle(.menu)
+                    .labelsHidden()
+                    .disabled(session.isRunning)
                 }
-                if let error = session.serverVoicesError {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                Divider()
+                // 朗读开关运行中也可拨动，声音切换不依赖开关重拨。
+                Toggle("朗读译文", isOn: $session.ttsEnabled)
+                    .padding(.vertical, 10)
+                if session.ttsEnabled {
+                    Divider()
+                    if session.isConversationMode {
+                        LabeledPickerRow(label: "朗读声音（\(session.sourceLanguage.displayName)）") {
+                            TTSVoicePickerRow(language: session.sourceLanguage, serverVoices: session.serverVoices) {
+                                session.voiceSelectionChanged(for: session.sourceLanguage)
+                            }
+                        }
+                        Divider()
+                        LabeledPickerRow(label: "朗读声音（\(session.targetLanguage.displayName)）") {
+                            TTSVoicePickerRow(language: session.targetLanguage, serverVoices: session.serverVoices) {
+                                session.voiceSelectionChanged(for: session.targetLanguage)
+                            }
+                        }
+                    } else {
+                        LabeledPickerRow(label: "朗读声音") {
+                            Picker("朗读声音", selection: fixedVoiceBinding) {
+                                Text("系统默认").tag(nil as String?)
+                                ForEach(session.serverVoices.filter { $0.language == session.targetLanguage.rawValue }) { voice in
+                                    Text(voice.displayName).tag(voice.id as String?)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                        }
+                    }
                 }
             }
+            .padding(.horizontal, 16)
+            .background(.white)
+            .clipShape(.rect(cornerRadius: 18))
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 2)
 
+            if session.ttsEnabled, let error = session.serverVoicesError {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             if !session.isConversationMode, session.sourceLanguage == session.targetLanguage {
                 Text("源语言与目标语言相同，翻译结果与原文一致")
                     .font(.footnote)
@@ -199,35 +206,19 @@ private struct SelfHostedTranslationContentView: View {
     private var pairsList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(session.pairs) { pair in
-                        VStack(alignment: .leading, spacing: 4) {
-                            if session.isConversationMode {
-                                Text("\(pair.sourceLanguage.displayName) → \(pair.targetLanguage.displayName)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(pair.original)
-                                .foregroundStyle(.secondary)
-                            if pair.isTranslating {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                    Text("翻译中…")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                            } else if let translation = pair.translation {
-                                Text(translation)
-                            } else if let error = pair.error {
-                                Text(error)
-                                    .foregroundStyle(.red)
-                            }
-                        }
+                        PairCardView(
+                            pair: pair,
+                            showDirection: session.isConversationMode,
+                            isReverse: session.isConversationMode && pair.sourceLanguage == session.targetLanguage
+                        )
                         .id(pair.id)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .scrollIndicators(.hidden)
             .onChange(of: session.pairs.count) { _, _ in
                 if let lastID = session.pairs.last?.id {
                     withAnimation {
@@ -244,19 +235,32 @@ private struct SelfHostedTranslationContentView: View {
                 Button("配置自建服务器") {
                     onConfigureKey()
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(.blue)
+                .foregroundStyle(.white)
+                .clipShape(.rect(cornerRadius: 14))
             } else if session.isRunning {
                 Button("停止", role: .destructive) {
                     Task { await session.stop() }
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(.red)
+                .foregroundStyle(.white)
+                .clipShape(.rect(cornerRadius: 14))
             } else {
                 Button("开始翻译") {
                     Task { await session.start() }
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(.blue)
+                .foregroundStyle(.white)
+                .clipShape(.rect(cornerRadius: 14))
             }
         }
+        .bold()
     }
 
     private var actionRow: some View {
@@ -264,19 +268,34 @@ private struct SelfHostedTranslationContentView: View {
             Button("总结") {
                 Task { await session.summarize() }
             }
-            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(.white)
+            .foregroundStyle(.blue)
+            .clipShape(.rect(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
             .disabled(session.pairs.isEmpty || session.isRunning || session.isSummarizing)
             Menu("分享") {
                 Button("导出 TXT") { share(format: .txt) }
                 Button("导出 PDF") { share(format: .pdf) }
                 Button("导出 HTML") { share(format: .html) }
             }
-            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(.white)
+            .foregroundStyle(.blue)
+            .clipShape(.rect(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
             .disabled(session.pairs.isEmpty || session.isRunning)
             Button("历史") {
                 showingHistory = true
             }
-            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(.white)
+            .foregroundStyle(.blue)
+            .clipShape(.rect(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
         }
     }
 
@@ -289,6 +308,161 @@ private struct SelfHostedTranslationContentView: View {
         } catch {
             session.status = "导出失败：\(error.localizedDescription)"
         }
+    }
+}
+
+/// Language pickers styled as pills: the A language gets the blue
+/// pill, the B language a gray one, with a swap button between them.
+/// Swapping only exchanges the two selections (and is disabled while
+/// running, like the pickers); recorded pairs keep their own
+/// direction, and per-language voices follow the language code.
+private struct LanguagePillRow: View {
+    @Binding var sourceLanguage: SelfHostedTranslationSession.Language
+    @Binding var targetLanguage: SelfHostedTranslationSession.Language
+    let isConversationMode: Bool
+    let disabled: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Picker(isConversationMode ? "语言 A" : "源语言", selection: $sourceLanguage) {
+                ForEach(SelfHostedTranslationSession.Language.allCases, id: \.self) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.blue)
+            .foregroundStyle(.white)
+            .clipShape(.rect(cornerRadius: 12))
+            Button("交换语言", systemImage: "arrow.left.arrow.right") {
+                let temp = sourceLanguage
+                sourceLanguage = targetLanguage
+                targetLanguage = temp
+            }
+            .labelStyle(.iconOnly)
+            .padding(8)
+            .background(Color.secondary.opacity(0.12))
+            .clipShape(.circle)
+            Picker(isConversationMode ? "语言 B" : "目标语言", selection: $targetLanguage) {
+                ForEach(SelfHostedTranslationSession.Language.allCases, id: \.self) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.secondary.opacity(0.12))
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .padding(.vertical, 10)
+        .disabled(disabled)
+    }
+}
+
+/// One labeled row inside the control card. The label is a plain
+/// Text so the row reads correctly no matter how the menu picker
+/// renders its own label; the picker itself shows only its value.
+private struct LabeledPickerRow<Content: View>: View {
+    let label: String
+    let content: Content
+
+    init(label: String, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            content
+        }
+        .padding(.vertical, 10)
+    }
+}
+
+/// Status line under the control card: while running, a green dot
+/// plus a small waveform join the session status text; when idle,
+/// the text alone keeps its previous footnote style.
+private struct ListeningStatusView: View {
+    let status: String
+    let isRunning: Bool
+
+    var body: some View {
+        if !status.isEmpty {
+            HStack(spacing: 8) {
+                if isRunning {
+                    Circle()
+                        .fill(.green)
+                        .frame(width: 9, height: 9)
+                        .shadow(color: .green.opacity(0.35), radius: 4)
+                    Text(status)
+                        .bold()
+                    Spacer()
+                    HStack(alignment: .bottom, spacing: 3) {
+                        ForEach([8, 15, 20, 11, 17], id: \.self) { height in
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(.green)
+                                .frame(width: 3, height: CGFloat(height))
+                        }
+                    }
+                    .frame(height: 20)
+                } else {
+                    Text(status)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+/// One subtitle as a card: direction pill on top (blue for A→B,
+/// purple for the reverse direction), the original in small gray
+/// text, and the translation large and bold as the main content.
+private struct PairCardView: View {
+    let pair: SelfHostedTranslationSession.Pair
+    let showDirection: Bool
+    let isReverse: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if showDirection {
+                Text("\(pair.sourceLanguage.displayName) → \(pair.targetLanguage.displayName)")
+                    .font(.caption)
+                    .bold()
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background((isReverse ? Color.purple : Color.blue).opacity(0.12))
+                    .foregroundStyle(isReverse ? Color.purple : Color.blue)
+                    .clipShape(.capsule)
+            }
+            Text(pair.original)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            if pair.isTranslating {
+                HStack(spacing: 6) {
+                    ProgressView()
+                    Text("翻译中…")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let translation = pair.translation {
+                Text(translation)
+                    .bold()
+            } else if let error = pair.error {
+                Text(error)
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.white)
+        .clipShape(.rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
     }
 }
 
@@ -311,6 +485,7 @@ private struct TTSVoicePickerRow: View {
             }
         }
         .pickerStyle(.menu)
+        .labelsHidden()
     }
 
     private var voiceBinding: Binding<String?> {
