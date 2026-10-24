@@ -81,6 +81,17 @@ final class MeetingNotesSession {
         sessionWAVURL = sessionWAV
         let capture = StreamingAudioCapture()
         self.capture = capture
+        capture.onInterruption = { [weak self] event in
+            guard let self, isRunning else { return }
+            switch event {
+            case .began:
+                status = "音频被打断，等待恢复…"
+            case .resumed:
+                status = "正在记录…"
+            case .endedWithoutResume:
+                status = "音频打断后未能自动恢复，请点停止后重新开始"
+            }
+        }
         let stream = capture.makeStream()
         do {
             try await capture.start(writingTo: sessionWAV)

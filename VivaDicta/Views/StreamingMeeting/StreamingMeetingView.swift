@@ -40,6 +40,7 @@ struct StreamingMeetingView: View {
                 let meeting = StreamingMeetingSession()
                 let translation = StreamingTranslationSession(aiService: appState.aiService)
                 meeting.translationSession = translation
+                meeting.aiService = appState.aiService
                 session = meeting
                 translationSession = translation
             }
@@ -84,6 +85,22 @@ struct StreamingMeetingContentView: View {
                     Text(session.status)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+                if session.isSummarizing {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                        Text("总结中…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let summary = session.summary {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("总结（\(session.summaryLanguage.displayName)）")
+                            .font(.headline)
+                        SummarySectionsView(text: summary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 StreamingMeetingSegmentListView(session: session, translationSession: translationSession)
             }
@@ -153,6 +170,20 @@ struct StreamingMeetingControlsView: View {
                 .buttonStyle(.bordered)
                 .disabled(session.knownSpeakerLabels.isEmpty)
             }
+
+            Picker("总结语言", selection: $session.summaryLanguage) {
+                ForEach(MeetingSummarizer.Language.allCases, id: \.self) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .pickerStyle(.segmented)
+            .disabled(session.isRunning || session.isSummarizing)
+
+            Button("总结") {
+                Task { await session.summarize() }
+            }
+            .buttonStyle(.bordered)
+            .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing)
         }
     }
 }

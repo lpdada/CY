@@ -37,6 +37,19 @@ final class StreamingAudioCapture {
         }
     }
 
+    /// Interruption lifecycle, for sessions that want to surface it.
+    /// The capture itself auto-resumes on `.ended` with `.shouldResume`
+    /// (see `handleInterruption`); callers only use this to update
+    /// their status text. Nil by default: callers that do not set it
+    /// still get the internal resume, they just show no status change.
+    enum InterruptionEvent {
+        case began
+        case resumed
+        case endedWithoutResume
+    }
+
+    var onInterruption: (@MainActor (InterruptionEvent) -> Void)?
+
     private let logger = Logger(category: .streamingAudioCapture)
     private let engine = AVAudioEngine()
 
@@ -45,6 +58,9 @@ final class StreamingAudioCapture {
     private var isStarted = false
     private var tapInstalled = false
     private var sessionActivated = false
+    private var writingURL: URL?
+    private var interruptionObserver: NSObjectProtocol?
+    private var interrupted = false
 
     private let captureFormat: AVAudioFormat = {
         AVAudioFormat(
@@ -76,11 +92,13 @@ final class StreamingAudioCapture {
     func start(writingTo url: URL) async throws {
         guard !isStarted else { return }
 
+        writingURL = url
         do {
             try configureSession()
             try await configureEngine(writingTo: url)
             try engine.start()
             isStarted = true
+            observeInterruptions()
         } catch {
             await stop()
             throw error
@@ -92,6 +110,10 @@ final class StreamingAudioCapture {
     /// blocking MainActor there freezes the stop button.
     func stop() async {
         guard isStarted || tapInstalled || sessionActivated else { return }
+
+        stopObservingInterruptions()
+        interrupted = false
+        writingURL = nil
 
         let needsTap = tapInstalled
         let needsDeactivate = sessionActivated
@@ -122,6 +144,103 @@ final class StreamingAudioCapture {
         }.value
 
         continuation?.finish()
+    }
+
+    // MARK: - Interruption recovery
+
+    /// Phone calls, Siri, and other apps stop the engine behind our
+    /// back. Without an observer the session keeps reporting "recording"
+    /// while the tap is silent and every later buffer is lost. The
+    /// observer follows the same pattern as `AudioPrewarmManager`:
+    /// parse on the main queue, hop to MainActor, and only auto-resume
+    /// when the system says `.shouldResume`.
+    private func observeInterruptions() {
+        stopObservingInterruptions()
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] notification in
+            // Outer [weak self] is necessary even though the inner Task
+            // uses [weak self]: otherwise the inner reference makes the
+            // outer closure capture self strongly, creating a retain
+            // cycle with `interruptionObserver`.
+            guard self != nil else { return }
+            guard let info = notification.userInfo,
+                  let typeRaw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeRaw) else {
+                return
+            }
+            let options = (info[AVAudioSessionInterruptionOptionKey] as? UInt)
+                .map(AVAudioSession.InterruptionOptions.init(rawValue:)) ?? []
+            Task { @MainActor [weak self] in
+                self?.handleInterruption(type: type, options: options)
+            }
+        }
+    }
+
+    private func stopObservingInterruptions() {
+        guard let interruptionObserver else { return }
+        NotificationCenter.default.removeObserver(interruptionObserver)
+        self.interruptionObserver = nil
+    }
+
+    private func handleInterruption(
+        type: AVAudioSession.InterruptionType,
+        options: AVAudioSession.InterruptionOptions
+    ) {
+        guard isStarted else { return }
+        switch type {
+        case .began:
+            interrupted = true
+            logger.logInfo("Streaming capture: audio session interrupted")
+            onInterruption?(.began)
+        case .ended:
+            guard interrupted else { return }
+            interrupted = false
+            guard options.contains(.shouldResume) else {
+                // The system did not grant a resume (for example the
+                // user started other audio during the interruption).
+                // Leave the engine stopped and let the session tell
+                // the user to stop and start again, rather than
+                // silently recording nothing.
+                logger.logInfo("Streaming capture: interruption ended without shouldResume, leaving capture stopped")
+                onInterruption?(.endedWithoutResume)
+                return
+            }
+            Task { @MainActor in
+                await resumeAfterInterruption()
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    /// Full restart, not just `engine.start()`: the route can have
+    /// changed under the interruption, so the tap and its format have
+    /// to be rebuilt against whatever input came back (the same reason
+    /// `AudioPrewarmManager` restarts its session rather than just
+    /// starting the engine). The live stream continuation is reused,
+    /// so downstream consumers see a gap, not a new stream; the temp
+    /// WAV is truncated by reopening it, which is safe because every
+    /// caller deletes it on stop and never reads it mid-session.
+    private func resumeAfterInterruption() async {
+        guard isStarted, let url = writingURL else { return }
+        do {
+            engine.stop()
+            if tapInstalled {
+                engine.inputNode.removeTap(onBus: 0)
+                tapInstalled = false
+            }
+            try configureSession()
+            try await configureEngine(writingTo: url)
+            try engine.start()
+            logger.logInfo("Streaming capture: resumed after interruption")
+            onInterruption?(.resumed)
+        } catch {
+            logger.logError("Streaming capture: resume after interruption failed: \(error.localizedDescription)")
+            onInterruption?(.endedWithoutResume)
+        }
     }
 
     // MARK: - Private

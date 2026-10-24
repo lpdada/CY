@@ -69,6 +69,16 @@ final class StreamingMeetingSession {
     var status = ""
     var language: Language = .chinese
     var asrModelName = "sensevoice"
+    /// Set by the view from the app state, like `translationSession`.
+    /// Summary is unavailable until this is set.
+    var aiService: AIService?
+    var summaryLanguage: MeetingSummarizer.Language = .chinese
+    var summary: String?
+    var isSummarizing = false
+    /// Id of the record saved by `stop()` / server-end, so a later
+    /// summary re-saves the same record instead of minting a duplicate
+    /// history entry (every `makeRecord()` call otherwise mints a new id).
+    private var savedRecordID: UUID?
     /// Nil until probed; false means the view must show the old path.
     private(set) var streamingAvailable: Bool?
     /// Server error code from the last failed probe, if any
@@ -171,6 +181,8 @@ final class StreamingMeetingSession {
         }
         segments = []
         speakerNames = [:]
+        summary = nil
+        savedRecordID = nil
         streamingUnsupportedLanguage = false
         lastProbeErrorCode = nil
         translationSession?.reset()
@@ -238,6 +250,17 @@ final class StreamingMeetingSession {
         sessionWAVURL = sessionWAV
         let capture = StreamingAudioCapture()
         self.capture = capture
+        capture.onInterruption = { [weak self] event in
+            guard let self, isRunning else { return }
+            switch event {
+            case .began:
+                status = "音频被打断，等待恢复…"
+            case .resumed:
+                status = "正在记录（流式）…"
+            case .endedWithoutResume:
+                status = "音频打断后未能自动恢复，请点停止后重新开始"
+            }
+        }
         let audioStream = capture.makeStream()
         do {
             try await capture.start(writingTo: sessionWAV)
@@ -282,9 +305,40 @@ final class StreamingMeetingSession {
         }
         sessionWAVURL = nil
         if let record = makeRecord(), !record.segments.isEmpty {
+            savedRecordID = record.id
             status = store.save(record) ? "已停止，记录已保存" : "已停止，记录保存失败"
         } else {
             status = "已停止"
+        }
+    }
+
+    /// One-tap AI summary in the chosen language, mirroring the old
+    /// meeting session's `summarize()`. It runs after stop (or while
+    /// idle with unsaved segments): if the session was already saved,
+    /// the summary re-saves that same record id, so history shows one
+    /// entry with a summary instead of a second, summary-less copy.
+    func summarize() async {
+        guard !isSummarizing, !segments.isEmpty, let aiService else {
+            if self.aiService == nil, !segments.isEmpty, !isSummarizing {
+                status = "总结需要 AI 服务，当前未配置"
+            }
+            return
+        }
+        guard let record = makeRecord() else { return }
+        isSummarizing = true
+        defer { isSummarizing = false }
+        do {
+            summary = try await MeetingSummarizer.summarize(
+                segments: record.segments,
+                language: summaryLanguage,
+                aiService: aiService
+            )
+            if let savedRecordID, let updated = makeRecord(id: savedRecordID) {
+                _ = store.save(updated)
+            }
+        } catch {
+            logger.logError("流式会议：总结失败：\(error.localizedDescription)")
+            status = "总结失败：\(error.localizedDescription)"
         }
     }
 
@@ -297,17 +351,18 @@ final class StreamingMeetingSession {
     /// than the raw label, so a renamed history entry stays readable.
     /// (The "?" badge is view-only; the record keeps "待确认".)
     /// Provisional segments are saved as-is with their interim text.
-    func makeRecord() -> MeetingRecord? {
+    func makeRecord(id: UUID? = nil) -> MeetingRecord? {
         guard let startedAt else { return nil }
         let segmentRecords = segments
             .filter { !$0.text.isEmpty }
             .map { MeetingSegmentRecord(speaker: displayName(for: $0.speakerLabel), text: $0.text) }
         return MeetingRecord(
+            id: id ?? UUID(),
             startedAt: startedAt,
             asrModelName: asrModelName,
             segments: segmentRecords,
-            summary: nil,
-            summaryLanguage: nil
+            summary: summary,
+            summaryLanguage: summary?.isEmpty == false ? summaryLanguage.rawValue : nil
         )
     }
 
@@ -471,6 +526,7 @@ final class StreamingMeetingSession {
         }
         sessionWAVURL = nil
         if let record = makeRecord(), !record.segments.isEmpty {
+            savedRecordID = record.id
             status = store.save(record) ? savedStatus : savedStatus + "，但记录保存失败"
         } else {
             status = "服务器已结束会话"
