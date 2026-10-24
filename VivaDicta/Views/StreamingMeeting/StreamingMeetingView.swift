@@ -72,6 +72,7 @@ struct StreamingMeetingContentView: View {
     /// unsupported (e.g. Japanese) routes to the fallback view too,
     /// not just the initial probe.
     @Binding var streamingAvailable: Bool?
+    @Environment(\.dismiss) private var dismiss
 
     @State private var showingRename = false
 
@@ -95,6 +96,19 @@ struct StreamingMeetingContentView: View {
                 }
             }
             .navigationTitle("流式会议记录")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        // Stop first so a running session finalises and
+                        // saves instead of being abandoned on dismiss;
+                        // stop() is a no-op when not running.
+                        Task {
+                            await session.stop()
+                            dismiss()
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showingRename) {
                 StreamingSpeakerRenameView(session: session)
             }

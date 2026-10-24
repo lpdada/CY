@@ -274,7 +274,7 @@ struct MainView: View {
             SelfHostedTranslationView()
         }
         .fullScreenCover(isPresented: $showingMeetingNotes) {
-            MeetingNotesView()
+            StreamingMeetingView()
         }
         .fullScreenCover(isPresented: $showMultiNoteChats) {
             MultiNoteChatsListView()
