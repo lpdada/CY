@@ -67,7 +67,7 @@ private struct SelfHostedTranslationContentView: View {
     @State private var shareItems: [Any] = []
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             controls
             if !session.status.isEmpty {
                 Text(session.status)
@@ -107,10 +107,12 @@ private struct SelfHostedTranslationContentView: View {
     }
 
     private var controls: some View {
-        VStack(spacing: 12) {
-            Toggle("双向对话", isOn: $session.isConversationMode)
-                .disabled(session.isRunning)
+        VStack(spacing: 8) {
+            // 双向对话开关与语言选择并成一行：上面每省一行，
+            // 下面的实时字幕区就多一行。
             HStack(spacing: 8) {
+                Toggle("双向对话", isOn: $session.isConversationMode)
+                    .fixedSize()
                 Picker(session.isConversationMode ? "语言 A" : "源语言", selection: $session.sourceLanguage) {
                     ForEach(SelfHostedTranslationSession.Language.allCases, id: \.self) { language in
                         Text(language.displayName).tag(language)
@@ -128,40 +130,31 @@ private struct SelfHostedTranslationContentView: View {
             }
             .disabled(session.isRunning)
 
-            if session.isConversationMode {
-                Text("每句话按文字自动识别是 A 还是 B，翻成另一种语言；纯汉字默认按中文处理（日语口语通常带假名），中英混说或第三种语言无法判定时，沿用上一句的方向。")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            Picker("转写模型", selection: $session.asrModelName) {
-                ForEach(selfHostedModels) { model in
-                    Text(model.displayName).tag(model.name)
+            // 转写模型与朗读开关并成一行；朗读开关运行中也可拨动，
+            // 声音切换不依赖开关重拨。
+            HStack(spacing: 8) {
+                Picker("转写模型", selection: $session.asrModelName) {
+                    ForEach(selfHostedModels) { model in
+                        Text(model.displayName).tag(model.name)
+                    }
                 }
+                .pickerStyle(.menu)
+                .disabled(session.isRunning)
+                Spacer()
+                Toggle("朗读译文", isOn: $session.ttsEnabled)
+                    .fixedSize()
             }
-            .pickerStyle(.menu)
-            .disabled(session.isRunning)
-
-            // 当前选中模型的优点/注意点随选择实时变，选模型不再盲选。
-            // 说明文字直接取模型自带的中文介绍，不另写一套，避免两处说法打架。
-            if let selectedModel = selfHostedModels.first(where: { $0.name == session.asrModelName }) {
-                Text(selectedModel.description)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text("能听懂哪种语言取决于转写模型：SenseVoice 主要覆盖中英日韩，其他语言请选 Whisper 系模型；翻译本身不受此限制。")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            Toggle("朗读译文", isOn: $session.ttsEnabled)
 
             if session.ttsEnabled {
                 if session.isConversationMode {
-                    TTSVoicePickerRow(language: session.sourceLanguage, serverVoices: session.serverVoices)
-                    TTSVoicePickerRow(language: session.targetLanguage, serverVoices: session.serverVoices)
+                    TTSVoicePickerRow(language: session.sourceLanguage, serverVoices: session.serverVoices) {
+                        session.voiceSelectionChanged(for: session.sourceLanguage)
+                    }
+                    TTSVoicePickerRow(language: session.targetLanguage, serverVoices: session.serverVoices) {
+                        session.voiceSelectionChanged(for: session.targetLanguage)
+                    }
                 } else {
-                    Picker("朗读声音", selection: $session.ttsVoiceID) {
+                    Picker("朗读声音", selection: fixedVoiceBinding) {
                         Text("系统默认").tag(nil as String?)
                         ForEach(session.serverVoices.filter { $0.language == session.targetLanguage.rawValue }) { voice in
                             Text(voice.displayName).tag(voice.id as String?)
@@ -187,6 +180,20 @@ private struct SelfHostedTranslationContentView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// Fixed-mode voice binding: writing the store alone is what the
+    /// old picker did, but a voice picked while readout is on must
+    /// also stop the old voice at once, so the change goes through
+    /// voiceSelectionChanged(for:) instead of only persisting.
+    private var fixedVoiceBinding: Binding<String?> {
+        Binding(
+            get: { session.ttsVoiceID },
+            set: {
+                session.ttsVoiceID = $0
+                session.voiceSelectionChanged(for: session.targetLanguage)
+            }
+        )
     }
 
     private var pairsList: some View {
@@ -289,9 +296,12 @@ private struct SelfHostedTranslationContentView: View {
 /// selection is read from and written to the per-language store
 /// directly, so each direction can keep its own voice while the
 /// session's single `ttsVoiceID` still serves fixed mode.
+/// onVoiceChange fires after the store write so a voice picked while
+/// readout is on stops the old voice at once (see voiceSelectionChanged).
 private struct TTSVoicePickerRow: View {
     let language: SelfHostedTranslationSession.Language
     let serverVoices: [ServerTTSVoice]
+    let onVoiceChange: () -> Void
 
     var body: some View {
         Picker("朗读声音（\(language.displayName)）", selection: voiceBinding) {
@@ -306,7 +316,10 @@ private struct TTSVoicePickerRow: View {
     private var voiceBinding: Binding<String?> {
         Binding(
             get: { ServerTTSVoiceSelection.voiceID(forLanguageCode: language.rawValue) },
-            set: { ServerTTSVoiceSelection.setVoiceID($0, forLanguageCode: language.rawValue) }
+            set: {
+                ServerTTSVoiceSelection.setVoiceID($0, forLanguageCode: language.rawValue)
+                onVoiceChange()
+            }
         )
     }
 }

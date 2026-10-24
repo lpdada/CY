@@ -162,6 +162,10 @@ final class SelfHostedTranslationSession {
     /// Server-voice playback queue: sentences play in order, never
     /// overlapping, mirroring AVSpeechSynthesizer's own queueing.
     private let serverPlayer = AVQueuePlayer()
+    /// Bumped by stopReadout(): a server synthesis already in flight
+    /// when the voice changes must not queue its stale old-voice audio
+    /// after the switch. speakViaServer checks this before inserting.
+    private var readoutGeneration = 0
     private var ttsTempFiles: [URL] = []
     private var isServerAudioPlaying: Bool { serverPlayer.timeControlStatus == .playing }
     private var capture: StreamingAudioCapture?
@@ -278,6 +282,7 @@ final class SelfHostedTranslationSession {
         translationTask = nil
         synthesizer.stopSpeaking(at: .immediate)
         serverPlayer.removeAllItems()
+        readoutGeneration += 1
         for url in ttsTempFiles {
             try? FileManager.default.removeItem(at: url)
         }
@@ -471,6 +476,38 @@ final class SelfHostedTranslationSession {
         }
     }
 
+    /// Called when the user picks a different readout voice while
+    /// readout is on: the switch must take effect at once, not after
+    /// the old voice finishes the queue. If the most recent sentence
+    /// was read in the changed language, stops anything still playing
+    /// in the old voice (queued server audio is cleared; in-flight
+    /// synthesis is discarded via readoutGeneration) and immediately
+    /// re-reads that sentence in the new voice, so the switch is
+    /// audible without waiting for the next sentence. If the most
+    /// recent sentence was in the other direction, nothing audible
+    /// changes right now (that direction's voice was not touched) and
+    /// the next sentence in the changed language uses the new voice,
+    /// since speak() always reads the fresh store value. No-op when
+    /// readout is off or the session is not running: a voice picked
+    /// on the setup screen simply applies to the next session's
+    /// sentences.
+    func voiceSelectionChanged(for language: Language) {
+        guard ttsEnabled, isRunning else { return }
+        guard let last = pairs.last, last.targetLanguage == language,
+              let translation = last.translation,
+              !translation.isEmpty, !last.isTranslating else { return }
+        stopReadout()
+        speak(translation, language: language)
+    }
+
+    /// Stops the current readout and clears queued audio. Does not
+    /// touch ttsTempFiles: they are cleaned up by stop().
+    private func stopReadout() {
+        synthesizer.stopSpeaking(at: .immediate)
+        serverPlayer.removeAllItems()
+        readoutGeneration += 1
+    }
+
     /// Readout in the translation's own language. The server voice is
     /// looked up per language (a Chinese voice cannot read Japanese
     /// well, and vice versa); in fixed mode this equals the picker's
@@ -500,6 +537,7 @@ final class SelfHostedTranslationSession {
             speakViaSystem(text, language: language)
             return
         }
+        let generation = readoutGeneration
         let client = ServerTTSClient(baseURL: SelfHostedTranscriptionConfig.serverURL, apiKey: apiKey)
         do {
             let audio = try await client.synthesize(
@@ -507,6 +545,9 @@ final class SelfHostedTranslationSession {
                 voiceID: voiceID,
                 languageCode: language.rawValue
             )
+            // Voice changed mid-synthesis: drop this stale audio
+            // instead of queueing old-voice sound after the switch.
+            guard generation == readoutGeneration else { return }
             let url = FileManager.default.temporaryDirectory
                 .appending(path: "tts-\(UUID().uuidString).wav")
             try audio.write(to: url)
@@ -514,6 +555,7 @@ final class SelfHostedTranslationSession {
             serverPlayer.insert(AVPlayerItem(url: url), after: nil)
             serverPlayer.play()
         } catch {
+            guard generation == readoutGeneration else { return }
             logger.logError("自建翻译：服务器语音失败，回落系统语音：\(error.localizedDescription)")
             speakViaSystem(text, language: language)
         }
