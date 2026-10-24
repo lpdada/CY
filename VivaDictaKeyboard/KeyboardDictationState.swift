@@ -218,7 +218,14 @@ final class KeyboardDictationState {
                 try? await Task.sleep(for: .seconds(1.0))
                 guard let self else { return }
                 if !self.isRecording {
-                    self.isSessionActive = false
+                    // 桥拉取单次超时就是 2 秒，1 秒时本地态可能还没跟上：
+                    // 先拉一次快照对账，仍未录音才以协调器读到的会话态为准，
+                    // 不再直接把会话打回未激活——慢拉取不应被误判成会话丢失，
+                    // 否则下一次点话筒会走热麦流程而非开始录音，整场更难翻盘。
+                    await AppGroupCoordinator.shared.reconcileRecordingState()
+                    if !self.isRecording {
+                        self.isSessionActive = AppGroupCoordinator.shared.isKeyboardSessionActive
+                    }
                 }
             }
         } else {

@@ -177,7 +177,7 @@ private struct TranslationHistoryRowContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(record.startedAt.formatted(date: .abbreviated, time: .shortened))
-            Text("\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage)) · \(record.asrModelName) · \(record.pairs.count) 句")
+            Text("\(directionText(for: record)) · \(record.asrModelName) · \(record.pairs.count) 句")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if record.summary != nil {
@@ -190,6 +190,17 @@ private struct TranslationHistoryRowContent: View {
 
     private func languageName(_ rawValue: String) -> String {
         SelfHostedTranslationSession.Language(rawValue: rawValue)?.displayName ?? rawValue
+    }
+
+    private func directionText(for record: TranslationSessionRecord) -> String {
+        let directions = Set(record.pairs.compactMap { pair -> String? in
+            guard let source = pair.sourceLanguage, let target = pair.targetLanguage else { return nil }
+            return "\(source)->\(target)"
+        })
+        if directions.count > 1 {
+            return "\(languageName(record.sourceLanguage)) ↔ \(languageName(record.targetLanguage))（双向）"
+        }
+        return "\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage))"
     }
 }
 
@@ -210,7 +221,7 @@ private struct TranslationRecordDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(record.startedAt.formatted(date: .abbreviated, time: .shortened))
                         .font(.headline)
-                    Text("\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage)) · \(record.asrModelName)")
+                    Text("\(directionText(for: record)) · \(record.asrModelName)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -236,6 +247,11 @@ private struct TranslationRecordDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(record.pairs) { pair in
                         VStack(alignment: .leading, spacing: 4) {
+                            if let source = pair.sourceLanguage, let target = pair.targetLanguage {
+                                Text("\(languageName(source)) → \(languageName(target))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             Text(pair.original)
                                 .foregroundStyle(.secondary)
                             if let translation = pair.translation {
@@ -300,5 +316,16 @@ private struct TranslationRecordDetailView: View {
 
     private func languageName(_ rawValue: String) -> String {
         SelfHostedTranslationSession.Language(rawValue: rawValue)?.displayName ?? rawValue
+    }
+
+    private func directionText(for record: TranslationSessionRecord) -> String {
+        let directions = Set(record.pairs.compactMap { pair -> String? in
+            guard let source = pair.sourceLanguage, let target = pair.targetLanguage else { return nil }
+            return "\(source)->\(target)"
+        })
+        if directions.count > 1 {
+            return "\(languageName(record.sourceLanguage)) ↔ \(languageName(record.targetLanguage))（双向）"
+        }
+        return "\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage))"
     }
 }

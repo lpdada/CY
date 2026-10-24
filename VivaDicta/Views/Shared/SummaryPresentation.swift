@@ -160,15 +160,20 @@ enum RecordHTMLBuilder {
 
     private static func translationBodyHTML(record: TranslationSessionRecord) -> String {
         var body = "<h1>自建翻译记录</h1>"
-        body += "<p class=\"meta\">\(escape(record.startedAt.formatted(date: .abbreviated, time: .shortened))) · \(escape(languageName(record.sourceLanguage))) → \(escape(languageName(record.targetLanguage))) · \(escape(record.asrModelName))</p>"
+        body += "<p class=\"meta\">\(escape(record.startedAt.formatted(date: .abbreviated, time: .shortened))) · \(escape(directionText(for: record))) · \(escape(record.asrModelName))</p>"
         if let summary = record.summary, !summary.isEmpty {
             body += "<section class=\"summary\"><div class=\"summary-title\">总结</div>"
             body += summaryHTML(summary)
             body += "</section>"
         }
         body += "<h2>内容</h2>"
+        let mixed = isMixedDirection(record)
         for pair in record.pairs {
-            body += "<div class=\"pair\"><p class=\"original\">\(escape(pair.original))</p>"
+            body += "<div class=\"pair\">"
+            if mixed, let source = pair.sourceLanguage, let target = pair.targetLanguage {
+                body += "<p class=\"meta\">\(escape(languageName(source))) → \(escape(languageName(target)))</p>"
+            }
+            body += "<p class=\"original\">\(escape(pair.original))</p>"
             if let translation = pair.translation, !translation.isEmpty {
                 body += "<p class=\"translation\">\(escape(translation))</p>"
             } else {
@@ -177,6 +182,21 @@ enum RecordHTMLBuilder {
             body += "</div>"
         }
         return body
+    }
+
+    private static func isMixedDirection(_ record: TranslationSessionRecord) -> Bool {
+        let directions = Set(record.pairs.compactMap { pair -> String? in
+            guard let source = pair.sourceLanguage, let target = pair.targetLanguage else { return nil }
+            return "\(source)->\(target)"
+        })
+        return directions.count > 1
+    }
+
+    private static func directionText(for record: TranslationSessionRecord) -> String {
+        if isMixedDirection(record) {
+            return "\(languageName(record.sourceLanguage)) ↔ \(languageName(record.targetLanguage))（双向）"
+        }
+        return "\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage))"
     }
 
     private static func summaryHTML(_ summary: String) -> String {

@@ -9,6 +9,15 @@ import TranscriptionCore
 /// -> self-hosted ASR -> AI translation -> bilingual list, with optional
 /// TTS readout of each translation.
 ///
+/// Conversation mode (on by default): the two pickers are languages A
+/// and B, not a fixed source -> target. Each transcribed sentence is
+/// detected client-side from its script (the ASR server returns text
+/// only, no language field) and translated to the other language, so
+/// two people speaking different languages can talk through one mic.
+/// A sentence that cannot be decided (mixed script, digits only, or a
+/// third language) keeps the previous sentence's direction instead of
+/// flipping the session back and forth.
+///
 /// The pipeline is three tasks by design. The chunker task only ever does
 /// synchronous work (RMS + WAV writes), so it never stalls the capture
 /// stream, which drops audio when its ~1s buffer fills. An ASR task
@@ -29,6 +38,11 @@ final class SelfHostedTranslationSession {
     struct Pair: Identifiable {
         let id = UUID()
         let original: String
+        /// The direction this sentence was actually translated in.
+        /// In conversation mode these differ per sentence; in fixed
+        /// mode they always equal the session's source/target.
+        var sourceLanguage: Language
+        var targetLanguage: Language
         var translation: String?
         var isTranslating = true
         var error: String?
@@ -36,30 +50,66 @@ final class SelfHostedTranslationSession {
 
     enum Language: String, CaseIterable {
         case chinese = "zh"
-        case japanese = "ja"
         case english = "en"
+        case japanese = "ja"
+        case korean = "ko"
+        case french = "fr"
+        case spanish = "es"
+        case portuguese = "pt"
+        case russian = "ru"
+        case vietnamese = "vi"
 
         var displayName: String {
             switch self {
             case .chinese: "中文"
-            case .japanese: "日语"
             case .english: "英语"
+            case .japanese: "日语"
+            case .korean: "韩语"
+            case .french: "法语"
+            case .spanish: "西班牙语"
+            case .portuguese: "葡萄牙语"
+            case .russian: "俄语"
+            case .vietnamese: "越南语"
             }
         }
 
         var translationName: String {
             switch self {
             case .chinese: "Chinese"
-            case .japanese: "Japanese"
             case .english: "English"
+            case .japanese: "Japanese"
+            case .korean: "Korean"
+            case .french: "French"
+            case .spanish: "Spanish"
+            case .portuguese: "Portuguese"
+            case .russian: "Russian"
+            case .vietnamese: "Vietnamese"
             }
         }
 
         var ttsCode: String {
             switch self {
             case .chinese: "zh-CN"
-            case .japanese: "ja-JP"
             case .english: "en-US"
+            case .japanese: "ja-JP"
+            case .korean: "ko-KR"
+            case .french: "fr-FR"
+            case .spanish: "es-ES"
+            case .portuguese: "pt-BR"
+            case .russian: "ru-RU"
+            case .vietnamese: "vi-VN"
+            }
+        }
+
+        /// Whether the language is normally written in Latin script.
+        /// Used by conversation-mode detection: pure Latin text can
+        /// only decide the pair when exactly one side is Latin-script.
+        var usesLatinScript: Bool {
+            switch self {
+            case .english, .french, .spanish, .portuguese, .vietnamese:
+                true
+            case .chinese, .japanese, .korean, .russian:
+                false
             }
         }
     }
@@ -74,6 +124,13 @@ final class SelfHostedTranslationSession {
         }
     }
     var asrModelName = "sensevoice"
+    /// Conversation mode: translate each sentence to the other of the
+    /// two picked languages, detected per sentence. Off restores the
+    /// old fixed source -> target behaviour.
+    var isConversationMode = true
+    /// Last decisively detected language, used as the sticky fallback
+    /// for sentences detection cannot decide. Reset on start().
+    private var lastSpokenLanguage: Language?
     var ttsEnabled = true
     /// Server voices offered by GET /v1/voices (empty until fetched, or
     /// when the server is unreachable: the picker then shows only the
@@ -143,6 +200,7 @@ final class SelfHostedTranslationSession {
         pairs = []
         summary = nil
         startedAt = Date()
+        lastSpokenLanguage = nil
         status = "正在聆听…"
         isRunning = true
 
@@ -240,7 +298,14 @@ final class SelfHostedTranslationSession {
         guard let startedAt else { return nil }
         let pairRecords = pairs
             .filter { !$0.original.isEmpty }
-            .map { TranslationPairRecord(original: $0.original, translation: $0.translation) }
+            .map {
+                TranslationPairRecord(
+                    original: $0.original,
+                    translation: $0.translation,
+                    sourceLanguage: $0.sourceLanguage.rawValue,
+                    targetLanguage: $0.targetLanguage.rawValue
+                )
+            }
         return TranslationSessionRecord(
             startedAt: startedAt,
             sourceLanguage: sourceLanguage.rawValue,
@@ -291,23 +356,113 @@ final class SelfHostedTranslationSession {
             return nil
         }
         guard !text.isEmpty else { return nil }
+        let (detected, target) = direction(for: text)
         let index = pairs.count
-        pairs.append(Pair(original: text))
+        pairs.append(Pair(original: text, sourceLanguage: detected, targetLanguage: target))
         return index
     }
 
+    /// The translation direction for one transcribed sentence. In
+    /// fixed mode this is always the session's source -> target. In
+    /// conversation mode the detected language translates to the other
+    /// picked language; an undecidable sentence keeps the previous
+    /// direction so one mixed sentence cannot flip the whole session.
+    private func direction(for text: String) -> (Language, Language) {
+        guard isConversationMode else { return (sourceLanguage, targetLanguage) }
+        let detected: Language
+        if let decided = Self.detectLanguage(of: text, first: sourceLanguage, second: targetLanguage) {
+            detected = decided
+            lastSpokenLanguage = decided
+        } else if let last = lastSpokenLanguage, last == sourceLanguage || last == targetLanguage {
+            detected = last
+        } else {
+            detected = sourceLanguage
+        }
+        let target = detected == sourceLanguage ? targetLanguage : sourceLanguage
+        return (detected, target)
+    }
+
+    /// Script-based language detection between two candidate languages.
+    /// Returns nil when the text cannot decide the pair, so the caller
+    /// can fall back instead of guessing. Each rule only fires when
+    /// its language is actually in the pair:
+    /// - kana is decisive for Japanese; Hangul for Korean; Cyrillic
+    ///   for Russian — none of these scripts appear in the other
+    ///   languages on offer;
+    /// - pure Latin text decides only when the pair holds exactly one
+    ///   Latin-script language (e.g. Chinese + French); a French +
+    ///   Spanish pair cannot be told apart from script alone;
+    /// - pure CJK text: when the pair is Chinese + Japanese it is
+    ///   treated as Chinese, because spoken Japanese almost always
+    ///   carries kana (particles, okurigana, です/ます) while Chinese
+    ///   has none — a truly kana-less Japanese utterance is usually a
+    ///   bare noun, and translating it as if Chinese into Japanese
+    ///   normally returns the same word;
+    /// - mixed scripts (code-switching), digits or punctuation only,
+    ///   and a third language outside the pair all return nil.
+    private static func detectLanguage(of text: String, first: Language, second: Language) -> Language? {
+        let pair = [first, second]
+        var kanaCount = 0
+        var hangulCount = 0
+        var cyrillicCount = 0
+        var cjkCount = 0
+        var latinCount = 0
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            if (0x3040...0x309F).contains(value) || (0x30A0...0x30FF).contains(value)
+                || (0xFF66...0xFF9D).contains(value) {
+                kanaCount += 1
+            } else if (0xAC00...0xD7A3).contains(value) || (0x1100...0x11FF).contains(value)
+                || (0x3130...0x318F).contains(value) {
+                hangulCount += 1
+            } else if (0x0400...0x04FF).contains(value) {
+                cyrillicCount += 1
+            } else if (0x4E00...0x9FFF).contains(value) || (0x3400...0x4DBF).contains(value) {
+                cjkCount += 1
+            } else if (0x41...0x5A).contains(value) || (0x61...0x7A).contains(value) {
+                latinCount += 1
+            }
+        }
+        if kanaCount > 0 {
+            return pair.contains(.japanese) ? .japanese : nil
+        }
+        if hangulCount > 0 {
+            return pair.contains(.korean) ? .korean : nil
+        }
+        if cyrillicCount > 0 {
+            return pair.contains(.russian) ? .russian : nil
+        }
+        if cjkCount == 0, latinCount > 0 {
+            let latinLanguages = pair.filter { $0.usesLatinScript }
+            return latinLanguages.count == 1 ? latinLanguages[0] : nil
+        }
+        if latinCount == 0, cjkCount > 0 {
+            if pair.contains(.chinese), pair.contains(.japanese) {
+                return .chinese
+            }
+            let cjkLanguages = pair.filter { $0 == .chinese || $0 == .japanese }
+            return cjkLanguages.count == 1 ? cjkLanguages[0] : nil
+        }
+        return nil
+    }
+
     /// Translation stage: fills one pair's translation in spoken order.
+    /// The direction comes from the pair itself, so a conversation-mode
+    /// sentence translates back to the other language even though the
+    /// next sentence may go the opposite way.
     private func translatePair(_ index: Int) async {
         guard index < pairs.count else { return }
         let text = pairs[index].original
+        let pairSource = pairs[index].sourceLanguage
+        let pairTarget = pairs[index].targetLanguage
         do {
-            let preset = Self.translationPreset(from: sourceLanguage, to: targetLanguage)
+            let preset = Self.translationPreset(from: pairSource, to: pairTarget)
             let (translated, _) = try await aiService.generateVariation(text: text, preset: preset)
             let cleaned = translated.trimmingCharacters(in: .whitespacesAndNewlines)
             pairs[index].translation = cleaned
             pairs[index].isTranslating = false
             if ttsEnabled, !cleaned.isEmpty {
-                speak(cleaned)
+                speak(cleaned, language: pairTarget)
             }
         } catch {
             logger.logError("自建翻译：翻译失败：\(error.localizedDescription)")
@@ -316,17 +471,22 @@ final class SelfHostedTranslationSession {
         }
     }
 
-    private func speak(_ text: String) {
-        if let voiceID = ttsVoiceID {
-            Task { await speakViaServer(text, voiceID: voiceID) }
+    /// Readout in the translation's own language. The server voice is
+    /// looked up per language (a Chinese voice cannot read Japanese
+    /// well, and vice versa); in fixed mode this equals the picker's
+    /// voice for the session target, in conversation mode it follows
+    /// each sentence's direction.
+    private func speak(_ text: String, language: Language) {
+        if let voiceID = ServerTTSVoiceSelection.voiceID(forLanguageCode: language.rawValue) {
+            Task { await speakViaServer(text, voiceID: voiceID, language: language) }
         } else {
-            speakViaSystem(text)
+            speakViaSystem(text, language: language)
         }
     }
 
-    private func speakViaSystem(_ text: String) {
+    private func speakViaSystem(_ text: String, language: Language) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: targetLanguage.ttsCode)
+        utterance.voice = AVSpeechSynthesisVoice(language: language.ttsCode)
         utterance.rate = 0.5
         synthesizer.speak(utterance)
     }
@@ -335,9 +495,9 @@ final class SelfHostedTranslationSession {
     /// player, so sentences never overlap. Any failure (server down,
     /// bad voice, bad audio) falls back to the system voice for this
     /// sentence instead of dropping it.
-    private func speakViaServer(_ text: String, voiceID: String) async {
+    private func speakViaServer(_ text: String, voiceID: String, language: Language) async {
         guard let apiKey = SelfHostedTranscriptionConfig.apiKey, !apiKey.isEmpty else {
-            speakViaSystem(text)
+            speakViaSystem(text, language: language)
             return
         }
         let client = ServerTTSClient(baseURL: SelfHostedTranscriptionConfig.serverURL, apiKey: apiKey)
@@ -345,7 +505,7 @@ final class SelfHostedTranslationSession {
             let audio = try await client.synthesize(
                 text: text,
                 voiceID: voiceID,
-                languageCode: targetLanguage.rawValue
+                languageCode: language.rawValue
             )
             let url = FileManager.default.temporaryDirectory
                 .appending(path: "tts-\(UUID().uuidString).wav")
@@ -355,7 +515,7 @@ final class SelfHostedTranslationSession {
             serverPlayer.play()
         } catch {
             logger.logError("自建翻译：服务器语音失败，回落系统语音：\(error.localizedDescription)")
-            speakViaSystem(text)
+            speakViaSystem(text, language: language)
         }
     }
 

@@ -10,11 +10,18 @@ enum TranslationSummarizer {
         let body = record.pairs
             .filter { !$0.original.isEmpty }
             .map { pair in
-                if let translation = pair.translation, !translation.isEmpty {
-                    "原文：\(pair.original)\n译文：\(translation)"
-                } else {
-                    "原文：\(pair.original)\n译文：（未翻译）"
+                if let source = pair.sourceLanguage, let target = pair.targetLanguage,
+                   let sourceName = SelfHostedTranslationSession.Language(rawValue: source)?.displayName,
+                   let targetName = SelfHostedTranslationSession.Language(rawValue: target)?.displayName {
+                    if let translation = pair.translation, !translation.isEmpty {
+                        return "原文（\(sourceName)）：\(pair.original)\n译文（\(targetName)）：\(translation)"
+                    }
+                    return "原文（\(sourceName)）：\(pair.original)\n译文：（未翻译）"
                 }
+                if let translation = pair.translation, !translation.isEmpty {
+                    return "原文：\(pair.original)\n译文：\(translation)"
+                }
+                return "原文：\(pair.original)\n译文：（未翻译）"
             }
             .joined(separator: "\n\n")
         let preset = Preset(

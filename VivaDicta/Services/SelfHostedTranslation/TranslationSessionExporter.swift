@@ -29,11 +29,16 @@ enum TranslationSessionExporter {
         var lines: [String] = []
         lines.append("自建翻译记录")
         lines.append("时间：\(record.startedAt.formatted(date: .abbreviated, time: .shortened))")
-        lines.append("语言：\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage))")
+        lines.append(directionLine(for: record))
         lines.append("转写模型：\(record.asrModelName)")
         lines.append("")
+        let mixed = isMixedDirection(record)
         for (index, pair) in record.pairs.enumerated() {
-            lines.append("\(index + 1). 原文：\(pair.original)")
+            if mixed, let source = pair.sourceLanguage, let target = pair.targetLanguage {
+                lines.append("\(index + 1). 原文（\(languageName(source))→\(languageName(target))）：\(pair.original)")
+            } else {
+                lines.append("\(index + 1). 原文：\(pair.original)")
+            }
             if let translation = pair.translation, !translation.isEmpty {
                 lines.append("   译文：\(translation)")
             } else {
@@ -46,6 +51,24 @@ enum TranslationSessionExporter {
             lines.append(summary)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// True when a record holds sentences in both directions, i.e. a
+    /// conversation-mode session. Old records (no per-pair language)
+    /// and fixed-direction records are never mixed.
+    private static func isMixedDirection(_ record: TranslationSessionRecord) -> Bool {
+        let directions = Set(record.pairs.compactMap { pair -> String? in
+            guard let source = pair.sourceLanguage, let target = pair.targetLanguage else { return nil }
+            return "\(source)->\(target)"
+        })
+        return directions.count > 1
+    }
+
+    private static func directionLine(for record: TranslationSessionRecord) -> String {
+        if isMixedDirection(record) {
+            return "语言：\(languageName(record.sourceLanguage)) ↔ \(languageName(record.targetLanguage))（双向）"
+        }
+        return "语言：\(languageName(record.sourceLanguage)) → \(languageName(record.targetLanguage))"
     }
 
     static func fileURL(for record: TranslationSessionRecord, format: Format) throws -> URL {

@@ -8,11 +8,18 @@ struct TranslationPairRecord: Codable, Identifiable, Hashable {
     let id: UUID
     let original: String
     let translation: String?
+    /// Per-sentence direction, present for records saved after the
+    /// conversation-mode change. Nil for older records, which only
+    /// carried the session-level direction in the header.
+    let sourceLanguage: String?
+    let targetLanguage: String?
 
-    init(id: UUID = UUID(), original: String, translation: String?) {
+    init(id: UUID = UUID(), original: String, translation: String?, sourceLanguage: String? = nil, targetLanguage: String? = nil) {
         self.id = id
         self.original = original
         self.translation = translation
+        self.sourceLanguage = sourceLanguage
+        self.targetLanguage = targetLanguage
     }
 }
 

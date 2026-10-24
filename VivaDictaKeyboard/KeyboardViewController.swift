@@ -60,6 +60,18 @@ class KeyboardViewController: KeyboardInputViewController {
         // 只靠 viewDidLoad 拉一次会在会话内 stale；Darwin 通知在键盘进程内不触发刷新，
         // 所以出现时拉是最稳的兜底（拉取失败时本地缓存不动，不会把药丸刷回旧值）。
         dictationState.vivaModeManager.refreshVivaModes()
+        // 出现时对账（fork24 修复微信键盘偶发不翻红）：
+        // 1) 先重注册回调：旧键盘界面销毁时的 stop() 是异步清回调，
+        //    若落在新界面注册之后会把新回调抹掉，出现时重注册一次堵住这条致聋链；
+        // 2) 再拉一次录音态递交：录音状态通知是一次性的，发出时键盘进程
+        //    若不存在就永久丢失，出现时对账是唯一能覆盖这条时序问题的兜底。
+        //    会话标志同步取协调器读到的最新值（拉取已更新缓存），不走旧缓存。
+        dictationState.start()
+        Task { @MainActor [weak self] in
+            await AppGroupCoordinator.shared.reconcileRecordingState()
+            guard let self else { return }
+            dictationState.isSessionActive = AppGroupCoordinator.shared.isKeyboardSessionActive
+        }
     }
 
     override func viewDidLoad() {

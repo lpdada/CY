@@ -209,16 +209,22 @@ public final class AppGroupCoordinator: @unchecked Sendable {
 
     /// 扩展进程在桥模式下冷启动暖一次缓存，避免键盘刚展开时
     /// 同步 getter（会话是否激活、当前模式、预设）读到空值。
+    /// 暖缓存拉回真值后也递交一次录音态：键盘进程重建时，
+    /// 录音状态通知可能已在旧进程里发出并丢失，单靠通知驱动
+    /// 的 UI 永远等不到那一次事件（fork24 前的微信键盘偶发
+    /// 不翻红即此链）。递交时回调若尚未注册则为空操作，真正
+    /// 的对账由键盘每次出现时调 reconcileRecordingState() 完成。
     private func warmBridgeCacheIfNeeded() {
         guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
               let defaults = sharedDefaults else { return }
-        Task {
+        Task { @MainActor in
             if let state = await BridgeStateClient.pullState() {
                 BridgeStateClient.applySnapshot(state, to: defaults)
             }
             if let config = await BridgeStateClient.pullConfig() {
                 BridgeStateClient.applySnapshot(config, to: defaults)
             }
+            deliverRecordingState()
         }
     }
 
@@ -323,6 +329,16 @@ public final class AppGroupCoordinator: @unchecked Sendable {
         let recording = isRecording
         lastDeliveredRecordingState = recording
         onRecordingStateChanged?(recording)
+    }
+
+    /// 键盘每次出现时主动对账录音态（一次性 Darwin 通知丢失的兜底）。
+    /// 拉取失败也不跳过递交：递交读的是本地缓存，至少把上一次
+    /// 拉到的真值交给 UI；拉取成功时缓存已是最新，递交的就是真值。
+    /// 调用方须先保证回调已注册（键盘在 viewWillAppear 里先重注册
+    /// 再调本方法），否则递交会空操作。
+    @MainActor public func reconcileRecordingState() async {
+        await pullBridgeStateIntoCache()
+        deliverRecordingState()
     }
 
     /// 主 App 进程：把键盘经剪贴板送来的载荷落地到本地存储。
@@ -1615,7 +1631,7 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     private func handleAudioLevelUpdatedNotification() {
         Task { @MainActor in
             // 桥模式：电平值在主 App 进程里，先拉一次状态快照刷新缓存
-            await pullBridgeStateIntoCache()
+            let pulled = await pullBridgeStateIntoCache()
             let level = currentAudioLevel
             onAudioLevelUpdated?(level)
             // 对账：录音进行中电平一直在流。即使录音状态通知那次拉取
@@ -1623,6 +1639,16 @@ public final class AppGroupCoordinator: @unchecked Sendable {
             // 把它纠回来，而不是整场都停留在普通键盘界面。
             if isRecording != lastDeliveredRecordingState {
                 deliverRecordingState()
+            }
+            if !pulled {
+                // 拉取失败时上面按旧缓存的比对可能静默无动作；照录音
+                // 状态通知的样子 1 秒后重试一次再对账，不让单次失败
+                // 成为整场不翻红的最后一根稻草。
+                try? await Task.sleep(for: .seconds(1))
+                if await pullBridgeStateIntoCache(),
+                   isRecording != lastDeliveredRecordingState {
+                    deliverRecordingState()
+                }
             }
         }
     }
