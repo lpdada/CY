@@ -6,12 +6,17 @@ import os
 struct MeetingSegmentRecord: Codable, Identifiable, Hashable {
     let id: UUID
     let speaker: String
-    let text: String
+    /// 界面/导出用的正文：润色过就是润色稿，否则是 ASR 原文。
+    var text: String
+    /// 润色前的 ASR 原文。润色后才有值，用于「还原原文」和对照显示；
+    /// 老记录没有这个字段，解码为 nil。
+    var rawText: String?
 
-    init(id: UUID = UUID(), speaker: String, text: String) {
+    init(id: UUID = UUID(), speaker: String, text: String, rawText: String? = nil) {
         self.id = id
         self.speaker = speaker
         self.text = text
+        self.rawText = rawText
     }
 }
 
@@ -120,9 +125,15 @@ final class MeetingRecordStore {
     }
 
     /// Absolute URL of a record's audio file (nil when it has none).
+    /// Falls back to `<recordID>.wav` when the JSON predates the field
+    /// but the file is on disk anyway.
     func audioURL(for record: MeetingRecord) -> URL? {
-        guard let name = record.audioFileName, !name.isEmpty else { return nil }
-        return Self.meetingsDirectory.appending(path: name)
+        if let name = record.audioFileName, !name.isEmpty {
+            let url = Self.meetingsDirectory.appending(path: name)
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        let fallback = Self.meetingsDirectory.appending(path: "\(record.id.uuidString).wav")
+        return FileManager.default.fileExists(atPath: fallback.path) ? fallback : nil
     }
 
     /// Moves the session's temp WAV next to its JSON and returns the

@@ -427,6 +427,7 @@ final class StreamingMeetingSession {
             status = "还没有定稿的段落可以润色"
             return
         }
+
         isPolishing = true
         polishDone = 0
         polishTotal = targets.count
@@ -435,147 +436,34 @@ final class StreamingMeetingSession {
             polishTotal = 0
         }
 
-        var failed = 0
-        var requests = 0
-        for batch in Self.makePolishBatches(targets, segments: segments) {
-            if Task.isCancelled { break }
-            let numbered = batch.enumerated().map { offset, index in
-                "[\(offset + 1)] \(segments[index].text)"
-            }.joined(separator: "\n")
-            do {
-                let reply = try await aiService.enhanceBatch(
-                    numbered, systemMessage: Self.polishSystemPrompt)
-                var parsed = Self.parseNumberedPolish(reply, count: batch.count)
-                if batch.count == 1, parsed[1] == nil {
-                    // 只有一段时，模型常直接答正文、不带编号，整段回复即可。
-                    parsed[1] = reply
-                }
-                for (offset, index) in batch.enumerated() {
-                    if let polished = Self.cleanPolished(parsed[offset + 1]),
-                       !polished.isEmpty {
-                        segments[index].polishedText = polished
-                    } else {
-                        // 模型漏了/改坏了这一行：保留原文，不猜。
-                        failed += 1
-                    }
-                }
-            } catch is CancellationError {
-                break
-            } catch {
-                failed += batch.count
-                logger.logError("流式会议：润色批次失败（\(batch.count) 段）：\(error.localizedDescription)")
+        let outcome = await MeetingTextPolisher.polish(
+            targets.map { segments[$0].text },
+            aiService: aiService,
+            onProgress: { done, total in
+                self.polishDone = done
+                self.polishTotal = total
             }
-            requests += 1
-            polishDone += batch.count
+        )
+
+        for (offset, index) in targets.enumerated() {
+            if let polished = outcome.polished[offset] {
+                segments[index].polishedText = polished
+            }
         }
+        polishDone = targets.count
 
         if let savedRecordID, let updated = makeRecord(id: savedRecordID) {
             _ = store.save(updated)
         }
-        if failed == 0 {
-            status = "已润色 \(polishDone) 段（\(requests) 次请求）"
-        } else if polishDone == failed {
-            status = "润色失败，\(failed) 段保留原文"
+        if outcome.failed == 0 {
+            status = "已润色 \(targets.count) 段（\(outcome.requests) 次请求）"
+        } else if outcome.failed >= targets.count {
+            status = "润色失败，\(outcome.failed) 段保留原文"
         } else {
-            status = "润色完成，\(failed) 段失败（保留原文）"
+            status = "润色完成，\(outcome.failed) 段失败（保留原文）"
         }
     }
 
-    /// One request per batch. The limits are output-side, not input-side:
-    /// the model must echo every line back, and past ~2000 characters of
-    /// output it starts dropping or merging lines (which we then have to
-    /// keep raw). 25 lines / 2000 characters keeps a 30-minute meeting
-    /// (roughly 6000–9000 characters) at 4–6 requests, while staying
-    /// inside that safe output size.
-    static let polishBatchSize = 25
-    static let polishBatchCharacters = 2000
-
-    /// Splits the finals into batches without breaking order. A single
-    /// oversized line gets its own batch rather than being truncated.
-    static func makePolishBatches(_ indices: [Int], segments: [Segment]) -> [[Int]] {
-        var batches: [[Int]] = []
-        var current: [Int] = []
-        var characters = 0
-        for index in indices {
-            let length = segments[index].text.count
-            if !current.isEmpty,
-               current.count >= polishBatchSize || characters + length > polishBatchCharacters {
-                batches.append(current)
-                current = []
-                characters = 0
-            }
-            current.append(index)
-            characters += length
-        }
-        if !current.isEmpty {
-            batches.append(current)
-        }
-        return batches
-    }
-
-    /// Parses `[n] text` lines back into 1-based slots. Continuation
-    /// lines without a number belong to the previous slot; a missing
-    /// slot simply stays absent so the caller keeps the raw text.
-    static func parseNumberedPolish(_ reply: String, count: Int) -> [Int: String] {
-        var result: [Int: String] = [:]
-        for rawLine in reply.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            // 只认带编号的行。无编号的行一律忽略：宁可这一段保留原文，
-            // 也不能把它拼到上一段去（实测模型折行时会那样串段）。
-            if let (number, text) = numberedLine(line), number >= 1, number <= count {
-                result[number] = text
-            }
-        }
-        return result
-    }
-
-    /// 去掉模型爱加的包裹符号（引号、反引号、行首的「润色：」）。
-    static func cleanPolished(_ text: String?) -> String? {
-        guard var value = text?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
-        for marker in ["润色：", "润色:", "Polish:", "润色后的文本："] where value.hasPrefix(marker) {
-            value.removeFirst(marker.count)
-            value = value.trimmingCharacters(in: .whitespaces)
-        }
-        while let first = value.first, ["\"", "“", "「", "`", "*"].contains(String(first)) {
-            value.removeFirst()
-        }
-        while let last = value.last, ["\"", "”", "」", "`", "*"].contains(String(last)) {
-            value.removeLast()
-        }
-        return value.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private static func numberedLine(_ line: String) -> (Int, String)? {
-        var text = line
-        // 容忍 "- [1] …"、"• [1] …"、"**[1]** …" 这类列表装饰。
-        for prefix in ["- ", "* ", "• ", "**"] where text.hasPrefix(prefix) {
-            text.removeFirst(prefix.count)
-        }
-        guard text.hasPrefix("["), let close = text.firstIndex(of: "]") else { return nil }
-        let digits = text[text.index(after: text.startIndex)..<close]
-        guard let number = Int(digits.trimmingCharacters(in: .whitespaces)) else { return nil }
-        var rest = String(text[text.index(after: close)...])
-            .trimmingCharacters(in: .whitespaces)
-        if rest.hasPrefix("：") || rest.hasPrefix(":") {
-            rest.removeFirst()
-        }
-        rest = rest.replacingOccurrences(of: "**", with: "")
-            .trimmingCharacters(in: .whitespaces)
-        return (number, rest)
-    }
-
-    /// 固定润色提示词：不套用当前「模式」的预设，因为预设可能是总结/翻译，
-    /// 那会把多行压缩或改写语言，破坏逐段映射。
-    static let polishSystemPrompt = """
-    你是会议记录润色助手。用户给你若干行带编号的语音转写文本，可能中、日、英混排。
-
-    逐行只做三件事：补全标点并合理断句；去掉口头语、语气词和重复；修正明显的同音字错别字。
-
-    绝对不要：合并或拆分任何一行；删减信息；总结或概括；翻译（中文行输出中文，日语行输出日语，英语行输出英语）。
-
-    输出格式：行数与输入完全相同，每行以 [编号] 开头，空一格后接润色后的文本；每段必须保持一行，不要折行。
-    只输出这些行，不要解释、标题、代码块或多余空行。
-    """
 
     /// Drops every polished version, restoring the raw transcript.
     func clearPolish() {
@@ -718,8 +606,14 @@ final class StreamingMeetingSession {
             .filter { !$0.text.isEmpty }
             // 润色过的段用润色稿入档（润色只改可读性、不删内容）；
             // 原文仍留在 segment.text 里供界面「原文」行显示。
-            .map { MeetingSegmentRecord(speaker: displayName(for: $0.speakerLabel),
-                                        text: $0.polishedText ?? $0.text) }
+            .map { segment in
+                MeetingSegmentRecord(
+                    speaker: displayName(for: segment.speakerLabel),
+                    text: segment.polishedText ?? segment.text,
+                    // 润色稿入库时保留 ASR 原文，历史页才能「还原原文」。
+                    rawText: segment.polishedText == nil ? nil : segment.text
+                )
+            }
         return MeetingRecord(
             id: id ?? UUID(),
             startedAt: startedAt,

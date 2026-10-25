@@ -195,6 +195,9 @@ private struct MeetingRecordDetailView: View {
     @State private var isSharing = false
     @State private var shareItems: [Any] = []
     @State private var player = MeetingAudioPlayer()
+    @State private var isPolishing = false
+    @State private var polishDone = 0
+    @State private var polishTotal = 0
 
     var body: some View {
         ScrollView {
@@ -214,8 +217,15 @@ private struct MeetingRecordDetailView: View {
                             .frame(width: 22, height: 22)
                             .background(segment.speaker == "A" ? Color.blue : Color.orange)
                             .clipShape(Circle())
-                        Text(segment.text)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(segment.text)
+                            if let raw = segment.rawText, !raw.isEmpty {
+                                (Text("原文 · ").foregroundStyle(.tertiary)
+                                 + Text(raw).foregroundStyle(.secondary))
+                                    .font(.caption)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 if let summary = record.summary {
@@ -225,7 +235,14 @@ private struct MeetingRecordDetailView: View {
                         SummarySectionsView(text: summary)
                     }
                 }
-                if !status.isEmpty {
+                if isPolishing {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.mini)
+                        Text(polishTotal > 0 ? "润色中 \(polishDone)/\(polishTotal)" : "润色中…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if !status.isEmpty {
                     Text(status)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -237,16 +254,32 @@ private struct MeetingRecordDetailView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(isSummarizing)
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
+                    Button("润色") {
+                        Task { await polish() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(record.segments.isEmpty || isPolishing || isSummarizing)
+                    if hasOriginal {
+                        Button("还原原文") {
+                            restoreOriginal()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isPolishing || isSummarizing)
+                    }
                     Button("总结") {
                         Task { await summarize() }
                     }
                     .buttonStyle(.bordered)
-                    .disabled(record.segments.isEmpty || isSummarizing)
+                    .disabled(record.segments.isEmpty || isSummarizing || isPolishing)
                     Menu("分享") {
                         Button("导出 TXT") { share(format: .txt) }
                         Button("导出 PDF") { share(format: .pdf) }
                         Button("导出 HTML") { share(format: .html) }
+                        if store.audioURL(for: record) != nil {
+                            Divider()
+                            Button("分享录音（WAV）") { shareAudio() }
+                        }
                     }
                     .buttonStyle(.bordered)
                     .disabled(record.segments.isEmpty)
@@ -267,9 +300,64 @@ private struct MeetingRecordDetailView: View {
         }
     }
 
+    private var hasOriginal: Bool {
+        record.segments.contains { ($0.rawText?.isEmpty == false) }
+    }
+
     private var summaryLanguageName: String {
         MeetingSummarizer.Language(rawValue: record.summaryLanguage ?? "")?.displayName
             ?? (record.summaryLanguage ?? "")
+    }
+
+    /// 对已保存的记录整场润色：分批请求，逐段回填，原文存进 rawText。
+    private func polish() async {
+        guard !isPolishing, !isSummarizing else { return }
+        isPolishing = true
+        polishDone = 0
+        polishTotal = record.segments.count
+        defer {
+            isPolishing = false
+            polishTotal = 0
+        }
+        let outcome = await MeetingTextPolisher.polish(
+            record.segments.map(\.text),
+            aiService: aiService,
+            onProgress: { done, total in
+                self.polishDone = done
+                self.polishTotal = total
+            }
+        )
+        for (index, segment) in record.segments.enumerated() {
+            guard let polished = outcome.polished[index], polished != segment.text else { continue }
+            record.segments[index].rawText = segment.rawText ?? segment.text
+            record.segments[index].text = polished
+        }
+        if store.save(record) {
+            status = outcome.failed == 0
+                ? "已润色 \(outcome.polished.count) 段（\(outcome.requests) 次请求）"
+                : "润色完成，\(outcome.failed) 段保留原文"
+        } else {
+            status = "润色已生成，保存失败"
+        }
+    }
+
+    private func restoreOriginal() {
+        for index in record.segments.indices {
+            if let raw = record.segments[index].rawText {
+                record.segments[index].text = raw
+                record.segments[index].rawText = nil
+            }
+        }
+        status = store.save(record) ? "已还原原文" : "还原失败"
+    }
+
+    private func shareAudio() {
+        guard let url = store.audioURL(for: record) else {
+            status = "这条记录没有录音"
+            return
+        }
+        shareItems = [url]
+        isSharing = true
     }
 
     private func summarize() async {

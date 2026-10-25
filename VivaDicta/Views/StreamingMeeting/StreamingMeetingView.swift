@@ -429,6 +429,10 @@ struct StreamingMeetingBottomBar: View {
                 Button("导出 TXT") { share(format: .txt) }
                 Button("导出 PDF") { share(format: .pdf) }
                 Button("导出 HTML") { share(format: .html) }
+                if let audioURL = session.audioURL {
+                    Divider()
+                    Button("分享录音（WAV）") { shareFile(audioURL) }
+                }
             } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 15, weight: .semibold))
@@ -502,6 +506,11 @@ struct StreamingMeetingBottomBar: View {
     /// Shares the current session as a saved record (same exporter
     /// the history view uses). Only after stop: sharing mid-session
     /// would snapshot a moving transcript.
+    private func shareFile(_ url: URL) {
+        shareItems = [url]
+        isSharing = true
+    }
+
     private func share(format: MeetingRecordExporter.Format) {
         guard let record = session.makeRecord(), !record.segments.isEmpty else { return }
         do {
