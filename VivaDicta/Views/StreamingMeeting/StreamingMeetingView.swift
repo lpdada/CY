@@ -81,6 +81,7 @@ struct StreamingMeetingContentView: View {
     @Binding var streamingAvailable: Bool?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var showingRename = false
     @State private var showingSummary = false
@@ -113,6 +114,16 @@ struct StreamingMeetingContentView: View {
                 Task {
                     streamingAvailable = await session.checkStreamingAvailable(language: newLanguage)
                 }
+            }
+            // 关闭/下滑/切后台都要停：这里原本只有「关闭」按钮里 stop，
+            // 手势下滑或切后台时录音会继续。
+            .onDisappear {
+                Task { await session.stop() }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                // 只处理真正的后台，.inactive（下拉控制中心、来电横幅）不停。
+                guard phase == .background else { return }
+                Task { await session.stop() }
             }
             .navigationTitle("流式会议记录")
             .navigationBarTitleDisplayMode(.inline)
@@ -752,7 +763,8 @@ struct StreamingMeetingSegmentRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.white, in: RoundedRectangle(cornerRadius: 14))
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
     }
 

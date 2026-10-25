@@ -172,6 +172,13 @@ final class SelfHostedTranslationSession {
     private var chunkerTask: Task<Void, Never>?
     private var asrTask: Task<Void, Never>?
     private var translationTask: Task<Void, Never>?
+    /// 停止时先 finish 这两个流，保证三个 Task 的 for-await 一定退出，
+    /// 不再依赖“capture 关了就自然结束”的假设。
+    private var chunkContinuation: AsyncStream<URL>.Continuation?
+    private var translationContinuation: AsyncStream<Int>.Continuation?
+    /// stop() 可重入保护：第一次停在收尾时，再点一次也能继续清理，
+    /// 不会因为 isRunning 已经是 false 就什么都不做。
+    private var isStopping = false
     private var sessionWAVURL: URL?
 
     init(aiService: AIService) {
@@ -196,13 +203,14 @@ final class SelfHostedTranslationSession {
     }
 
     func start() async {
-        guard !isRunning else { return }
+        guard !isRunning, !isStopping else { return }
         guard hasSelfHostedKey else {
             status = "先配置自建服务器的 API Key"
             return
         }
         pairs = []
         summary = nil
+        isStopping = false
         startedAt = Date()
         lastSpokenLanguage = nil
         status = "正在聆听…"
@@ -236,6 +244,7 @@ final class SelfHostedTranslationSession {
 
         let chunker = SentenceAudioChunker()
         let (chunkStream, chunkContinuation) = AsyncStream<URL>.makeStream()
+        self.chunkContinuation = chunkContinuation
         chunkerTask = Task {
             for await pcm in stream {
                 // 朗读译文时跳过拾音：否则喇叭里的译文会被话筒重新
@@ -254,6 +263,7 @@ final class SelfHostedTranslationSession {
             chunkContinuation.finish()
         }
         let (translationStream, translationContinuation) = AsyncStream<Int>.makeStream()
+        self.translationContinuation = translationContinuation
         asrTask = Task {
             for await url in chunkStream {
                 if let index = await transcribeChunk(url) {
@@ -270,19 +280,44 @@ final class SelfHostedTranslationSession {
     }
 
     func stop() async {
-        guard isRunning else { return }
+        guard isRunning || isStopping || capture != nil else { return }
+        guard !isStopping else { return }
+        isStopping = true
         isRunning = false
         status = "正在收尾…"
-        await capture?.stop()
-        await chunkerTask?.value
-        chunkerTask = nil
-        await asrTask?.value
-        asrTask = nil
-        await translationTask?.value
-        translationTask = nil
+        defer { isStopping = false }
+
+        // 1) 先静音、先掐断“迟到结果还会朗读”的路。
+        //    以前把这一步放在最后，队列里的句子会继续翻译继续念，
+        //    界面却已经显示“已停止”，看起来像停止无效。
+        readoutGeneration += 1
         synthesizer.stopSpeaking(at: .immediate)
         serverPlayer.removeAllItems()
-        readoutGeneration += 1
+
+        // 2) 关麦克风 + finish 两个流，保证下面的 await 一定能返回。
+        //    capture.stop() 自身也可能卡在音频引擎收尾：给它 1.2 秒上限，
+        //    超时就当已关，避免整个 stop() 卡死、再点停止也无效。
+        if let capture {
+            let stopCapture = Task { await capture.stop() }
+            await Self.awaitAll([stopCapture], timeout: .milliseconds(1200))
+        }
+        capture = nil
+        chunkContinuation?.finish()
+        chunkContinuation = nil
+        translationContinuation?.finish()
+        translationContinuation = nil
+
+        // 3) 取消管线，最多等 1.5 秒收尾；等不到就丢弃未完成的句子。
+        chunkerTask?.cancel()
+        asrTask?.cancel()
+        translationTask?.cancel()
+        let running = [chunkerTask, asrTask, translationTask].compactMap { $0 }
+        await Self.awaitAll(running, timeout: .milliseconds(1500))
+        chunkerTask = nil
+        asrTask = nil
+        translationTask = nil
+
+        // 4) 清理临时文件。
         for url in ttsTempFiles {
             try? FileManager.default.removeItem(at: url)
         }
@@ -291,10 +326,28 @@ final class SelfHostedTranslationSession {
             try? FileManager.default.removeItem(at: url)
         }
         sessionWAVURL = nil
+
         if let record = makeRecord(), !record.pairs.isEmpty {
             status = store.save(record) ? "已停止，记录已保存" : "已停止，记录保存失败"
         } else {
             status = "已停止"
+        }
+    }
+
+    /// 等一组 Task 结束，最多等 timeout，然后返回（不等剩余部分）。
+    private static func awaitAll(_ tasks: [Task<Void, Never>], timeout: Duration) async {
+        guard !tasks.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                for task in tasks {
+                    await task.value
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+            }
+            _ = await group.next()
+            group.cancelAll()
         }
     }
 
@@ -361,6 +414,8 @@ final class SelfHostedTranslationSession {
             return nil
         }
         guard !text.isEmpty else { return nil }
+        // 停止后才回来的转写结果直接丢弃：不要“停了还在长出新句子”。
+        guard isRunning, !isStopping else { return nil }
         let (detected, target) = direction(for: text)
         let index = pairs.count
         pairs.append(Pair(original: text, sourceLanguage: detected, targetLanguage: target))
@@ -456,6 +511,7 @@ final class SelfHostedTranslationSession {
     /// sentence translates back to the other language even though the
     /// next sentence may go the opposite way.
     private func translatePair(_ index: Int) async {
+        guard isRunning, !isStopping else { return }
         guard index < pairs.count else { return }
         let text = pairs[index].original
         let pairSource = pairs[index].sourceLanguage
@@ -464,6 +520,8 @@ final class SelfHostedTranslationSession {
             let preset = Self.translationPreset(from: pairSource, to: pairTarget)
             let (translated, _) = try await aiService.generateVariation(text: text, preset: preset)
             let cleaned = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+            // 停止后回来的译文只填文本、不朗读（speak 里也会再挡一次）。
+            guard isRunning, !isStopping else { return }
             pairs[index].translation = cleaned
             pairs[index].isTranslating = false
             if ttsEnabled, !cleaned.isEmpty {
@@ -514,6 +572,8 @@ final class SelfHostedTranslationSession {
     /// voice for the session target, in conversation mode it follows
     /// each sentence's direction.
     private func speak(_ text: String, language: Language) {
+        // 停止后任何迟到的译文都不许出声（这就是“点了停止还在念”的直接原因）。
+        guard isRunning, !isStopping else { return }
         if let voiceID = ServerTTSVoiceSelection.voiceID(forLanguageCode: language.rawValue) {
             Task { await speakViaServer(text, voiceID: voiceID, language: language) }
         } else {

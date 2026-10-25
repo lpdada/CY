@@ -14,6 +14,7 @@ import SwiftUI
 struct SelfHostedTranslationView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var session: SelfHostedTranslationSession?
     @State private var hasSelfHostedKey = SelfHostedTranscriptionConfig.apiKey != nil
@@ -50,6 +51,17 @@ struct SelfHostedTranslationView: View {
                     session = SelfHostedTranslationSession(aiService: appState.aiService)
                 }
                 hasSelfHostedKey = SelfHostedTranscriptionConfig.apiKey != nil
+            }
+            // 关页面 = 停录音。以前「关闭」只 dismiss，session 的录音/识别/
+            // 朗读都是独立 Task，会把 session 一直持有，页面没了麦克风还开着。
+            .onDisappear {
+                Task { await session?.stop() }
+            }
+            // 切到后台也停：不让麦克风在后台一直录、译文在后台一直念。
+            .onChange(of: scenePhase) { _, phase in
+                // 只处理真正的后台，.inactive（下拉控制中心、来电横幅）不停。
+                guard phase == .background else { return }
+                Task { await session?.stop() }
             }
             .sheet(isPresented: $showingConfig) {
                 if let model = selfHostedModels.first {
@@ -576,7 +588,8 @@ private struct PairCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.white, in: RoundedRectangle(cornerRadius: 14))
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
     }
 }
