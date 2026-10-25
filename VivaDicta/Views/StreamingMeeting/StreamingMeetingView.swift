@@ -81,7 +81,6 @@ struct StreamingMeetingContentView: View {
     @Binding var streamingAvailable: Bool?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
 
     @State private var showingRename = false
     @State private var showingSummary = false
@@ -120,14 +119,10 @@ struct StreamingMeetingContentView: View {
                     streamingAvailable = await session.checkStreamingAvailable(language: newLanguage)
                 }
             }
-            // 关闭/下滑/切后台都要停：这里原本只有「关闭」按钮里 stop，
-            // 手势下滑或切后台时录音会继续。
+            // 只有页面关闭才停：关闭按钮里已先 stop，这里是兜底（手势下滑关闭
+            // 页面也走这里）。切后台、息屏不触发 onDisappear，录制继续，
+            // 靠 Info.plist 的 UIBackgroundModes: audio 在后台接着录。
             .onDisappear {
-                Task { await session.stop() }
-            }
-            .onChange(of: scenePhase) { _, phase in
-                // 只处理真正的后台，.inactive（下拉控制中心、来电横幅）不停。
-                guard phase == .background else { return }
                 Task { await session.stop() }
             }
             .navigationTitle("流式会议记录")

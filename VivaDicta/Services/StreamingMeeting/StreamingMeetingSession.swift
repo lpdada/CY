@@ -1,6 +1,5 @@
 import AVFoundation
 import Foundation
-import UIKit
 import os
 
 /// One streaming meeting session: mic -> WebSocket -> server-side
@@ -154,9 +153,10 @@ final class StreamingMeetingSession {
     /// Seconds recorded in this session (meter ticks at 10 Hz).
     private(set) var elapsed: TimeInterval = 0
     private var meterTask: Task<Void, Never>?
-    /// 后台/锁屏监听。SwiftUI 的 scenePhase 在 fullScreenCover 里并不可靠
-    /// （用户实测锁屏后仍继续录），所以录制的整个生命周期直接观察 App 通知。
-    private var lifecycleObservers: [NSObjectProtocol] = []
+    // 注意：流式会议刻意不监听后台/锁屏。Info.plist 已有 UIBackgroundModes: audio，
+    // 切后台、息屏后录制继续，只有手动按关闭或停止键才结束（见 View 的关闭按钮、
+    // 底部录音键和 onDisappear）。上一版的 UIKit 后台监听和 View 的 scenePhase
+    // 后台处理已全部删掉，不要再加回来。
     private var isStopping = false
     /// The one WAV from start to stop, persisted with the record.
     private(set) var audioFileName: String?
@@ -335,7 +335,6 @@ final class StreamingMeetingSession {
         }
         isRunning = true
         startMeter()
-        startObservingAppLifecycle()
         status = "正在记录（流式）…"
     }
 
@@ -348,7 +347,7 @@ final class StreamingMeetingSession {
         defer { isStopping = false }
 
         // 1) 先关麦。capture.stop() 本身也可能卡在音频引擎收尾，给 1.5 秒上限，
-        //    否则锁屏时整个 stop() 挂住、回到前台还在录。
+        //    否则手动停止时整个 stop() 挂住。
         if let capture {
             let stopCapture = Task { await capture.stop() }
             await Self.awaitAll([stopCapture], timeout: .milliseconds(1500))
@@ -378,7 +377,6 @@ final class StreamingMeetingSession {
         }
         eventTask = nil
         client = nil
-        stopObservingAppLifecycle()
         if var record = makeRecord(), !record.segments.isEmpty {
             record.audioFileName = persistSessionAudio(recordID: record.id)
             audioFileName = record.audioFileName
@@ -510,34 +508,6 @@ final class StreamingMeetingSession {
 
     /// Ticks the level meter at 10 Hz while recording: feeds the live
     /// waveform and the elapsed-time label. Purely visual.
-    // MARK: - 后台/锁屏
-
-    /// 录制期间监听 App 进入后台（含锁屏）。SwiftUI 的 scenePhase 在
-    /// fullScreenCover 里实测不触发，所以这里直接观察 UIApplication 通知。
-    private func startObservingAppLifecycle() {
-        guard lifecycleObservers.isEmpty else { return }
-        let center = NotificationCenter.default
-        lifecycleObservers.append(
-            center.addObserver(
-                forName: UIApplication.didEnterBackgroundNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    await self?.stop()
-                }
-            }
-        )
-    }
-
-    private func stopObservingAppLifecycle() {
-        let center = NotificationCenter.default
-        for token in lifecycleObservers {
-            center.removeObserver(token)
-        }
-        lifecycleObservers = []
-    }
-
     /// 等一组 Task 结束，最多等 timeout；超时直接返回（剩余部分自行结束）。
     private static func awaitAll(_ tasks: [Task<Void, Never>], timeout: Duration) async {
         guard !tasks.isEmpty else { return }
