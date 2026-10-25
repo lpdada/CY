@@ -105,6 +105,11 @@ struct StreamingMeetingContentView: View {
                 )
             }
             .background(Color(.systemGroupedBackground))
+            .onAppear {
+                // 会议默认「自动」时，译文方向也应是自动识别，而不是写死中文。
+                translationSession.sourceLanguage =
+                    StreamingTranslationSession.Language(rawValue: session.language.rawValue) ?? .automatic
+            }
             .onChange(of: session.language) { _, newLanguage in
                 // Re-probe on language switch (not while running: the
                 // picker is disabled then, so this only fires idle).

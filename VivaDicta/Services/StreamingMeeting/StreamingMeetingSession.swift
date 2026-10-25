@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import UIKit
 import os
 
 /// One streaming meeting session: mic -> WebSocket -> server-side
@@ -84,7 +85,7 @@ final class StreamingMeetingSession {
     var isRunning = false
     var segments: [Segment] = []
     var status = ""
-    var language: Language = .chinese
+    var language: Language = .automatic
     var asrModelName = "sensevoice"
     /// Set by the view from the app state, like `translationSession`.
     /// Summary is unavailable until this is set.
@@ -153,6 +154,10 @@ final class StreamingMeetingSession {
     /// Seconds recorded in this session (meter ticks at 10 Hz).
     private(set) var elapsed: TimeInterval = 0
     private var meterTask: Task<Void, Never>?
+    /// 后台/锁屏监听。SwiftUI 的 scenePhase 在 fullScreenCover 里并不可靠
+    /// （用户实测锁屏后仍继续录），所以录制的整个生命周期直接观察 App 通知。
+    private var lifecycleObservers: [NSObjectProtocol] = []
+    private var isStopping = false
     /// The one WAV from start to stop, persisted with the record.
     private(set) var audioFileName: String?
     private var player: AVAudioPlayer?
@@ -213,7 +218,7 @@ final class StreamingMeetingSession {
     }
 
     func start() async {
-        guard !isRunning else { return }
+        guard !isRunning, !isStopping else { return }
         guard hasSelfHostedKey else {
             status = "先配置自建服务器的 API Key"
             return
@@ -330,32 +335,50 @@ final class StreamingMeetingSession {
         }
         isRunning = true
         startMeter()
+        startObservingAppLifecycle()
         status = "正在记录（流式）…"
     }
 
     func stop() async {
-        guard isRunning else { return }
+        guard isRunning || isStopping || capture != nil else { return }
+        guard !isStopping else { return }
+        isStopping = true
         isRunning = false
         status = "正在收尾…"
-        await capture?.stop()
-        await forwardTask?.value
-        forwardTask = nil
-        capture = nil
-        // Ask the server to finalise, then give it up to 2 seconds to
-        // send its session_end (and any last finals) before closing
-        // the socket. The watchdog's disconnect finishes the event
-        // stream, so awaiting the event task below always terminates.
-        await client?.sendEnd()
-        let watchdog = Task {
-            try? await Task.sleep(for: .seconds(2))
-            await client?.disconnect()
+        defer { isStopping = false }
+
+        // 1) 先关麦。capture.stop() 本身也可能卡在音频引擎收尾，给 1.5 秒上限，
+        //    否则锁屏时整个 stop() 挂住、回到前台还在录。
+        if let capture {
+            let stopCapture = Task { await capture.stop() }
+            await Self.awaitAll([stopCapture], timeout: .milliseconds(1500))
         }
-        await eventTask?.value
-        watchdog.cancel()
-        await client?.disconnect()
+        capture = nil
+        if let forwardTask {
+            await Self.awaitAll([forwardTask], timeout: .milliseconds(800))
+        }
+        forwardTask = nil
+        stopMeter()
+
+        // 2) Ask the server to finalise, then give it up to 2 seconds to
+        // send its session_end (and any last finals) before closing
+        // the socket. Both waits are capped: a dead socket must not
+        // keep the recording alive or block saving the record.
+        if let client {
+            await client.sendEnd()
+            let watchdog = Task {
+                try? await Task.sleep(for: .seconds(2))
+                await client.disconnect()
+            }
+            if let eventTask {
+                await Self.awaitAll([eventTask], timeout: .milliseconds(2500))
+            }
+            watchdog.cancel()
+            await client.disconnect()
+        }
         eventTask = nil
         client = nil
-        stopMeter()
+        stopObservingAppLifecycle()
         if var record = makeRecord(), !record.segments.isEmpty {
             record.audioFileName = persistSessionAudio(recordID: record.id)
             audioFileName = record.audioFileName
@@ -487,6 +510,51 @@ final class StreamingMeetingSession {
 
     /// Ticks the level meter at 10 Hz while recording: feeds the live
     /// waveform and the elapsed-time label. Purely visual.
+    // MARK: - 后台/锁屏
+
+    /// 录制期间监听 App 进入后台（含锁屏）。SwiftUI 的 scenePhase 在
+    /// fullScreenCover 里实测不触发，所以这里直接观察 UIApplication 通知。
+    private func startObservingAppLifecycle() {
+        guard lifecycleObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+        lifecycleObservers.append(
+            center.addObserver(
+                forName: UIApplication.didEnterBackgroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.stop()
+                }
+            }
+        )
+    }
+
+    private func stopObservingAppLifecycle() {
+        let center = NotificationCenter.default
+        for token in lifecycleObservers {
+            center.removeObserver(token)
+        }
+        lifecycleObservers = []
+    }
+
+    /// 等一组 Task 结束，最多等 timeout；超时直接返回（剩余部分自行结束）。
+    private static func awaitAll(_ tasks: [Task<Void, Never>], timeout: Duration) async {
+        guard !tasks.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                for task in tasks {
+                    await task.value
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+            }
+            _ = await group.next()
+            group.cancelAll()
+        }
+    }
+
     private func startMeter() {
         meterTask?.cancel()
         meterTask = Task { [weak self] in

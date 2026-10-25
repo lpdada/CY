@@ -1,6 +1,7 @@
 import AVFoundation
 import CloudTranscription
 import Foundation
+import UIKit
 import os
 import Presets
 import TranscriptionCore
@@ -179,6 +180,8 @@ final class SelfHostedTranslationSession {
     /// stop() 可重入保护：第一次停在收尾时，再点一次也能继续清理，
     /// 不会因为 isRunning 已经是 false 就什么都不做。
     private var isStopping = false
+    /// 后台/锁屏监听（scenePhase 在最外层 fullScreenCover 里不可靠）。
+    private var lifecycleObservers: [NSObjectProtocol] = []
     private var sessionWAVURL: URL?
 
     init(aiService: AIService) {
@@ -215,6 +218,7 @@ final class SelfHostedTranslationSession {
         lastSpokenLanguage = nil
         status = "正在聆听…"
         isRunning = true
+        startObservingAppLifecycle()
 
         let sessionWAV = FileManager.default.temporaryDirectory
             .appending(path: "translation-session-\(UUID().uuidString).wav")
@@ -285,7 +289,10 @@ final class SelfHostedTranslationSession {
         isStopping = true
         isRunning = false
         status = "正在收尾…"
-        defer { isStopping = false }
+        defer {
+            isStopping = false
+            stopObservingAppLifecycle()
+        }
 
         // 1) 先静音、先掐断“迟到结果还会朗读”的路。
         //    以前把这一步放在最后，队列里的句子会继续翻译继续念，
@@ -332,6 +339,30 @@ final class SelfHostedTranslationSession {
         } else {
             status = "已停止"
         }
+    }
+
+    /// 录制期间监听 App 进入后台（含锁屏）。scenePhase 在 fullScreenCover
+    /// 里实测不触发，所以直接观察 UIApplication 通知。
+    private func startObservingAppLifecycle() {
+        guard lifecycleObservers.isEmpty else { return }
+        lifecycleObservers.append(
+            NotificationCenter.default.addObserver(
+                forName: UIApplication.didEnterBackgroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.stop()
+                }
+            }
+        )
+    }
+
+    private func stopObservingAppLifecycle() {
+        for token in lifecycleObservers {
+            NotificationCenter.default.removeObserver(token)
+        }
+        lifecycleObservers = []
     }
 
     /// 等一组 Task 结束，最多等 timeout，然后返回（不等剩余部分）。
