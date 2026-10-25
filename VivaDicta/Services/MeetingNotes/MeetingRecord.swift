@@ -25,6 +25,10 @@ struct MeetingRecord: Codable, Identifiable, Hashable {
     var segments: [MeetingSegmentRecord]
     var summary: String?
     var summaryLanguage: String?
+    /// File name (inside Documents/MeetingNotes) of the session's audio,
+    /// one WAV from start to stop. Nil for records saved before audio
+    /// was kept, and for sessions where recording failed.
+    var audioFileName: String?
 
     init(
         id: UUID = UUID(),
@@ -32,7 +36,8 @@ struct MeetingRecord: Codable, Identifiable, Hashable {
         asrModelName: String,
         segments: [MeetingSegmentRecord],
         summary: String? = nil,
-        summaryLanguage: String? = nil
+        summaryLanguage: String? = nil,
+        audioFileName: String? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -40,6 +45,7 @@ struct MeetingRecord: Codable, Identifiable, Hashable {
         self.segments = segments
         self.summary = summary
         self.summaryLanguage = summaryLanguage
+        self.audioFileName = audioFileName
     }
 }
 
@@ -108,9 +114,42 @@ final class MeetingRecordStore {
         }
     }
 
+    /// Absolute URL of a stored audio file by file name.
+    func audioURL(fileName: String) -> URL {
+        Self.meetingsDirectory.appending(path: fileName)
+    }
+
+    /// Absolute URL of a record's audio file (nil when it has none).
+    func audioURL(for record: MeetingRecord) -> URL? {
+        guard let name = record.audioFileName, !name.isEmpty else { return nil }
+        return Self.meetingsDirectory.appending(path: name)
+    }
+
+    /// Moves the session's temp WAV next to its JSON and returns the
+    /// file name to store in the record. Nil means "keep no audio".
+    func importAudio(from source: URL, recordID: UUID) -> String? {
+        let directory = Self.meetingsDirectory
+        let name = "\(recordID.uuidString).wav"
+        let destination = directory.appending(path: name)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.moveItem(at: source, to: destination)
+            return name
+        } catch {
+            logger.logError("会议记录：音频保存失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+
     @discardableResult
     func delete(_ record: MeetingRecord) -> Bool {
         let file = Self.meetingsDirectory.appending(path: "\(record.id.uuidString).json")
+        if let audio = audioURL(for: record) {
+            try? FileManager.default.removeItem(at: audio)
+        }
         do {
             try FileManager.default.removeItem(at: file)
             records.removeAll { $0.id == record.id }

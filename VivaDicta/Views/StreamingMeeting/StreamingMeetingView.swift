@@ -97,6 +97,7 @@ struct StreamingMeetingContentView: View {
                     session: session,
                     translationSession: translationSession
                 )
+                StreamingMeetingAudioBar(session: session)
                 StreamingMeetingBottomBar(
                     session: session,
                     showingSummary: $showingSummary
@@ -274,6 +275,23 @@ struct StreamingMeetingSettingsBar: View {
                 .disabled(session.isRunning || session.isSummarizing)
             }
 
+            if session.hasPolished {
+                Button {
+                    session.clearPolish()
+                } label: {
+                    HStack {
+                        Text("还原原文")
+                            .font(.subheadline)
+                        Spacer()
+                        Text("已润色 \(polishedCount) 段")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(session.isRunning || session.isPolishing)
+            }
+
             Button {
                 showingRename = true
             } label: {
@@ -301,6 +319,10 @@ struct StreamingMeetingSettingsBar: View {
         .padding(.top, 2)
         .padding(.bottom, 12)
         .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    private var polishedCount: Int {
+        session.segments.filter { $0.polishedText?.isEmpty == false }.count
     }
 
     private var summaryLine: String {
@@ -337,7 +359,17 @@ struct StreamingMeetingBottomBar: View {
             recordButton
 
             VStack(alignment: .leading, spacing: 2) {
-                if session.isSummarizing {
+                if session.isPolishing {
+                    HStack(spacing: 5) {
+                        ProgressView()
+                            .controlSize(.mini)
+                        Text(session.polishTotal > 0
+                             ? "润色中 \(session.polishDone)/\(session.polishTotal)"
+                             : "润色中…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if session.isSummarizing {
                     HStack(spacing: 5) {
                         ProgressView()
                             .controlSize(.mini)
@@ -382,10 +414,16 @@ struct StreamingMeetingBottomBar: View {
 
             Spacer(minLength: 4)
 
+            iconButton("wand.and.stars", label: "润色") {
+                Task { await session.polish() }
+            }
+            .disabled(session.segments.isEmpty || session.isRunning
+                      || session.isPolishing || session.isSummarizing)
+
             iconButton("doc.text", label: "总结") {
                 Task { await session.summarize() }
             }
-            .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing)
+            .disabled(session.segments.isEmpty || session.isRunning || session.isSummarizing || session.isPolishing)
 
             Menu {
                 Button("导出 TXT") { share(format: .txt) }
@@ -441,8 +479,8 @@ struct StreamingMeetingBottomBar: View {
                 )
         }
         .buttonStyle(.plain)
-        .disabled(!session.isRunning && !session.hasSelfHostedKey)
-        .opacity(!session.isRunning && !session.hasSelfHostedKey ? 0.45 : 1)
+        .disabled(!session.isRunning && (!session.hasSelfHostedKey || session.isPolishing))
+        .opacity(!session.isRunning && (!session.hasSelfHostedKey || session.isPolishing) ? 0.45 : 1)
         .accessibilityLabel(session.isRunning ? "停止记录" : "开始记录")
     }
 
@@ -528,6 +566,101 @@ struct StreamingMeetingSegmentListView: View {
     }
 }
 
+
+/// The session's audio: a live level strip while recording, then a
+/// player for the single WAV that runs from start to stop. One file per
+/// meeting, saved next to the record, so it survives app restarts.
+struct StreamingMeetingAudioBar: View {
+    let session: StreamingMeetingSession
+
+    private var bars: [Float] {
+        Array(session.waveform.suffix(48))
+    }
+
+    var body: some View {
+        if session.isRunning || session.audioURL != nil {
+            VStack(spacing: 4) {
+                HStack(spacing: 10) {
+                    playButton
+
+                    waveform
+
+                    Text(timeLabel)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+
+                if !session.isRunning, session.audioDuration > 0 {
+                    Slider(
+                        value: Binding(
+                            get: { session.playbackTime },
+                            set: { session.seekAudio(to: $0) }
+                        ),
+                        in: 0...max(session.audioDuration, 0.1)
+                    )
+                    .controlSize(.mini)
+                    .tint(.accentColor)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.thinMaterial)
+        }
+    }
+
+    private var playButton: some View {
+        Button {
+            session.toggleAudioPlayback()
+        } label: {
+            Image(systemName: iconName)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color(.secondarySystemBackground)))
+        }
+        .buttonStyle(.plain)
+        .disabled(session.isRunning || session.audioURL == nil)
+        .opacity(session.isRunning || session.audioURL == nil ? 0.5 : 1)
+        .accessibilityLabel(session.isPlayingAudio ? "暂停录音" : "播放录音")
+    }
+
+    private var iconName: String {
+        if session.isRunning { return "waveform" }
+        return session.isPlayingAudio ? "pause.fill" : "play.fill"
+    }
+
+    private var waveform: some View {
+        GeometryReader { geometry in
+            let count = max(bars.count, 1)
+            let barWidth = max(1.5, (geometry.size.width - CGFloat(count - 1) * 1.5) / CGFloat(count))
+            HStack(alignment: .center, spacing: 1.5) {
+                ForEach(Array(bars.enumerated()), id: \.offset) { _, level in
+                    Capsule()
+                        .fill(Color.accentColor.opacity(session.isRunning ? 0.85 : 0.5))
+                        .frame(width: barWidth,
+                               height: max(2, CGFloat(level) * geometry.size.height))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(height: 22)
+    }
+
+    private var timeLabel: String {
+        if session.isRunning {
+            return Self.format(session.elapsed)
+        }
+        guard session.audioDuration > 0 else { return "" }
+        return "\(Self.format(session.playbackTime)) / \(Self.format(session.audioDuration))"
+    }
+
+    private static func format(_ time: TimeInterval) -> String {
+        let total = Int(time.rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
 /// One segment as a card: speaker badge + name on top, the transcript
 /// text as the main content, the translation (when on) as a small
 /// secondary line underneath.
@@ -571,13 +704,27 @@ struct StreamingMeetingSegmentRowView: View {
                 }
                 Spacer(minLength: 0)
             }
-            Text(segment.text)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .font(.body)
-                .lineSpacing(2)
-                .foregroundStyle(segment.isProvisional ? .secondary : .primary)
-                .opacity(segment.isProvisional ? 0.7 : 1)
-                .textSelection(.enabled)
+            if let polished = segment.polishedText, !polished.isEmpty {
+                // 润色稿在前，原文以一行小字保留：润色只改可读性，
+                // 用户仍能对照 ASR 原样记录。
+                Text(polished)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.body)
+                    .lineSpacing(2)
+                    .textSelection(.enabled)
+                (Text("原文 · ").foregroundStyle(.tertiary)
+                 + Text(segment.text).foregroundStyle(.secondary))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.caption)
+            } else {
+                Text(segment.text)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.body)
+                    .lineSpacing(2)
+                    .foregroundStyle(segment.isProvisional ? .secondary : .primary)
+                    .opacity(segment.isProvisional ? 0.7 : 1)
+                    .textSelection(.enabled)
+            }
             if let translation, !translation.isEmpty {
                 Text(translation)
                     .frame(maxWidth: .infinity, alignment: .leading)

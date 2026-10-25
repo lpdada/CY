@@ -936,6 +936,23 @@ class AIService {
         }
     }
 
+    /// Batched polish: one request for many numbered lines. The caller
+    /// supplies the system prompt (batching rules must not be replaced
+    /// by a preset whose job is summarising) and gets the raw model
+    /// output back; the caller parses the `[n] …` lines.
+    ///
+    /// Reuses `makeRequest`, so the active mode's provider/model,
+    /// thinking toggle, output filters and provider fallback all apply.
+    public func enhanceBatch(_ numberedTranscript: String,
+                             systemMessage: String) async throws -> String {
+        try await makeRequest(
+            text: numberedTranscript,
+            mode: selectedMode,
+            systemMessage: systemMessage,
+            preFormattedUserMessage: numberedTranscript
+        )
+    }
+
     /// Generates a text variation using a specific preset prompt.
     ///
     /// Unlike ``enhance(_:)`` which uses the current VivaMode's prompt, this method

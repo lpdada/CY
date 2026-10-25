@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 /// Saved meeting records: newest first, tap for detail, swipe to delete.
@@ -193,6 +194,7 @@ private struct MeetingRecordDetailView: View {
     @State private var status = ""
     @State private var isSharing = false
     @State private var shareItems: [Any] = []
+    @State private var player = MeetingAudioPlayer()
 
     var body: some View {
         ScrollView {
@@ -200,6 +202,9 @@ private struct MeetingRecordDetailView: View {
                 Text(record.startedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(.headline)
                     .foregroundStyle(.secondary)
+                if let audioURL = store.audioURL(for: record) {
+                    MeetingAudioPlayerCard(player: player, url: audioURL)
+                }
                 ForEach(record.segments) { segment in
                     HStack(alignment: .top, spacing: 8) {
                         Text(segment.speaker)
@@ -297,5 +302,191 @@ private struct MeetingRecordDetailView: View {
         } catch {
             status = "导出失败：\(error.localizedDescription)"
         }
+    }
+}
+
+
+// MARK: - 历史详情里的整场录音
+
+/// Plays one saved meeting WAV. Kept next to the detail view so the
+/// history screen stays a single file: no second recorder, no second
+/// store, just a player over `Documents/MeetingNotes/<id>.wav`.
+@MainActor
+@Observable
+final class MeetingAudioPlayer {
+    private(set) var isPlaying = false
+    private(set) var time: TimeInterval = 0
+    private(set) var duration: TimeInterval = 0
+
+    private var player: AVAudioPlayer?
+    private var ticker: Task<Void, Never>?
+    private var loadedURL: URL?
+
+    func load(_ url: URL) {
+        guard loadedURL != url else { return }
+        stop()
+        loadedURL = url
+        player = try? AVAudioPlayer(contentsOf: url)
+        player?.prepareToPlay()
+        duration = player?.duration ?? 0
+        time = 0
+    }
+
+    func toggle() {
+        guard let player else { return }
+        if player.isPlaying {
+            player.pause()
+            ticker?.cancel()
+            ticker = nil
+            isPlaying = false
+            return
+        }
+        // 录音/别的页面可能把 session 留在 playAndRecord，切到 playback 才出声。
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.duckOthers])
+        try? session.setActive(true)
+        if player.currentTime >= player.duration - 0.05 {
+            player.currentTime = 0
+        }
+        player.play()
+        isPlaying = true
+        ticker?.cancel()
+        ticker = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(100))
+                guard let self, let player = self.player, player.isPlaying else { return }
+                self.time = player.currentTime
+            }
+        }
+    }
+
+    func seek(to value: TimeInterval) {
+        guard let player else { return }
+        let clamped = min(max(0, value), max(0, duration))
+        player.currentTime = clamped
+        time = clamped
+    }
+
+    func stop() {
+        player?.stop()
+        player = nil
+        loadedURL = nil
+        ticker?.cancel()
+        ticker = nil
+        isPlaying = false
+        time = 0
+    }
+}
+
+/// Peak envelope of a WAV, used as the static waveform in history.
+/// Read off the main actor: a 30-minute file is ~57 MB of Int16.
+enum MeetingAudioWaveform {
+    static func peaks(url: URL, buckets: Int = 64) async -> [Float] {
+        await Task.detached(priority: .utility) { () -> [Float] in
+            guard let file = try? AVAudioFile(forReading: url), file.length > 0,
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                                frameCapacity: 4096)
+            else { return [] }
+            let total = Int(file.length)
+            let perBucket = max(1, total / buckets)
+            var peaks = [Float](repeating: 0, count: buckets)
+            var index = 0
+            while index < total {
+                let want = AVAudioFrameCount(min(4096, total - index))
+                do {
+                    try file.read(into: buffer, frameCount: want)
+                } catch {
+                    break
+                }
+                let frames = Int(buffer.frameLength)
+                guard frames > 0, let samples = buffer.floatChannelData?[0] else { break }
+                for frame in 0..<frames {
+                    let bucket = min(buckets - 1, (index + frame) / perBucket)
+                    peaks[bucket] = max(peaks[bucket], abs(samples[frame]))
+                }
+                index += frames
+            }
+            let loudest = peaks.max() ?? 0
+            if loudest > 0 {
+                peaks = peaks.map { $0 / loudest }
+            }
+            return peaks
+        }.value
+    }
+}
+
+private struct MeetingAudioPlayerCard: View {
+    let player: MeetingAudioPlayer
+    let url: URL
+
+    @State private var peaks: [Float] = []
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 10) {
+                Button {
+                    player.toggle()
+                } label: {
+                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(Color(.tertiarySystemFill)))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(player.isPlaying ? "暂停录音" : "播放录音")
+
+                waveform
+
+                Text(timeLabel)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+            }
+
+            Slider(
+                value: Binding(
+                    get: { player.time },
+                    set: { player.seek(to: $0) }
+                ),
+                in: 0...max(player.duration, 0.1)
+            )
+            .controlSize(.mini)
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .task {
+            player.load(url)
+            peaks = await MeetingAudioWaveform.peaks(url: url)
+        }
+        .onDisappear {
+            player.stop()
+        }
+    }
+
+    private var waveform: some View {
+        GeometryReader { geometry in
+            let count = max(peaks.count, 1)
+            let width = max(1.5, (geometry.size.width - CGFloat(count - 1) * 1.5) / CGFloat(count))
+            HStack(alignment: .center, spacing: 1.5) {
+                ForEach(Array(peaks.enumerated()), id: \.offset) { _, peak in
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.55))
+                        .frame(width: width,
+                               height: max(2, CGFloat(peak) * geometry.size.height))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(height: 24)
+    }
+
+    private var timeLabel: String {
+        guard player.duration > 0 else { return "" }
+        return "\(Self.format(player.time)) / \(Self.format(player.duration))"
+    }
+
+    private static func format(_ time: TimeInterval) -> String {
+        let total = Int(time.rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
