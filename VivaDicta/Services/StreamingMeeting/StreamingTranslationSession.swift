@@ -72,7 +72,7 @@ final class StreamingTranslationSession {
     }
 
     var sourceLanguage: Language = .chinese
-    var targetLanguage: Language = .japanese
+    var targetLanguage: Language = .chinese
     /// Master switch, on by default to preserve the previous
     /// always-on behavior. While off, no translation runs and the
     /// view hides existing translations; switching back on
