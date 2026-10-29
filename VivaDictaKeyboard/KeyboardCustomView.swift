@@ -224,12 +224,12 @@ struct KeyboardCustomView: View {
                                 VivaDictaKeyboardToolbarView(
                                     controller: keyboardVC,
                                     hasFullAccess: hasFullAccess,
-                                    translationState: pinyinTranslationState,
                                     onShowFullAccessPrompt: {
                                         withAnimation(.spring(duration: 0.35)) {
                                             showFullAccessPrompt = true
                                         }
-                                    }
+                                    },
+                                    translationState: pinyinTranslationState
                                 )
                                 .environment(dictationState)
                             }
@@ -256,12 +256,12 @@ struct KeyboardCustomView: View {
                                     VivaDictaKeyboardToolbarView(
                                         controller: keyboardVC,
                                         hasFullAccess: hasFullAccess,
-                                        translationState: pinyinTranslationState,
                                         onShowFullAccessPrompt: {
                                             withAnimation(.spring(duration: 0.35)) {
                                                 showFullAccessPrompt = true
                                             }
-                                        }
+                                        },
+                                        translationState: pinyinTranslationState
                                     )
                                     .environment(self.dictationState)
                                 }

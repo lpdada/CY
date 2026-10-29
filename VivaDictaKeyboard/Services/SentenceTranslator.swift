@@ -143,7 +143,11 @@ actor SentenceTranslator {
 
     // MARK: - 请求
 
-    private static func perform(
+    // nonisolated：这里只用传入的 config/session 和静态 prompt/logger，不碰
+    // actor 的可变状态；文件作用域的 ChatRequest/ChatResponse 的 Codable
+    // 实现是非隔离的，从 actor 隔离的方法里直接编解码会被编译器拒绝
+    // （首版构建即因此失败），放非隔离方法里才编得过去。
+    nonisolated private static func perform(
         _ source: String,
         config: Config,
         session: URLSession
@@ -193,7 +197,8 @@ actor SentenceTranslator {
     """
 
     /// 模型偶尔会带上引号或「」；去掉这些包装，其余原样。
-    private static func cleanup(_ raw: String) -> String? {
+    /// 同 perform 一起放非隔离：只用参数，不碰 actor 状态。
+    nonisolated private static func cleanup(_ raw: String) -> String? {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let wrappers: Set<Character> = ["\"", "“", "”", "「", "」", "『", "』"]
         while let first = text.first, wrappers.contains(first) { text.removeFirst() }
