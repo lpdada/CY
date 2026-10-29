@@ -1,5 +1,6 @@
 import SwiftUI
 import AICore
+import KeyboardKit
 
 /// 工具栏上的「译」键：把光标前最后一句中文就地翻成学习语言，**替换**原文。
 ///

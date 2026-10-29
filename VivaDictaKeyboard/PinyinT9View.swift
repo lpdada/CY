@@ -112,7 +112,7 @@ struct PinyinT9View<Toolbar: View>: View {
                   let first = PinyinEngine.candidates(for: syllable).first
             else { break }
             sentence.append(contentsOf: first)
-            rest = rest.dropFirst(code.count)
+            rest = String(rest.dropFirst(code.count))
         }
         return sentence.count >= 2 ? sentence : nil
     }
