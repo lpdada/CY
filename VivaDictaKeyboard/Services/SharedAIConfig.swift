@@ -12,7 +12,7 @@ import Foundation
 ///
 /// 两个都拿不到就返回 nil，调用方据此把按钮置灰并给一句人话提示。
 enum SharedAIConfig {
-    static let appGroupId = "group.com.antonnovoselov.VivaDicta"
+    nonisolated static let appGroupId = "group.com.antonnovoselov.VivaDicta"
 
     /// 主 App 当前在用的那一套。
     struct Snapshot: Equatable {
@@ -21,7 +21,7 @@ enum SharedAIConfig {
         let baseURL: String
         let apiKey: String
 
-        var isUsable: Bool {
+        nonisolated var isUsable: Bool {
             !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && URL(string: baseURL) != nil
                 && !model.isEmpty
