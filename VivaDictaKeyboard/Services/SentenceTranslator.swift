@@ -143,11 +143,11 @@ actor SentenceTranslator {
 
     // MARK: - 请求
 
-    // nonisolated：这里只用传入的 config/session 和静态 prompt/logger，不碰
-    // actor 的可变状态；文件作用域的 ChatRequest/ChatResponse 的 Codable
-    // 实现是非隔离的，从 actor 隔离的方法里直接编解码会被编译器拒绝
-    // （首版构建即因此失败），放非隔离方法里才编得过去。
-    nonisolated private static func perform(
+    // 注意：这里刻意不用 Codable 类型做请求/响应。首两版构建都倒在同一处：
+    // 文件作用域的 ChatRequest/ChatResponse 的 Codable 实现被编译器判定为
+    // MainActor 隔离，从 actor 方法里编解码直接报错，改 nonisolated 也没过去。
+    // JSONSerialization 不走协议一致性隔离，彻底绕开这个问题。
+    private static func perform(
         _ source: String,
         config: Config,
         session: URLSession
@@ -163,16 +163,16 @@ actor SentenceTranslator {
             request.setValue(value, forHTTPHeaderField: field)
         }
 
-        let payload = ChatRequest(
-            model: config.model,
-            temperature: 0.2,
-            stream: false,
-            messages: [
-                .init(role: "system", content: prompt),
-                .init(role: "user", content: source),
-            ]
-        )
-        guard let body = try? JSONEncoder().encode(payload) else { return nil }
+        let payload: [String: Any] = [
+            "model": config.model,
+            "temperature": 0.2,
+            "stream": false,
+            "messages": [
+                ["role": "system", "content": prompt],
+                ["role": "user", "content": source],
+            ],
+        ]
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
         request.httpBody = body
 
         do {
@@ -182,8 +182,10 @@ actor SentenceTranslator {
                 logger.log(level: .info, "整句翻译 HTTP \(http.statusCode, privacy: .public)")
                 return nil
             }
-            let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-            guard let content = decoded.choices.first?.message.content else { return nil }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let message = choices.first?["message"] as? [String: Any],
+                  let content = message["content"] as? String else { return nil }
             return cleanup(content)
         } catch {
             logger.log(level: .info, "整句翻译请求失败：\(error.localizedDescription, privacy: .public)")
@@ -197,8 +199,7 @@ actor SentenceTranslator {
     """
 
     /// 模型偶尔会带上引号或「」；去掉这些包装，其余原样。
-    /// 同 perform 一起放非隔离：只用参数，不碰 actor 状态。
-    nonisolated private static func cleanup(_ raw: String) -> String? {
+    private static func cleanup(_ raw: String) -> String? {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let wrappers: Set<Character> = ["\"", "“", "”", "「", "」", "『", "』"]
         while let first = text.first, wrappers.contains(first) { text.removeFirst() }
@@ -254,28 +255,4 @@ final class PinyinTranslationState {
     }
 }
 
-// MARK: - 传输类型
 
-private struct ChatRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: String
-    }
-
-    let model: String
-    let temperature: Double
-    let stream: Bool
-    let messages: [Message]
-}
-
-private struct ChatResponse: Decodable {
-    struct Choice: Decodable {
-        let message: Message
-    }
-
-    struct Message: Decodable {
-        let content: String?
-    }
-
-    let choices: [Choice]
-}
