@@ -748,6 +748,33 @@ final class StreamingMeetingSession {
         return result
     }
 
+    /// Parent id of a split child, e.g. "seg-008-1" -> "seg-008".
+    /// Only returns a parent when a row with that id currently exists, so a
+    /// genuine "seg-008" style id is never misread (its stripped prefix "seg"
+    /// is not a row) and a child whose parent row is already gone falls back
+    /// to the sibling/append path below.
+    private func parentID(of segmentID: String) -> String? {
+        guard let parent = splitParentPrefix(of: segmentID),
+              segments.contains(where: { $0.segmentID == parent }) else { return nil }
+        return parent
+    }
+
+    /// "seg-008-1" -> "seg-008", "seg-008" -> nil (suffix "008" would give
+    /// "seg", which the caller must not treat as a parent on its own).
+    /// Existence is checked by the caller, not here, so sibling lookup can
+    /// still run after the parent row has been replaced by a first child.
+    private func splitParentPrefix(of segmentID: String) -> String? {
+        guard let dash = segmentID.lastIndex(of: "-") else { return nil }
+        let suffix = segmentID[segmentID.index(after: dash)...]
+        guard !suffix.isEmpty, suffix.allSatisfy({ $0.isNumber }) else { return nil }
+        let parent = String(segmentID[..<dash])
+        // A bare server id like "seg-008" strips to "seg"; that is not a
+        // split parent, so only accept prefixes that themselves look like
+        // a server segment id ("seg-<digits>").
+        guard parent.hasPrefix("seg-"), parent.dropFirst(4).allSatisfy({ $0.isNumber }) else { return nil }
+        return parent
+    }
+
     // MARK: - Private
 
     private func handleEvent(_ event: StreamingWebSocketClient.Event) {
@@ -787,6 +814,18 @@ final class StreamingMeetingSession {
             }
         case .finalSegment(let segmentID, let text, let speakerLabel, let status, let confidence, let start, let end, let corrected):
             guard connectionReady else { return }
+            let newSegment = Segment(
+                segmentID: segmentID,
+                text: text,
+                speakerLabel: speakerLabel,
+                isProvisional: false,
+                speakerStatus: status,
+                detectedLanguage: Self.detectLanguage(for: text),
+                confidence: confidence,
+                start: start,
+                end: end,
+                corrected: corrected
+            )
             if let index = segments.firstIndex(where: { $0.segmentID == segmentID }) {
                 // In-place replacement: same row, same position, new
                 // text and speaker. Never append a second row.
@@ -800,19 +839,20 @@ final class StreamingMeetingSession {
                 segments[index].start = start
                 segments[index].end = end
                 segments[index].corrected = corrected
+            } else if let parent = parentID(of: segmentID),
+                      let parentIndex = segments.firstIndex(where: { $0.segmentID == parent }) {
+                // Split child, first one: replace the provisional parent
+                // row in place, so it neither stays provisional forever
+                // nor duplicates into the saved record.
+                segments[parentIndex] = newSegment
+            } else if let prefix = splitParentPrefix(of: segmentID),
+                      let lastSibling = segments.lastIndex(where: { $0.segmentID.hasPrefix(prefix + "-") }) {
+                // Split child, subsequent one: the parent row is already
+                // replaced, so insert right after the last sibling
+                // instead of appending at the tail.
+                segments.insert(newSegment, at: lastSibling + 1)
             } else {
-                segments.append(Segment(
-                    segmentID: segmentID,
-                    text: text,
-                    speakerLabel: speakerLabel,
-                    isProvisional: false,
-                    speakerStatus: status,
-                    detectedLanguage: Self.detectLanguage(for: text),
-                    confidence: confidence,
-                    start: start,
-                    end: end,
-                    corrected: corrected
-                ))
+                segments.append(newSegment)
             }
             if let segment = segments.first(where: { $0.segmentID == segmentID }) {
                 // Finals only: interims never reach translation.
@@ -830,9 +870,17 @@ final class StreamingMeetingSession {
             // (old label -> new label) but is not applied blindly to
             // every segment carrying the old label: only the listed
             // segments move, so unrelated rows never flicker.
+            // Split-aware: an update addressed to a parent id also
+            // applies to all of its children (this covers recluster
+            // updates at session_end, which still reference parent ids).
             for item in updated {
-                guard let index = segments.firstIndex(where: { $0.segmentID == item.segmentID }) else { continue }
-                segments[index].speakerLabel = item.speakerLabel
+                if let index = segments.firstIndex(where: { $0.segmentID == item.segmentID }) {
+                    segments[index].speakerLabel = item.speakerLabel
+                } else {
+                    for index in segments.indices where segments[index].segmentID.hasPrefix(item.segmentID + "-") {
+                        segments[index].speakerLabel = item.speakerLabel
+                    }
+                }
             }
         case .sessionEnded:
             // Only flag it. The client already finished the stream,
