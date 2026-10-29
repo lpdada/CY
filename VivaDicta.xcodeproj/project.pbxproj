@@ -209,11 +209,7 @@
 		183A98CF2F6DA0AA00C5D007 /* Exceptions for "VivaDictaKeyboard" folder in "VivaDicta" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Services/SentenceDecoder.swift,
-				Services/SentenceTranslator.swift,
-				Services/SharedAIConfig.swift,
 				TextInsertionFormatter.swift,
-				Views/TranslateToolbarButton.swift,
 			);
 			target = 181D04D62E3E55E400D357A6 /* VivaDicta */;
 		};
@@ -291,7 +287,6 @@
 				Models/TranscriptionModelProvider.swift,
 				Models/WhisperKitModel.swift,
 				PrivacyInfo.xcprivacy,
-				Services/AIEnhance/AppGroupAISnapshot.swift,
 				Services/AIEnhance/UserPrompt.swift,
 				Services/AIEnhance/VivaMode.swift,
 				Utilities/LoggerExtension.swift,
@@ -317,7 +312,6 @@
 				Models/TranscriptionModelProvider.swift,
 				Models/WhisperKitModel.swift,
 				PrivacyInfo.xcprivacy,
-				Services/AIEnhance/AppGroupAISnapshot.swift,
 				Services/AIEnhance/UserPrompt.swift,
 				Services/AIEnhance/VivaMode.swift,
 				Utilities/LoggerExtension.swift,
@@ -399,7 +393,6 @@
 				Models/WhisperKitModel.swift,
 				PrivacyInfo.xcprivacy,
 				Resources/Haptics/TranscriptionComplete.ahap,
-				Services/AIEnhance/AppGroupAISnapshot.swift,
 				Services/AIEnhance/UserPrompt.swift,
 				Services/AIEnhance/VivaMode.swift,
 				Shared/MicButton.swift,
