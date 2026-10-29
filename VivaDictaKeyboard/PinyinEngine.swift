@@ -88,7 +88,8 @@ extension PinyinEngine {
 
     /// 词库表：PinyinData.wordTableRaw 每行 “拼音串 词:rank 词:rank …”，
     /// 运行时解析一次。rank 越小越常用。
-    private static let wordTable: [String: [(word: String, rank: Int)]] = {
+    /// 词表：拼音串 → [(词, rank)]。`SentenceDecoder` 也要用它建词图，所以不再 private。
+    static let wordTable: [String: [(word: String, rank: Int)]] = {
         var dict: [String: [(word: String, rank: Int)]] = [:]
         for line in PinyinData.wordTableRaw.split(separator: "\n") {
             let parts = line.split(separator: " ")
@@ -106,7 +107,8 @@ extension PinyinEngine {
     }()
 
     /// 所有词库 key 的真前缀集合（DFS 剪枝用：当前拼音串还能往下接词时才继续）。
-    private static let wordKeyPrefixes: Set<String> = {
+    /// 词表 key 的真前缀集合，DFS 剪枝用。`SentenceDecoder` 同样要用。
+    static let wordKeyPrefixes: Set<String> = {
         var set = Set<String>()
         for key in wordTable.keys {
             var prefix = ""

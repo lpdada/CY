@@ -214,6 +214,9 @@ class AppState {
 
     // This method is called when AIService changes its mode
     public func handleModeChange(_ newMode: VivaMode) {
+        // 模式一切换，键盘快照就跟到新模式那套凭据上（没 Key 则清掉变灰）。
+        aiService.refreshSharedAISnapshot()
+
         // Update TranscriptionManager's current mode
         transcriptionManager.setCurrentMode(newMode)
 

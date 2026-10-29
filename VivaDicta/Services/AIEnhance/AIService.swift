@@ -1895,6 +1895,10 @@ class AIService {
         if isValid {
             keychain.save(key, forKey: provider.keychainKey)
 
+            // 键盘快照跟随选中模式（见 refreshSharedAISnapshot），而不是
+            // 最后保存的那套——多 provider 用户键盘用的仍是选中模式那套。
+            refreshSharedAISnapshot()
+
             // Refresh connected providers to trigger UI update
             self.refreshConnectedProviders()
         }
@@ -1905,7 +1909,44 @@ class AIService {
     /// Removes the stored API key for the given provider and refreshes connected providers.
     public func deleteAPIKey(for provider: AIProvider) {
         keychain.delete(forKey: provider.keychainKey)
+        // 删的是选中模式的 Key 时快照随之清掉；删的是别的 provider 时
+        // 选中模式的快照不受影响（refresh 只认选中模式）。
+        refreshSharedAISnapshot()
         refreshConnectedProviders()
+    }
+
+    /// 把当前选中模式的文本模型 + 它的 Keychain Key 写进 App Group 快照，
+    /// 键盘翻译直接读它，不再另配 Key。选中模式没模型、或该模型没 Key 时
+    /// 清掉快照（键盘变灰并给提示，而不是拿着旧 provider 的 Key 去请求）。
+    /// 调用点：saveAPIKey、deleteAPIKey、AppState.handleModeChange。
+    public func refreshSharedAISnapshot() {
+        guard let provider = selectedMode.aiProvider else {
+            AppGroupAISnapshot.clear()
+            return
+        }
+        let model: String
+        if !selectedMode.aiModel.isEmpty {
+            model = selectedMode.aiModel
+        } else if provider == .customOpenAI {
+            // 自定义端点的模型名单独存在共享区，模式里不一定填。
+            model = customOpenAIModelName
+        } else {
+            AppGroupAISnapshot.clear()
+            return
+        }
+        guard !model.isEmpty,
+              let key = keychain.getString(forKey: provider.keychainKey),
+              !key.isEmpty else {
+            AppGroupAISnapshot.clear()
+            return
+        }
+        let baseURL = provider == .customOpenAI ? customOpenAIRequestURL : provider.baseURL
+        AppGroupAISnapshot.save(
+            provider: provider.rawValue,
+            model: model,
+            baseURL: baseURL,
+            apiKey: key
+        )
     }
 
     private func processVerificationResult(isValid: Bool, key: String, provider: AIProvider) async -> Bool {

@@ -372,11 +372,15 @@ struct VivaDictaKeyboardToolbarView: View {
 
     var body: some View {
         // 顶部图标水平平均分配：每个图标各占等宽一段、居中放。
-        // 拼音模式 3 段（✨/模式/话筒），英文模式 4 段（多一个“拼”）。
+        // 拼音模式 4 段（AI 页/模式/译/话筒），英文模式 5 段（多一个“拼”）。
         HStack(spacing: 0) {
             KeyboardTabToggle(dictationState: dictationState)
                 .frame(maxWidth: .infinity)
             ModeCycleSelector(dictationState: dictationState)
+                .frame(maxWidth: .infinity)
+            // 「译」：把光标前最后一句就地翻成学习语言。没有可用凭据时置灰并给提示，
+            // 不再像以前那样只能点进 AI 页、对着空转的预设发愣。
+            TranslateToolbarButton(controller: controller)
                 .frame(maxWidth: .infinity)
             // 拼音模式下藏起切换键：九宫格左下角已有“英文”键，再放一个
             // “英”就是重复；英文模式下仍显示“拼”，否则切过去回不来。

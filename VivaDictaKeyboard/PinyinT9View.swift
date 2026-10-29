@@ -52,6 +52,8 @@ struct PinyinT9View<Toolbar: View>: View {
     /// 数字键盘模式：与符号页同机制，键阵换成 1–9、0，直接输数字本身
     /// （九宫格字母键按下去是拼拼音，不是数字）。与 symbolMode 互斥。
     @State private var numberMode: Bool = false
+    /// 整句译文：数字串停下 450 ms 后把首选中文发出去换一句学习语言，回来画在候选区下面。
+    @State private var glossary = SentenceGlossState()
 
     // MARK: - 尺寸（v6 样板按 3x 换算为 pt：键 264x168px → 88x56pt，倒角 30px → 10pt）
 
@@ -92,9 +94,37 @@ struct PinyinT9View<Toolbar: View>: View {
         PinyinEngine.wordCandidates(forDigits: digits)
     }
 
-    /// 展示用候选：词在前（按词频），其后是首段单字候选
+    /// 整句译文要翻的那段中文：先用整句解码的第一条（读得通的那句），
+    /// 拼不出来才退回「词库覆盖整串的词」，再退回按音节取首选字。
+    private var sentenceSource: String? {
+        if let whole = SentenceDecoder.sentenceCandidates(forDigits: digits, limit: 1).first?.text,
+           whole.count >= 2 {
+            return whole
+        }
+        if let whole = wordCandidates.first, whole.count >= 2 {
+            return whole
+        }
+        var rest = digits
+        var sentence = ""
+        while !rest.isEmpty {
+            guard let code = PinyinEngine.t9FirstCode(forDigits: rest),
+                  let syllable = PinyinEngine.t9Syllables(forDigits: code).first,
+                  let first = PinyinEngine.candidates(for: syllable).first
+            else { break }
+            sentence.append(contentsOf: first)
+            rest = rest.dropFirst(code.count)
+        }
+        return sentence.count >= 2 ? sentence : nil
+    }
+
+    /// 展示用候选：整句解码的第一条排最前，其后是词库候选与首段单字。
+    /// 整句那条才是「你在干什么」这种一口气读得通的读法，词候选只是备选。
     private var displayCandidates: [String] {
-        wordCandidates + allCandidateChars
+        var seen = Set<String>()
+        let merged = SentenceDecoder.sentenceCandidates(forDigits: digits).map(\.text)
+            + wordCandidates
+            + allCandidateChars
+        return merged.filter { seen.insert($0).inserted }
     }
 
     private var pageCount: Int {
@@ -115,6 +145,7 @@ struct PinyinT9View<Toolbar: View>: View {
                 .padding(.horizontal, 6)
                 .padding(.top, 4)
                 .padding(.bottom, 4)
+            // 整句译文并进首选候选卡片（见 candidateArea），不再单占一行
             toolbar
             keyGrid
                 .padding(.horizontal, 6)
@@ -123,6 +154,11 @@ struct PinyinT9View<Toolbar: View>: View {
         }
         // 切回拼音页时若数字串还在，把组字串重新同步给宿主
         .onAppear { syncMarkedText() }
+        // 每次数字串变化都重排译文请求：停手 450 ms 才真发，之前那条取消。
+        // 翻的是整段（sentenceSource），不是排第一的那个候选词
+        .onChange(of: digits) { _, _ in
+            glossary.schedule(for: sentenceSource)
+        }
     }
 
     // MARK: - 候选区（永久置顶，两行：上行数字串 + 同码音节，下行候选字 + 换页）
@@ -170,18 +206,28 @@ struct PinyinT9View<Toolbar: View>: View {
                         Button {
                             commitDisplay(char)
                         } label: {
-                            Text(char)
-                                .font(.system(size: 18))
-                                .lineLimit(1)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
-                                .background(
-                                    globalIndex == 0
-                                        ? Color.primary
-                                        : Color.clear,
-                                    in: RoundedRectangle(cornerRadius: 13)
-                                )
-                                .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
+                            // 首选是一个上下两行的卡片：上面中文、下面整句译文；
+                            // 其余候选保持单行，横向空间不被日语吃掉
+                            VStack(spacing: 1) {
+                                Text(char)
+                                    .font(.system(size: 18))
+                                    .lineLimit(1)
+                                if globalIndex == 0, let gloss = glossary.text, !gloss.isEmpty {
+                                    Text(gloss)
+                                        .font(.system(size: 11))
+                                        .lineLimit(1)
+                                        .opacity(0.85)
+                                }
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(
+                                globalIndex == 0
+                                    ? Color.primary
+                                    : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 13)
+                            )
+                            .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
                         }
                         .buttonStyle(.plain)
                     }
@@ -201,7 +247,7 @@ struct PinyinT9View<Toolbar: View>: View {
                     }
                 }
             }
-            .frame(height: 38)
+            .frame(height: 56)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onChange(of: digits) { _, _ in candidatePage = 0 }
@@ -249,7 +295,7 @@ struct PinyinT9View<Toolbar: View>: View {
                         lettersKey("GHI", digit: "4", width: col)
                         lettersKey("JKL", digit: "5", width: col)
                         lettersKey("MNO", digit: "6", width: col)
-                        symbolModeKey(width: col4)
+                        punctuationKey(width: col4)
                     }
                 }
                 HStack(spacing: keyGap) {
@@ -390,21 +436,25 @@ struct PinyinT9View<Toolbar: View>: View {
         }
     }
 
-    private func symbolModeKey(width: CGFloat) -> some View {
-        keyButton(width: width, height: keyHeight, cornerRadius: keyRadius, face: .glass) {
-            commitFirstIfNeeded()
-            symbolMode = true
-            numberMode = false
-            HapticManager.selectionChanged()
-        } label: {
-            VStack(spacing: 0) {
-                Text("^^")
-                    .font(.system(size: 11))
-                Text("—")
-                    .font(.system(size: 11))
+    /// 标点键：点一下出「，」；按住 350 ms 进符号页（9 个常用标点）。
+    /// 原来这一格是 `^^` 符号页入口——用户找不到逗号句号，所以把最常用的两个摊到键面上。
+    private func punctuationKey(width: CGFloat) -> some View {
+        PunctuationKey(
+            width: width,
+            height: keyHeight,
+            cornerRadius: keyRadius,
+            onTap: {
+                commitFirstIfNeeded()
+                proxy.insertText("，")
+                HapticManager.lightImpact()
+            },
+            onLongPress: {
+                commitFirstIfNeeded()
+                symbolMode = true
+                numberMode = false
+                HapticManager.selectionChanged()
             }
-            .foregroundStyle(.white)
-        }
+        )
     }
 
     private func backToLettersKey(width: CGFloat) -> some View {
@@ -523,10 +573,10 @@ struct PinyinT9View<Toolbar: View>: View {
         syncMarkedText()
     }
 
-    /// 点展示候选：词候选覆盖整串数字，一次上屏并清空；单字走首段扣减。
-    /// 词恒为多字、单字恒为单字，按是否在词候选里区分是安全的。
+    /// 点展示候选：整句和词候选都覆盖整串数字，一次上屏并清空；
+    /// 单字候选恒为一个字，走首段扣减。
     private func commitDisplay(_ item: String) {
-        if wordCandidates.contains(item) {
+        if item.count >= 2 || wordCandidates.contains(item) {
             proxy.insertText(item)
             HapticManager.lightImpact()
             digits = ""
@@ -605,6 +655,95 @@ private struct RepeatDeleteButton: View {
                 .onEnded { _ in
                     repeatTask?.cancel()
                     repeatTask = nil
+                }
+        )
+    }
+}
+
+// MARK: - 整句译文
+
+/// 整句译文的状态机：停手 450 ms 才发、旧请求取消、拿不到就保留上一条。
+/// 词库和候选仍在 `PinyinT9View` 里，这里只管「一句话的译文」这一件事。
+@MainActor
+@Observable
+final class SentenceGlossState {
+    private(set) var text: String?
+    private(set) var isLoading = false
+
+    private var task: Task<Void, Never>?
+
+    /// `source` 是当前首选中文；不到两个字就当没在打句子，直接清空。
+    func schedule(for source: String?) {
+        task?.cancel()
+        guard let source, source.count >= 2 else {
+            text = nil
+            isLoading = false
+            return
+        }
+        task = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard let self, !Task.isCancelled else { return }
+            self.isLoading = true
+            let result = await SentenceTranslator.shared.translate(source)
+            guard !Task.isCancelled else { return }
+            self.isLoading = false
+            if let result {
+                self.text = result
+            }
+        }
+    }
+}
+
+/// 标点键：点一下出「，」，按住 350 ms 进符号页。
+/// 自己画键面而不复用 `keyButton`，因为要在同一块区域区分点按与长按。
+private struct PunctuationKey: View {
+    let width: CGFloat
+    let height: CGFloat
+    let cornerRadius: CGFloat
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    @State private var longPressed = false
+    @State private var holdTask: Task<Void, Never>?
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text("，")
+                .font(.system(size: 17, weight: .medium))
+            Text("。")
+                .font(.system(size: 12))
+                .opacity(0.72)
+        }
+        .foregroundStyle(.white)
+        .frame(width: width, height: height)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 74 / 255, green: 80 / 255, blue: 108 / 255),
+                         Color(red: 36 / 255, green: 40 / 255, blue: 60 / 255)],
+                startPoint: .top, endPoint: .bottom),
+            in: RoundedRectangle(cornerRadius: cornerRadius)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .stroke(Color(red: 115 / 255, green: 124 / 255, blue: 158 / 255), lineWidth: 0.7)
+        )
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard holdTask == nil else { return }
+                    holdTask = Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        guard !Task.isCancelled else { return }
+                        longPressed = true
+                        onLongPress()
+                    }
+                }
+                .onEnded { _ in
+                    holdTask?.cancel()
+                    holdTask = nil
+                    if !longPressed { onTap() }
+                    longPressed = false
                 }
         )
     }
