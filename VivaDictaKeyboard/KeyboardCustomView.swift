@@ -16,6 +16,8 @@ struct KeyboardCustomView: View {
     @ObservedObject private var keyboardContext: KeyboardContext
     @State private var processingStage: ProcessingStage = .waitingToStart
     @State private var showFullAccessPrompt = false
+    /// 九宫格与工具条左图标共用的翻译状态：九宫格写句子、工具条左图标触发翻译。
+    @State private var pinyinTranslationState = PinyinTranslationState()
     /// Mirrors `AppGroupCoordinator.shared.currentKeyboardLanguage` so taps on
     /// the language cycle key invalidate the view (UserDefaults writes don't
     /// trigger SwiftUI updates by themselves). Updated by the
@@ -216,11 +218,13 @@ struct KeyboardCustomView: View {
                             // 作为中间段传进九宫格视图、紧贴按键（2026-10-22 置换版）。
                             PinyinT9View(
                                 proxy: controller.textDocumentProxy,
-                                onSwitchToAlphabet: { dictationState.isPinyinMode = false }
+                                onSwitchToAlphabet: { dictationState.isPinyinMode = false },
+                                translationState: pinyinTranslationState
                             ) {
                                 VivaDictaKeyboardToolbarView(
                                     controller: keyboardVC,
                                     hasFullAccess: hasFullAccess,
+                                    translationState: pinyinTranslationState,
                                     onShowFullAccessPrompt: {
                                         withAnimation(.spring(duration: 0.35)) {
                                             showFullAccessPrompt = true
@@ -252,6 +256,7 @@ struct KeyboardCustomView: View {
                                     VivaDictaKeyboardToolbarView(
                                         controller: keyboardVC,
                                         hasFullAccess: hasFullAccess,
+                                        translationState: pinyinTranslationState,
                                         onShowFullAccessPrompt: {
                                             withAnimation(.spring(duration: 0.35)) {
                                                 showFullAccessPrompt = true

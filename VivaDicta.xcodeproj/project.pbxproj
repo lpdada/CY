@@ -210,6 +210,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				TextInsertionFormatter.swift,
+				Services/SentenceTranslator.swift,
 			);
 			target = 181D04D62E3E55E400D357A6 /* VivaDicta */;
 		};

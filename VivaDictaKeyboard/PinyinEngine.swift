@@ -157,6 +157,95 @@ extension PinyinEngine {
         return found.sorted { $0.value < $1.value }.prefix(limit).map(\.key)
     }
 
+    // MARK: - 整句候选（2026-10-29）：整串数字拼成一句话，点一下整句上屏。
+    //
+    // 词优先：词库 key 是拼音串，先算每个词的 T9 编码建索引，再用 DP 在数字串
+    // 上找最优覆盖——件数最少（一个词胜过两个单字），件数相同时 rank 和最小。
+    // 单字件的 rank 记 100000 惩罚值（词库 rank 在 30000 以内），保证同件数时
+    // 词一定赢单字。DP 覆盖不全时回落到贪心逐音节取首字拼句；连贪心都拼不出
+    // 时返回 nil，调用方保持旧行为（只显示词/单字候选）。
+    static func sentenceCandidate(forDigits digits: String) -> String? {
+        guard digits.count >= 2 else { return nil }
+        if digits.count <= 200, let covered = sentenceByDP(digits) {
+            return covered.count >= 2 ? covered : nil
+        }
+        return sentenceByGreedy(digits)
+    }
+
+    /// 词的 T9 编码 → 按 rank 排好的词（每码只留前 3 个，DP 时省时间）。
+    private static let t9WordIndex: [String: [(word: String, rank: Int)]] = {
+        var index: [String: [(word: String, rank: Int)]] = [:]
+        for (key, words) in wordTable {
+            let code = t9Code(for: key)
+            index[code, default: []].append(contentsOf: words)
+        }
+        for (code, list) in index {
+            index[code] = list.sorted { $0.rank < $1.rank }.prefix(3).map { $0 }
+        }
+        return index
+    }()
+
+    private static let maxT9WordCodeLength: Int = {
+        t9WordIndex.keys.map(\.count).max() ?? 0
+    }()
+
+    private static func sentenceByDP(_ digits: String) -> String? {
+        let chars = Array(digits)
+        let n = chars.count
+        typealias Cover = (pieces: Int, rankSum: Int, text: String)
+        var best: [Cover?] = Array(repeating: nil, count: n + 1)
+        best[0] = (0, 0, "")
+        func better(_ cand: Cover, than current: Cover?) -> Bool {
+            guard let current else { return true }
+            if cand.pieces != current.pieces { return cand.pieces < current.pieces }
+            return cand.rankSum < current.rankSum
+        }
+        for i in 0..<n {
+            guard let cur = best[i] else { continue }
+            // 词件：从长到短试码长，同一码只取 rank 最小的 3 个词。
+            let maxLen = min(maxT9WordCodeLength, n - i)
+            if maxLen >= 1 {
+                for codeLen in stride(from: maxLen, through: 1, by: -1) {
+                    let code = String(chars[i..<(i + codeLen)])
+                    guard let words = t9WordIndex[code] else { continue }
+                    let j = i + codeLen
+                    for word in words {
+                        let cand = (cur.pieces + 1, cur.rankSum + word.rank, cur.text + word.word)
+                        if better(cand, than: best[j]) { best[j] = cand }
+                    }
+                }
+            }
+            // 单字件：音节码从长到短，取该码第一个音节的首选字；
+            // 同件数同 rank 时先试到的（码最长）胜出，不覆盖。
+            for codeLen in stride(from: min(6, n - i), through: 1, by: -1) {
+                let code = String(chars[i..<(i + codeLen)])
+                guard let syllable = t9Syllables(forDigits: code).first,
+                      let ch = candidates(for: syllable).first else { continue }
+                let cand = (cur.pieces + 1, cur.rankSum + 100_000, cur.text + ch)
+                let j = i + codeLen
+                if better(cand, than: best[j]) { best[j] = cand }
+            }
+        }
+        return best[n]?.text
+    }
+
+    /// 贪心兜底：反复取首段编码的首选字拼句，遇非法段跳过一位，避免死循环。
+    private static func sentenceByGreedy(_ digits: String) -> String? {
+        var rest = digits
+        var out = ""
+        while !rest.isEmpty {
+            if let code = t9FirstCode(forDigits: rest),
+               let syllable = t9Syllables(forDigits: code).first,
+               let ch = candidates(for: syllable).first {
+                out += ch
+                rest = String(rest.dropFirst(code.count))
+            } else {
+                rest = String(rest.dropFirst())
+            }
+        }
+        return out.count >= 2 ? out : nil
+    }
+
     /// 高频音节优先序（同编码多音节时排序与默认选中用）：
     /// 表里越靠前越常用；不在表里的排后面、按字母序。
     private static let hotSyllables: [String] = [

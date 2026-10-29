@@ -31,6 +31,12 @@ public enum UserDefaultsStorage {
     // MARK: - Shared Keys (used by main app + extensions)
 
     public enum SharedKeys {
+        /// 键盘扩展共用的模型 Key 镜像：主 App 保存/删除某个模型的 Key 时同步写这里，
+        /// 键盘翻译直接读它，不再另配一套 Key。Key 本身仍以 Keychain 为主，
+        /// 这里只是共享区里的一份镜像（共享区只在 App Group 内可见）。
+        public static func sharedAPIKey(forProvider provider: String) -> String {
+            "sharedAPIKey_" + provider
+        }
         public static let presets = "Presets_v1"
         public static let hiddenPresetIDs = "HiddenPresetIDs_v1"
 

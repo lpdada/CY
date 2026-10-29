@@ -1887,13 +1887,24 @@ class AIService {
         }
 
         connectedProviders = providers
+
+        // 已存 Key 的迁移：老 Key 只在 Keychain 里，刷新时同步一份镜像到共享区，
+        // 键盘不用等用户重填 Key 就能共用主 App 的 Key。
+        for provider in providers {
+            if let key = provider.apiKey, !key.isEmpty {
+                userDefaults.set(key, forKey: UserDefaultsStorage.SharedKeys.sharedAPIKey(forProvider: provider.rawValue))
+            }
+        }
     }
-    
+
     public func saveAPIKey(_ key: String, for provider: AIProvider) async -> Bool {
         let isValid = await verifyAPIKey(key, provider: provider)
 
         if isValid {
             keychain.save(key, forKey: provider.keychainKey)
+
+            // 键盘扩展共用：同步一份镜像到共享区，键盘翻译直接读它，不再另配 Key。
+            userDefaults.set(key, forKey: UserDefaultsStorage.SharedKeys.sharedAPIKey(forProvider: provider.rawValue))
 
             // Refresh connected providers to trigger UI update
             self.refreshConnectedProviders()
@@ -1905,6 +1916,7 @@ class AIService {
     /// Removes the stored API key for the given provider and refreshes connected providers.
     public func deleteAPIKey(for provider: AIProvider) {
         keychain.delete(forKey: provider.keychainKey)
+        userDefaults.removeObject(forKey: UserDefaultsStorage.SharedKeys.sharedAPIKey(forProvider: provider.rawValue))
         refreshConnectedProviders()
     }
 

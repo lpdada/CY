@@ -17,11 +17,20 @@
 //  输入逻辑（真输入法三件套）：数字串全部切分后查 3 万词词库，词候选
 //  按词频排在单字候选前面（如 64426 → 你好），点词一次上屏并清空；
 //  单字仍可逐个音节选（选字后从串头扣掉首段编码，剩余部分自动成为
-//  下一音节的输入）。首选候选同步为文档里的 marked text（组字串），
-//  宿主像真输入法一样显示正在组字的词。候选按每页 6 个分页，点“换页”
+//  下一音节的输入）。整串另拼一条整句候选（词优先、单字兜底，见
+//  PinyinEngine.sentenceCandidate），放在候选区最前面单独一行，点一下
+//  整句上屏；空格/发送/符号键也先上整句（有整句时不再只上首个单字）。
+//  组字串（marked text）同步的是整句候选（没有整句时才是首选单字/词），
+//  宿主像真输入法一样显示正在组的那句话。候选按每页 6 个分页，点“换页”
 //  翻页（末页点“首页”回第一页）。^^ 键切符号页（9 个常用标点，删除
-//  键两页都在，再点 ABC 回字母页）。候选区永久置顶、高度全程不变，
-//  空闲时两行空白占位。
+//  键两页都在，再点 ABC 回字母页）。一键翻译不在候选区，九宫格模式下
+//  工具条最左边的 ✨ 图标就是翻译按钮（英文模式下它仍是切 tab）：点后把
+//  整句换成日文直接打进输入框（不自动发送），失败时中文原样保留、候选区
+//  显示一行红字；主 App 模式/Key 未就绪或没开完全访问时按钮变灰点不动。九宫格与
+//  工具条通过 PinyinTranslationState（句子/翻译中/错误/完成信号）打通，
+//  翻译进行中九宫格不接受新按键，避免翻译回来时组句已变、中文和日文错位。
+//  候选区永久置顶，空闲时空白占位，有整句/翻译错误时多占一行，
+//  键盘总高度随之变化。
 //
 
 import SwiftUI
@@ -31,6 +40,11 @@ struct PinyinT9View<Toolbar: View>: View {
     let proxy: UITextDocumentProxy
     /// 切回 KeyboardKit 键盘（英文等语言布局）
     let onSwitchToAlphabet: () -> Void
+    /// 九宫格与工具条左图标共用的翻译状态（句子/翻译中/错误/完成信号），
+    /// 由调用方持有并同时传给两边；工具条左图标的翻译动作经它触发。
+    /// 用 @Bindable 持有，状态变化时本视图能跟着重画（普通 let 属性读
+    /// @Observable 对象不会触发重画，翻译中按钮就一直不变灰）。
+    @Bindable var translationState: PinyinTranslationState
     /// 工具条（✨/模式药丸/话筒）：由调用方传入，放在候选区与按键之间、紧贴按键。
     /// 候选区置顶后工具条不再是九宫格视图的上方，而是中间段。
     let toolbar: Toolbar
@@ -38,10 +52,12 @@ struct PinyinT9View<Toolbar: View>: View {
     init(
         proxy: UITextDocumentProxy,
         onSwitchToAlphabet: @escaping () -> Void,
+        translationState: PinyinTranslationState,
         @ViewBuilder toolbar: () -> Toolbar
     ) {
         self.proxy = proxy
         self.onSwitchToAlphabet = onSwitchToAlphabet
+        self._translationState = Bindable(wrappedValue: translationState)
         self.toolbar = toolbar()
     }
 
@@ -97,6 +113,19 @@ struct PinyinT9View<Toolbar: View>: View {
         wordCandidates + allCandidateChars
     }
 
+    /// 整句候选：整串数字拼成的一句话（词优先、单字兜底）。
+    /// 与词候选重复（整串恰好是一个词）时不另起一行，沿用词候选那一行。
+    private var sentenceCandidate: String? {
+        guard let sentence = PinyinEngine.sentenceCandidate(forDigits: digits),
+              sentence.count > 1, !wordCandidates.contains(sentence) else { return nil }
+        return sentence
+    }
+
+    /// 翻译配置是否齐全（Key 在 App Group 共享区里）。不齐时工具条翻译按钮变灰点不动。
+    private var translationConfigured: Bool {
+        SentenceTranslator.isConfigured
+    }
+
     private var pageCount: Int {
         max(1, (displayCandidates.count + candidatePageSize - 1) / candidatePageSize)
     }
@@ -133,6 +162,50 @@ struct PinyinT9View<Toolbar: View>: View {
     /// 之前截断成 …、互相重叠的问题也随之缓解。
     private var candidateArea: some View {
         VStack(spacing: 4) {
+            // 整句行：整串拼成的一句话（长了横滑看完），点一下整句上屏。
+            // 翻译按钮不在这里，在工具条最左边的 ✨ 位置（见工具条），这里只留
+            // 一行 Key 提示：有句子但没配翻译 Key 时，工具条按钮是灰的点不动。
+            if let sentence = sentenceCandidate {
+                HStack(spacing: 6) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        Button {
+                            commitSentence()
+                        } label: {
+                            Text(sentence)
+                                .font(.system(size: 17, weight: .semibold))
+                                .lineLimit(1)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Color.primary,
+                                    in: RoundedRectangle(cornerRadius: 13)
+                                )
+                                .foregroundStyle(Color(uiColor: .systemBackground))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(translationState.isTranslating)
+                    }
+                    if !translationConfigured {
+                        // 主 App 模式没选文本模型、模型名为空、共享区里没 Key 时都算未就绪，
+                        // 先留一行提示，不放死按钮；Key 在主 App 里配好、模式选好即就绪。
+                        Text("翻译未就绪")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(height: 38)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            // 翻译失败时一行红字提示，中文原样保留；下一次按键即清除。
+            if let error = translationState.error {
+                Text(error)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red)
+                    .frame(height: 18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             // 上行：数字串 + 同编码的其他音节（点按切换）
             HStack(spacing: 6) {
                 if !digits.isEmpty {
@@ -204,8 +277,22 @@ struct PinyinT9View<Toolbar: View>: View {
             .frame(height: 38)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .onChange(of: digits) { _, _ in candidatePage = 0 }
+        .onChange(of: digits) { _, _ in
+            candidatePage = 0
+            translationState.error = nil
+        }
         .onChange(of: selectedSyllable) { _, _ in candidatePage = 0 }
+        // 整句候选一变就同步给共享状态，工具条左图标据此决定能不能点。
+        .onChange(of: sentenceCandidate) { _, new in
+            translationState.sentence = new ?? ""
+        }
+        // 翻译成功信号：日文已打进输入框，组句清掉、组字串同步清空。
+        .onChange(of: translationState.completedNonce) { _, _ in
+            digits = ""
+            selectedSyllable = nil
+            candidatePage = 0
+            syncMarkedText()
+        }
     }
 
     // MARK: - 键阵（4 列等宽，双行高发送键）
@@ -482,6 +569,8 @@ struct PinyinT9View<Toolbar: View>: View {
     // MARK: - 输入逻辑
 
     private func tapDigit(_ digit: String) {
+        // 翻译进行中不接受新按键，避免翻译回来时组句已变、中文和日文错位。
+        guard !translationState.isTranslating else { return }
         HapticManager.lightImpact()
         digits += digit
         selectedSyllable = nil
@@ -490,6 +579,7 @@ struct PinyinT9View<Toolbar: View>: View {
     }
 
     private func tapDelete() {
+        guard !translationState.isTranslating else { return }
         if !digits.isEmpty {
             digits = String(digits.dropLast())
             selectedSyllable = nil
@@ -538,21 +628,38 @@ struct PinyinT9View<Toolbar: View>: View {
         }
     }
 
-    /// 把首选候选同步为文档里的 marked text（组字串），让宿主像真输入法
-    /// 一样显示正在组字的词；不支持 marked text 的宿主会忽略它，选字流程不受影响。
+    /// 整句上屏：整串一次清空，组字串同步清空。
+    private func commitSentence() {
+        guard let sentence = sentenceCandidate else { return }
+        proxy.insertText(sentence)
+        HapticManager.lightImpact()
+        digits = ""
+        selectedSyllable = nil
+        candidatePage = 0
+        syncMarkedText()
+    }
+
+    /// 把正在组的那句话同步为文档里的 marked text（组字串），让宿主像真输入法
+    /// 一样显示正在组的那句话；没有整句时退回首选单字/词。支持 marked text 的
+    /// 宿主会显示它，不支持的宿主会忽略它，选字流程不受影响。
     private func syncMarkedText() {
-        if digits.isEmpty || displayCandidates.isEmpty {
+        if digits.isEmpty || (sentenceCandidate == nil && displayCandidates.isEmpty) {
             proxy.unmarkText()
-        } else if let top = displayCandidates.first {
+        } else if let top = sentenceCandidate ?? displayCandidates.first {
             proxy.setMarkedText(top, selectedRange: NSRange(location: top.utf16.count, length: 0))
         }
     }
 
+    /// 空格/发送/符号/数字键的默认上屏：有整句时先上整句（不再只上首个单字），
+    /// 没有整句时沿用旧行为（首选词/单字）。
     private func commitFirstIfNeeded() {
-        if let first = displayCandidates.first {
+        if sentenceCandidate != nil {
+            commitSentence()
+        } else if let first = displayCandidates.first {
             commitDisplay(first)
         }
     }
+
 }
 
 /// 退格键：点按删一个，按住 0.4 秒后以 60ms 间隔连删，松开即停。

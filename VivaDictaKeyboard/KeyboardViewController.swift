@@ -369,13 +369,43 @@ struct VivaDictaKeyboardToolbarView: View {
     weak var controller: KeyboardViewController?
     var hasFullAccess: Bool = true
     var onShowFullAccessPrompt: (() -> Void)?
+    /// 九宫格翻译共享状态：仅九宫格模式下左图标用它，英文模式下忽略。
+    /// 由调用方持有并同时传给九宫格；用 @Bindable 持有，状态变化时重画。
+    @Bindable var translationState: PinyinTranslationState
 
     var body: some View {
         // 顶部图标水平平均分配：每个图标各占等宽一段、居中放。
         // 拼音模式 3 段（✨/模式/话筒），英文模式 4 段（多一个“拼”）。
         HStack(spacing: 0) {
-            KeyboardTabToggle(dictationState: dictationState)
+            // 九宫格中文模式：最左边的 ✨ 图标变一键翻译按钮（英文模式下仍是切 tab）。
+            // 有句子、配了 Key、开了完全访问、没在翻译时才能点；翻译中显示转圈。
+            // 代价：九宫格模式下切 tab 的入口没了，要切 tab 先按“英文”回英文键盘。
+            if dictationState.isPinyinMode {
+                Button {
+                    if let proxy = controller?.textDocumentProxy {
+                        translationState.requestTranslate(proxy: proxy)
+                    }
+                    HapticManager.selectionChanged()
+                } label: {
+                    if translationState.isTranslating {
+                        ProgressView()
+                            .frame(width: 30, height: 30)
+                    } else {
+                        Image(systemName: "translate")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.primary)
+                            .frame(width: 30, height: 30)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!translationState.canTranslate || !hasFullAccess)
+                .opacity(translationState.canTranslate && hasFullAccess ? 1 : 0.35)
+                .accessibilityLabel("一键翻译成日文")
                 .frame(maxWidth: .infinity)
+            } else {
+                KeyboardTabToggle(dictationState: dictationState)
+                    .frame(maxWidth: .infinity)
+            }
             ModeCycleSelector(dictationState: dictationState)
                 .frame(maxWidth: .infinity)
             // 拼音模式下藏起切换键：九宫格左下角已有“英文”键，再放一个
