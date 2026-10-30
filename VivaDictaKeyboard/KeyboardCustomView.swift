@@ -233,13 +233,13 @@ struct KeyboardCustomView: View {
                             ) {
                                 VivaDictaKeyboardToolbarView(
                                     controller: keyboardVC,
-                                    translateSignal: pinyinTranslateSignal,
                                     hasFullAccess: hasFullAccess,
                                     onShowFullAccessPrompt: {
                                         withAnimation(.spring(duration: 0.35)) {
                                             showFullAccessPrompt = true
                                         }
-                                    }
+                                    },
+                                    translateSignal: pinyinTranslateSignal
                                 )
                                 .environment(dictationState)
                             }
