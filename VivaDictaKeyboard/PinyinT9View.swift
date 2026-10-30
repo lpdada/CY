@@ -4,10 +4,12 @@
 //
 //  汉语拼音九宫格（T9）输入视图，畅言 iOS 的 T9 引擎与字库移植。
 //
-//  布局（2026-10-22 置换版）：候选区永久置顶在最上面（两行：上行数字串
-//  与同码音节、下行候选字与换页），空闲时两行空白占位、高度与打字时
-//  一致，键盘总高度全程不变；工具条（✨/模式药丸/话筒）移到候选区与
-//  按键之间、紧贴按键。4 列键阵，玻璃质感键面（浅顶深底渐变 + 顶部
+//  布局（2026-10-22 置换版，2026-10-30 再改）：候选区永久置顶在最上面
+//  （只剩候选字一行：数字串与同码音节那行已去掉，点音节切换随之没了），
+//  空闲时一行空白占位、高度与打字时一致，键盘总高度全程不变；
+//  工具条（✨/模式药丸/话筒）移到候选区与按键之间、紧贴按键。
+//  九宫格页工具条左边的星星 = 译（点按走 tapTranslate，先上屏整句、
+//  再翻最后一句）；英文模式的星星还是切标签页。4 列键阵，玻璃质感键面（浅顶深底渐变 + 顶部
 //  高光 + 圆角），右列为功能键（删除、符号、双行高发送键，发送键
 //  紫→青渐变 + 发光），底行左为“英文”键（点按切回英文键盘）、中间
 //  为全圆角胶囊空格；回车键已并入双行发送键，不再单占候选栏位置。
@@ -21,18 +23,29 @@
 //  宿主像真输入法一样显示正在组字的词。候选按每页 6 个分页，点“换页”
 //  翻页（末页点“首页”回第一页）。^^ 键切符号页（9 个常用标点，删除
 //  键两页都在，再点 ABC 回字母页）。候选区永久置顶、高度全程不变，
-//  空闲时两行空白占位。
+//  空闲时一行空白占位。
 //
 
 import SwiftUI
 import UIKit
 
+/// 九宫格工具条星星 → 翻译的触发信号。工具条在 PinyinT9View 体外、由调用方
+/// 传入，点星星时把 count +1，PinyinT9View 用 .onChange 监听并走 tapTranslate
+///（先把组字串上屏、再翻最后一句，与旧顶行“译”按钮同一路径）。只是一个
+/// 计数信号，不存业务状态；调用方用 @State 持有它，保证两边拿到同一个。
+@Observable final class PinyinTranslateSignal {
+    var count = 0
+}
+
 struct PinyinT9View<Toolbar: View>: View {
     let proxy: UITextDocumentProxy
     /// 切回 KeyboardKit 键盘（英文等语言布局）
     let onSwitchToAlphabet: () -> Void
-    /// 点“译”：把当前句（组字串会先上屏）翻成日语并写回输入框
+    /// 点工具条星星（九宫格页）：把当前句（组字串会先上屏）翻成日语并写回输入框
     let onTranslate: () -> Void
+    /// 工具条星星 → 翻译的触发信号：调用方同时传给工具条里的星星（点按 +1）
+    /// 和本视图（.onChange 监听并走 tapTranslate）。
+    let translateSignal: PinyinTranslateSignal
     /// 工具条（✨/模式药丸/话筒）：由调用方传入，放在候选区与按键之间、紧贴按键。
     /// 候选区置顶后工具条不再是九宫格视图的上方，而是中间段。
     let toolbar: Toolbar
@@ -41,11 +54,13 @@ struct PinyinT9View<Toolbar: View>: View {
         proxy: UITextDocumentProxy,
         onSwitchToAlphabet: @escaping () -> Void,
         onTranslate: @escaping () -> Void,
+        translateSignal: PinyinTranslateSignal,
         @ViewBuilder toolbar: () -> Toolbar
     ) {
         self.proxy = proxy
         self.onSwitchToAlphabet = onSwitchToAlphabet
         self.onTranslate = onTranslate
+        self.translateSignal = translateSignal
         self.toolbar = toolbar()
     }
 
@@ -135,7 +150,7 @@ struct PinyinT9View<Toolbar: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 候选区永久置顶：空闲时两行空白占位，高度与打字时一致，
+            // 候选区永久置顶：空闲时一行空白占位，高度与打字时一致，
             // 键盘总高度全程不变，首按键不再跳。
             candidateArea
                 .padding(.horizontal, 6)
@@ -152,112 +167,70 @@ struct PinyinT9View<Toolbar: View>: View {
             refreshSentences()
             syncMarkedText()
         }
+        // 工具条星星（九宫格页）= 译：信号 +1 时走 tapTranslate
+        //（先把组字串上屏、再翻最后一句，与旧顶行“译”按钮同一路径）。
+        .onChange(of: translateSignal.count) { _, _ in
+            tapTranslate()
+        }
     }
 
-    // MARK: - 候选区（永久置顶，两行：上行数字串 + 同码音节，下行候选字 + 换页）
+    // MARK: - 候选区（永久置顶，只剩候选字一行）
 
-    /// 候选区永远在最上面、永远占据同样高度：空闲时两行空白占位，
-    /// 打字时上行放数字串与同码音节、下行放候选字与换页。
-    /// 两行分开后候选字一行不再与数字串、音节挤在同一行，
-    /// 之前截断成 …、互相重叠的问题也随之缓解。
+    /// 候选区永远在最上面、永远占据同样高度：空闲时一行空白占位，
+    /// 打字时放候选字与换页。数字串与同码音节那行 2026-10-30 已去掉
+    ///（用户不想要那行显示）；翻译入口改到工具条星星上。
     private var candidateArea: some View {
-        VStack(spacing: 4) {
-            // 上行：数字串 + 同编码的其他音节（点按切换）
-            HStack(spacing: 6) {
-                if !digits.isEmpty {
-                    Text(digits)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    ForEach(syllables.dropFirst(), id: \.self) { syllable in
-                        Button {
-                            selectedSyllable = syllable
-                            candidatePage = 0
-                            syncMarkedText()
-                            HapticManager.selectionChanged()
-                        } label: {
-                            Text(syllable)
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                // 译：中文 → 日语。组字串先上屏，翻译只作用于光标前最后一句。
-                // 没可用凭据时按钮变淡（点下去也会弹一句人话提示，不再静默无反应）。
-                Button {
-                    tapTranslate()
-                } label: {
-                    Text("译")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.15), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .opacity(SharedAIConfig.isConfigured ? 1 : 0.5)
-                .accessibilityLabel("翻译成日语")
-            }
-            .frame(height: 28)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // 下行：当页候选（全局首选高亮，多段时首位是整词）+ 换页。
-            // 候选横向滚动、每个候选按文字自然宽度显示：整句再长也不压成 …，
-            // 滑不动的旧问题（固定 HStack 里 6 个长句互相挤压截断）不再出现。
-            HStack(spacing: 6) {
-                if !digits.isEmpty {
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 6) {
-                            ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
-                                let globalIndex = candidatePage * candidatePageSize + offset
-                                Button {
-                                    commitDisplay(char)
-                                } label: {
-                                    Text(char)
-                                        .font(.system(size: 18))
-                                        .lineLimit(1)
-                                        .fixedSize(horizontal: true, vertical: false)
-                                        .padding(.horizontal, 9)
-                                        .padding(.vertical, 4)
-                                        .background(
-                                            globalIndex == 0
-                                                ? Color.primary
-                                                : Color.clear,
-                                            in: RoundedRectangle(cornerRadius: 13)
-                                        )
-                                        .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
-                                }
-                                .buttonStyle(.plain)
+        // 只有一行：当页候选（全局首选高亮，多段时首位是整词）+ 换页。
+        // 候选横向滚动、每个候选按文字自然宽度显示：整句再长也不压成 …，
+        // 滑不动的旧问题（固定 HStack 里 6 个长句互相挤压截断）不再出现。
+        // 数字串与同码音节那行 2026-10-30 已去掉（用户不想要那行显示，
+        // 点音节切换随之没了）；翻译入口改到工具条星星上。
+        HStack(spacing: 6) {
+            if !digits.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
+                            let globalIndex = candidatePage * candidatePageSize + offset
+                            Button {
+                                commitDisplay(char)
+                            } label: {
+                                Text(char)
+                                    .font(.system(size: 18))
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        globalIndex == 0
+                                            ? Color.primary
+                                            : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 13)
+                                    )
+                                    .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
                             }
+                            .buttonStyle(.plain)
                         }
-                    }
-                    .scrollIndicators(.hidden)
-
-                    // 换页：多页时出现，末页点“首页”回到第一页（固定在行尾，不跟滚动走）
-                    if pageCount > 1 {
-                        Button {
-                            nextPage()
-                        } label: {
-                            Text(candidatePage >= pageCount - 1 ? "首页" : "换页")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
+                .scrollIndicators(.hidden)
+
+                // 换页：多页时出现，末页点“首页”回到第一页（固定在行尾，不跟滚动走）
+                if pageCount > 1 {
+                    Button {
+                        nextPage()
+                    } label: {
+                        Text(candidatePage >= pageCount - 1 ? "首页" : "换页")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .frame(height: 38)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(height: 38)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: digits) { _, _ in candidatePage = 0 }
         .onChange(of: selectedSyllable) { _, _ in candidatePage = 0 }
     }

@@ -16,6 +16,9 @@ struct KeyboardCustomView: View {
     @ObservedObject private var keyboardContext: KeyboardContext
     @State private var processingStage: ProcessingStage = .waitingToStart
     @State private var showFullAccessPrompt = false
+    /// 九宫格工具条星星 → 翻译的触发信号：同时传给 PinyinT9View
+    ///（监听并走 tapTranslate）和它工具条里的星星（点按 +1）。
+    @State private var pinyinTranslateSignal = PinyinTranslateSignal()
     /// Mirrors `AppGroupCoordinator.shared.currentKeyboardLanguage` so taps on
     /// the language cycle key invalidate the view (UserDefaults writes don't
     /// trigger SwiftUI updates by themselves). Updated by the
@@ -212,7 +215,7 @@ struct KeyboardCustomView: View {
 
                     case .notReady, .ready:
                         if dictationState.isPinyinMode {
-                            // 拼音九宫格模式：候选区永久置顶（两行），工具条
+                            // 拼音九宫格模式：候选区永久置顶（只剩候选字一行），工具条
                             // 作为中间段传进九宫格视图、紧贴按键（2026-10-22 置换版）。
                             PinyinT9View(
                                 proxy: controller.textDocumentProxy,
@@ -225,10 +228,12 @@ struct KeyboardCustomView: View {
                                         proxy: vc.textDocumentProxy,
                                         dictationState: dictationState
                                     )
-                                }
+                                },
+                                translateSignal: pinyinTranslateSignal
                             ) {
                                 VivaDictaKeyboardToolbarView(
                                     controller: keyboardVC,
+                                    translateSignal: pinyinTranslateSignal,
                                     hasFullAccess: hasFullAccess,
                                     onShowFullAccessPrompt: {
                                         withAnimation(.spring(duration: 0.35)) {

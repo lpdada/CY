@@ -234,6 +234,8 @@ class KeyboardViewController: KeyboardInputViewController {
 // MARK: - Keyboard Tab Toggle
 struct KeyboardTabToggle: View {
     @Bindable var dictationState: KeyboardDictationState
+    /// 九宫格页星星 → 翻译的触发信号（英文模式不传，星星还是切标签页）。
+    var translateSignal: PinyinTranslateSignal? = nil
 
     private var icon: String {
         switch dictationState.activeTab {
@@ -248,6 +250,15 @@ struct KeyboardTabToggle: View {
     var body: some View {
         Button {
             HapticManager.selectionChanged()
+            // 九宫格页：星星 = 译。工具条在 PinyinT9View 体外，点星星只把
+            // 信号 +1，由 PinyinT9View 的 .onChange 走 tapTranslate
+            //（先上屏整句、再翻最后一句，与旧顶行“译”按钮同一路径）。
+            // 只在键盘页生效：英文模式或文本处理/最近页仍走原来的切标签页。
+            if let translateSignal, dictationState.isPinyinMode,
+               dictationState.activeTab == .keyboard {
+                translateSignal.count += 1
+                return
+            }
             switch dictationState.activeTab {
             case .keyboard: dictationState.activeTab = .textProcessing
             case .textProcessing: dictationState.activeTab = .recentNotes
@@ -369,12 +380,14 @@ struct VivaDictaKeyboardToolbarView: View {
     weak var controller: KeyboardViewController?
     var hasFullAccess: Bool = true
     var onShowFullAccessPrompt: (() -> Void)?
+    /// 九宫格页工具条星星 → 翻译的触发信号（英文模式不传，星星还是切标签页）。
+    var translateSignal: PinyinTranslateSignal? = nil
 
     var body: some View {
         // 顶部图标水平平均分配：每个图标各占等宽一段、居中放。
         // 拼音模式 3 段（✨/模式/话筒），英文模式 4 段（多一个“拼”）。
         HStack(spacing: 0) {
-            KeyboardTabToggle(dictationState: dictationState)
+            KeyboardTabToggle(dictationState: dictationState, translateSignal: translateSignal)
                 .frame(maxWidth: .infinity)
             ModeCycleSelector(dictationState: dictationState)
                 .frame(maxWidth: .infinity)
