@@ -24,13 +24,24 @@ enum SharedAIConfig {
         }
     }
 
-    /// App Group 里那份快照；没有就是 nil。
+    /// 快照，按优先级读：
+    /// 1. App Group suite（正版）
+    /// 2. 键盘本地 defaults（桥模式缓存：主 App 经 /vd/config 同步过来的快照，
+    ///    见 AppGroupCoordinator；自签无 App Group 时只有这一路能通）
+    /// 两处都没有就是 nil。
     /// 必须是 nonisolated：工程开了 SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor，
     /// 不标的话它默认就是 MainActor 隔离，SentenceTranslator.loadConfig（actor
     /// 的静态方法，天然 nonisolated）调它会直接报隔离错；读 UserDefaults 本来
     /// 就是线程安全的，不需要隔离。
     nonisolated static func snapshot() -> Snapshot? {
-        guard let defaults = UserDefaults(suiteName: appGroupId) else { return nil }
+        if let snapshot = read(from: UserDefaults(suiteName: appGroupId)) {
+            return snapshot
+        }
+        return read(from: .standard)
+    }
+
+    private nonisolated static func read(from defaults: UserDefaults?) -> Snapshot? {
+        guard let defaults else { return nil }
         let key = defaults.string(forKey: "vdAISnapshotAPIKey") ?? ""
         guard !key.isEmpty else { return nil }
         let snapshot = Snapshot(
@@ -49,6 +60,6 @@ enum SharedAIConfig {
 
     /// 一句人能看懂的提示，按钮不可用时用。
     static var unavailableHint: String {
-        "键盘读不到主 App 的模型配置：请先在畅言 App 里确认模型 Key 已保存，并给键盘开完全访问（设置 → 通用 → 键盘 → 允许完全访问）。"
+        "键盘还没拿到主 App 的模型配置：请先打开畅言 App 一次（确认选中模式已保存 Key），并给键盘开完全访问（设置 → 通用 → 键盘 → 允许完全访问）。"
     }
 }

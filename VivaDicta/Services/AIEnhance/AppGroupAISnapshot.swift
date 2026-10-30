@@ -23,20 +23,37 @@ enum AppGroupAISnapshot {
 
     /// `provider` 用 `AIProvider.rawValue`；`baseURL` 是这个 provider 的接口根地址
     /// （DeepSeek 是 `https://api.deepseek.com`，OpenAI 是 `https://api.openai.com`）。
+    ///
+    /// 双写：正版走 App Group suite；桥模式（自签无 App Group）下 suite
+    /// 不存在、上面是空操作，所以同时写一份到主 App 本地 defaults——
+    /// 桥的 /vd/config 会把它带给键盘（键盘读本地缓存兜底）。
     static func save(provider: String, model: String, baseURL: String, apiKey: String) {
-        guard let defaults = UserDefaults(suiteName: suiteName) else { return }
-        defaults.set(provider, forKey: Key.provider)
-        defaults.set(model, forKey: Key.model)
-        defaults.set(baseURL, forKey: Key.baseURL)
-        defaults.set(apiKey, forKey: Key.apiKey)
-        defaults.synchronize()
+        if let defaults = UserDefaults(suiteName: suiteName) {
+            defaults.set(provider, forKey: Key.provider)
+            defaults.set(model, forKey: Key.model)
+            defaults.set(baseURL, forKey: Key.baseURL)
+            defaults.set(apiKey, forKey: Key.apiKey)
+            defaults.synchronize()
+        }
+        let local = UserDefaults.standard
+        local.set(provider, forKey: Key.provider)
+        local.set(model, forKey: Key.model)
+        local.set(baseURL, forKey: Key.baseURL)
+        local.set(apiKey, forKey: Key.apiKey)
+        local.synchronize()
     }
 
     static func clear() {
-        guard let defaults = UserDefaults(suiteName: suiteName) else { return }
-        for key in [Key.provider, Key.model, Key.baseURL, Key.apiKey] {
-            defaults.removeObject(forKey: key)
+        if let defaults = UserDefaults(suiteName: suiteName) {
+            for key in [Key.provider, Key.model, Key.baseURL, Key.apiKey] {
+                defaults.removeObject(forKey: key)
+            }
+            defaults.synchronize()
         }
-        defaults.synchronize()
+        let local = UserDefaults.standard
+        for key in [Key.provider, Key.model, Key.baseURL, Key.apiKey] {
+            local.removeObject(forKey: key)
+        }
+        local.synchronize()
     }
 }

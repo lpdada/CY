@@ -158,19 +158,27 @@ final class KeyboardTextProcessor {
             return
         }
 
-        guard SharedAIConfig.isConfigured else {
-            HapticManager.error()
-            dictationState.textProcessingPhase = .error(SharedAIConfig.unavailableHint)
-            autoDismissError(dictationState: dictationState)
-            return
-        }
-
         cancel()
 
         isProcessing = true
         currentTask = Task {
             defer { isProcessing = false }
             do {
+                // 桥模式：点之前先拉一次配置快照（主 App 在就刷新轮换后的 Key，
+                // 不在就瞬间失败、继续用旧缓存；拉取从不删旧缓存，见
+                // AppGroupCoordinator.pullBridgeConfigIntoCache）。
+                if LocalBridge.isEnabled {
+                    await AppGroupCoordinator.shared.pullBridgeConfigIntoCache()
+                    try Task.checkCancellation()
+                }
+
+                guard SharedAIConfig.isConfigured else {
+                    HapticManager.error()
+                    dictationState.textProcessingPhase = .error(SharedAIConfig.unavailableHint)
+                    autoDismissError(dictationState: dictationState)
+                    return
+                }
+
                 dictationState.textProcessingPhase = .waitingForResult(
                     modeName: SharedAIConfig.snapshot()?.model ?? "翻译"
                 )

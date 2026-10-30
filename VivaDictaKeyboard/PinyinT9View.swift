@@ -213,7 +213,7 @@ struct PinyinT9View<Toolbar: View>: View {
             // 滑不动的旧问题（固定 HStack 里 6 个长句互相挤压截断）不再出现。
             HStack(spacing: 6) {
                 if !digits.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollView(.horizontal) {
                         HStack(spacing: 6) {
                             ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
                                 let globalIndex = candidatePage * candidatePageSize + offset
@@ -238,6 +238,7 @@ struct PinyinT9View<Toolbar: View>: View {
                             }
                         }
                     }
+                    .scrollIndicators(.hidden)
 
                     // 换页：多页时出现，末页点“首页”回到第一页（固定在行尾，不跟滚动走）
                     if pageCount > 1 {

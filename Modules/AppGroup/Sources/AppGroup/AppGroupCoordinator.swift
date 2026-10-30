@@ -56,6 +56,13 @@ public final class AppGroupCoordinator: @unchecked Sendable {
     // AI Processing configuration
     public static let vivaModesKey = "VivaModes"
     public static let selectedVivaModeKey = "selectedVivaMode"
+    // 键盘直译快照：主 App 同步选中模式的模型与 Key（见 AppGroupAISnapshot）。
+    // 正版走 App Group suite；桥模式（自签无 App Group）下主 App 把它写进
+    // 本地 defaults，/vd/config 再把它带给键盘（键盘读本地缓存兜底）。
+    public static let kAISnapshotProvider = "vdAISnapshotProvider"
+    public static let kAISnapshotModel = "vdAISnapshotModel"
+    public static let kAISnapshotBaseURL = "vdAISnapshotBaseURL"
+    public static let kAISnapshotAPIKey = "vdAISnapshotAPIKey"
     public static let kSelectedLanguageKey = "selectedLanguageKey"
     public static let kTranslationTargetLanguageKey = "translationTargetLanguageKey"
     public static let kAPIKeyTemplate = "apiKeyTemplate"
@@ -271,6 +278,12 @@ public final class AppGroupCoordinator: @unchecked Sendable {
                         AppGroupCoordinator.kGeminiTranscriptionPrompt,
                         AppGroupCoordinator.kEnabledKeyboardLanguages,
                         AppGroupCoordinator.kCurrentKeyboardLanguage,
+                        // 键盘直译快照：桥模式下主 App 只写本地 defaults，
+                        // 不经这里就到不了键盘（applySnapshot 只写快照里有的键）。
+                        AppGroupCoordinator.kAISnapshotProvider,
+                        AppGroupCoordinator.kAISnapshotModel,
+                        AppGroupCoordinator.kAISnapshotBaseURL,
+                        AppGroupCoordinator.kAISnapshotAPIKey,
                     ],
                     boolKeys: [
                         AppGroupCoordinator.kSmartFormattingOnPaste,
@@ -329,6 +342,18 @@ public final class AppGroupCoordinator: @unchecked Sendable {
         let recording = isRecording
         lastDeliveredRecordingState = recording
         onRecordingStateChanged?(recording)
+    }
+
+    /// 扩展进程：把配置快照拉回本地缓存（桥模式下键盘拿配置的通道）。
+    /// 只写快照里有的键，拉不到、或快照里没有快照键时旧缓存原样保留；
+    /// 所以译按钮每次点之前拉一次是安全的：主 App 在就刷新轮换后的 Key，
+    /// 主 App 不在就瞬间失败、继续用旧缓存，不会把好缓存洗掉。
+    public func pullBridgeConfigIntoCache() async {
+        guard LocalBridge.isEnabled, !LocalBridge.isMainAppProcess,
+              let defaults = sharedDefaults else { return }
+        if let config = await BridgeStateClient.pullConfig() {
+            BridgeStateClient.applySnapshot(config, to: defaults)
+        }
     }
 
     /// 键盘每次出现时主动对账录音态（一次性 Darwin 通知丢失的兜底）。
