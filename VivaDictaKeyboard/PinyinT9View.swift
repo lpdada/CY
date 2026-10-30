@@ -31,6 +31,8 @@ struct PinyinT9View<Toolbar: View>: View {
     let proxy: UITextDocumentProxy
     /// 切回 KeyboardKit 键盘（英文等语言布局）
     let onSwitchToAlphabet: () -> Void
+    /// 点“译”：把当前句（组字串会先上屏）翻成日语并写回输入框
+    let onTranslate: () -> Void
     /// 工具条（✨/模式药丸/话筒）：由调用方传入，放在候选区与按键之间、紧贴按键。
     /// 候选区置顶后工具条不再是九宫格视图的上方，而是中间段。
     let toolbar: Toolbar
@@ -38,15 +40,20 @@ struct PinyinT9View<Toolbar: View>: View {
     init(
         proxy: UITextDocumentProxy,
         onSwitchToAlphabet: @escaping () -> Void,
+        onTranslate: @escaping () -> Void,
         @ViewBuilder toolbar: () -> Toolbar
     ) {
         self.proxy = proxy
         self.onSwitchToAlphabet = onSwitchToAlphabet
+        self.onTranslate = onTranslate
         self.toolbar = toolbar()
     }
 
     @State private var digits: String = ""
     @State private var selectedSyllable: String?
+    /// 整句候选缓存：只在数字串变化时重算，不放进 body 的 computed property。
+    /// 解码一次约 10–40ms，放进 body 会在每次重绘时重复跑，键盘会卡。
+    @State private var sentenceCandidates: [String] = []
     @State private var candidatePage: Int = 0
     @State private var symbolMode: Bool = false
     /// 数字键盘模式：与符号页同机制，键阵换成 1–9、0，直接输数字本身
@@ -92,9 +99,28 @@ struct PinyinT9View<Toolbar: View>: View {
         PinyinEngine.wordCandidates(forDigits: digits)
     }
 
-    /// 展示用候选：词在前（按词频），其后是首段单字候选
+    /// 展示用候选：整句（覆盖全部数字）→ 整词 → 首段单字。
+    /// 整句候选由 PinyinSentenceDecoder 用一元+二元语言模型解码得到，
+    /// 不会出现“只给单字”的情况，也不会自动补用户没按的音节。
     private var displayCandidates: [String] {
-        wordCandidates + allCandidateChars
+        var result = sentenceCandidates
+        var seen = Set(result)
+        for word in wordCandidates where !seen.contains(word) {
+            seen.insert(word)
+            result.append(word)
+        }
+        for char in allCandidateChars where !seen.contains(char) {
+            seen.insert(char)
+            result.append(char)
+        }
+        return result
+    }
+
+    /// 数字串变化后重算整句候选（唯一的解码入口）
+    private func refreshSentences() {
+        sentenceCandidates = digits.isEmpty
+            ? []
+            : PinyinSentenceDecoder.decode(digits).map(\.text)
     }
 
     private var pageCount: Int {
@@ -122,7 +148,10 @@ struct PinyinT9View<Toolbar: View>: View {
                 .padding(.bottom, 6)
         }
         // 切回拼音页时若数字串还在，把组字串重新同步给宿主
-        .onAppear { syncMarkedText() }
+        .onAppear {
+            refreshSentences()
+            syncMarkedText()
+        }
     }
 
     // MARK: - 候选区（永久置顶，两行：上行数字串 + 同码音节，下行候选字 + 换页）
@@ -158,6 +187,22 @@ struct PinyinT9View<Toolbar: View>: View {
                         .buttonStyle(.plain)
                     }
                 }
+
+                Spacer(minLength: 4)
+
+                // 译：中文 → 日语。组字串先上屏，翻译只作用于光标前最后一句。
+                Button {
+                    tapTranslate()
+                } label: {
+                    Text("译")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.15), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("翻译成日语")
             }
             .frame(height: 28)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -486,6 +531,7 @@ struct PinyinT9View<Toolbar: View>: View {
         digits += digit
         selectedSyllable = nil
         candidatePage = 0
+        refreshSentences()
         syncMarkedText()
     }
 
@@ -497,6 +543,7 @@ struct PinyinT9View<Toolbar: View>: View {
         } else {
             proxy.deleteBackward()
         }
+        refreshSentences()
         syncMarkedText()
     }
 
@@ -520,22 +567,32 @@ struct PinyinT9View<Toolbar: View>: View {
         // 页码显式复位（候选区现为永久保留，onChange 也会复位，
         // 这里再保一层，避免上屏后停在旧页）。
         candidatePage = 0
+        refreshSentences()
         syncMarkedText()
     }
 
     /// 点展示候选：词候选覆盖整串数字，一次上屏并清空；单字走首段扣减。
     /// 词恒为多字、单字恒为单字，按是否在词候选里区分是安全的。
     private func commitDisplay(_ item: String) {
-        if wordCandidates.contains(item) {
+        // 整句和整词都覆盖全部数字：一次上屏、清空输入。
+        // 单字只覆盖首段音节，走 commit(_:) 扣掉首段编码。
+        if sentenceCandidates.contains(item) || wordCandidates.contains(item) {
             proxy.insertText(item)
             HapticManager.lightImpact()
             digits = ""
             selectedSyllable = nil
             candidatePage = 0
+            refreshSentences()
             syncMarkedText()
         } else {
             commit(item)
         }
+    }
+
+    /// 译：先把正在组字的整句上屏（否则翻译读到的是旧文本），再交给外层。
+    private func tapTranslate() {
+        commitFirstIfNeeded()
+        onTranslate()
     }
 
     /// 把首选候选同步为文档里的 marked text（组字串），让宿主像真输入法

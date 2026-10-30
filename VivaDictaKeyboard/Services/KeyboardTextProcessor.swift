@@ -81,6 +81,115 @@ final class KeyboardTextProcessor {
         }
     }
 
+    /// 把光标前最后一句翻成日语，并原位替换这一句。
+    ///
+    /// 与 ``processText(proxy:mode:presetId:dictationState:)`` 的唯一区别是读取范围：
+    /// 那边读“选中文本，否则光标前全部文本”，整段草稿会被一起换掉；这里只取最后
+    /// 一个句末标点之后的片段，译文也只覆盖这一句。
+    func translateCurrentSentence(
+        proxy: UITextDocumentProxy,
+        mode: VivaMode,
+        presetId: String = "translate_ja",
+        dictationState: KeyboardDictationState
+    ) {
+        guard !isProcessing else {
+            logger.logInfo("📝 [TextProcessor] Ignoring duplicate translate — already processing")
+            return
+        }
+
+        // 与 processText 相同的 GPU 限制：键盘在前台后台时 Metal 被系统封住
+        if mode.aiProvider == .local, !AIProvider.localModelRunsOnNeuralEngine(mode.aiModel) {
+            HapticManager.error()
+            dictationState.textProcessingPhase = .error("This on-device model runs on the GPU and needs the Changyan app open. Use a CoreML model, Apple Foundation Model, or a cloud model from the keyboard.")
+            autoDismissError(dictationState: dictationState)
+            return
+        }
+
+        guard let target = readSentenceTarget(from: proxy, dictationState: dictationState) else { return }
+
+        cancel()
+
+        isProcessing = true
+        currentTask = Task {
+            defer { isProcessing = false }
+            do {
+                dictationState.textProcessingPhase = .sendingToApp
+
+                let translated = try await awaitResult(dictationState: dictationState) {
+                    AppGroupCoordinator.shared.requestTextProcessing(
+                        text: target.text,
+                        modeName: mode.name,
+                        presetId: presetId
+                    )
+                    dictationState.textProcessingPhase = .waitingForResult(modeName: mode.name)
+                }
+
+                try Task.checkCancellation()
+                replace(target: target, with: translated, in: proxy, dictationState: dictationState)
+            } catch is CancellationError {
+                dictationState.textProcessingPhase = .idle
+            } catch {
+                HapticManager.error()
+                dictationState.textProcessingPhase = .error(error.localizedDescription)
+                autoDismissError(dictationState: dictationState)
+            }
+        }
+    }
+
+    /// 只取“最后一句”作为翻译目标：选中文本优先，否则光标前文本的最后一句。
+    private func readSentenceTarget(
+        from proxy: UITextDocumentProxy,
+        dictationState: KeyboardDictationState
+    ) -> Target? {
+        switch TextDocumentProxyReader.readText(from: proxy) {
+        case .selectedText(let text):
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return noSentenceError(dictationState: dictationState)
+            }
+            return Target(text: text, isSelection: true)
+        case .textBeforeCursor(let text):
+            guard let sentence = Self.lastSentence(in: text) else {
+                return noSentenceError(dictationState: dictationState)
+            }
+            logger.logInfo("📝 [TextProcessor] Translating last sentence (\(sentence.count) chars): \(sentence)")
+            return Target(text: sentence, isSelection: false)
+        case .empty:
+            return noSentenceError(dictationState: dictationState)
+        }
+    }
+
+    private func noSentenceError(dictationState: KeyboardDictationState) -> Target? {
+        HapticManager.error()
+        dictationState.textProcessingPhase = .error("没有可翻译的句子")
+        autoDismissError(dictationState: dictationState)
+        return nil
+    }
+
+    /// 取最后一句（含句末标点）。分隔符：。！？!?；;… 与换行。
+    /// "你好。今天天气不错" → "今天天气不错"；"hello. 你好。" → "你好。"
+    static func lastSentence(in text: String) -> String? {
+        let separators: Set<Character> = ["。", "！", "？", "!", "?", "；", ";", "…", "\n", "\r"]
+        var segments: [Substring] = []
+        var start = text.startIndex
+        var index = text.startIndex
+        while index < text.endIndex {
+            let ch = text[index]
+            index = text.index(after: index)
+            if separators.contains(ch) {
+                segments.append(text[start..<index])
+                start = index
+            }
+        }
+        if start < text.endIndex {
+            segments.append(text[start...])
+        }
+        for segment in segments.reversed() {
+            let trimmed = String(segment).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
+    }
+
     /// Records a spoken instruction and applies it to the host text field.
     ///
     /// Same read/replace path as ``processText(proxy:mode:presetId:dictationState:)``;
