@@ -222,9 +222,10 @@ struct KeyboardCustomView: View {
                                 onSwitchToAlphabet: { dictationState.isPinyinMode = false },
                                 onTranslate: {
                                     guard let vc = keyboardVC else { return }
-                                    // 九宫格「译」键走键盘端直译：直接拿主 App 同步到
-                                    // App Group 的快照调模型，不再等主 App 回结果。
-                                    vc.textProcessor.translateCurrentSentenceDirectly(
+                                    // 九宫格星星「译」走键盘端直译：直接拿主 App 同步到
+                                    // App Group 的快照调模型，不再等主 App 回结果；
+                                    // 翻的是光标前全部内容，不再只翻最后一句。
+                                    vc.textProcessor.translateCurrentTextDirectly(
                                         proxy: vc.textDocumentProxy,
                                         dictationState: dictationState
                                     )

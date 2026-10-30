@@ -9,7 +9,7 @@
 //  空闲时一行空白占位、高度与打字时一致，键盘总高度全程不变；
 //  工具条（✨/模式药丸/话筒）移到候选区与按键之间、紧贴按键。
 //  九宫格页工具条左边的星星 = 译（点按走 tapTranslate，先上屏整句、
-//  再翻最后一句）；英文模式的星星还是切标签页。4 列键阵，玻璃质感键面（浅顶深底渐变 + 顶部
+//  再翻光标前全部内容）；英文模式的星星还是切标签页。4 列键阵，玻璃质感键面（浅顶深底渐变 + 顶部
 //  高光 + 圆角），右列为功能键（删除、符号、双行高发送键，发送键
 //  紫→青渐变 + 发光），底行左为“英文”键（点按切回英文键盘）、中间
 //  为全圆角胶囊空格；回车键已并入双行发送键，不再单占候选栏位置。
@@ -31,7 +31,7 @@ import UIKit
 
 /// 九宫格工具条星星 → 翻译的触发信号。工具条在 PinyinT9View 体外、由调用方
 /// 传入，点星星时把 count +1，PinyinT9View 用 .onChange 监听并走 tapTranslate
-///（先把组字串上屏、再翻最后一句，与旧顶行“译”按钮同一路径）。只是一个
+///（先把组字串上屏、再翻光标前全部内容，与旧顶行“译”按钮同一路径）。只是一个
 /// 计数信号，不存业务状态；调用方用 @State 持有它，保证两边拿到同一个。
 @Observable final class PinyinTranslateSignal {
     var count = 0
@@ -41,7 +41,7 @@ struct PinyinT9View<Toolbar: View>: View {
     let proxy: UITextDocumentProxy
     /// 切回 KeyboardKit 键盘（英文等语言布局）
     let onSwitchToAlphabet: () -> Void
-    /// 点工具条星星（九宫格页）：把当前句（组字串会先上屏）翻成日语并写回输入框
+    /// 点工具条星星（九宫格页）：把光标前全部内容（组字串会先上屏）翻成日语并写回输入框
     let onTranslate: () -> Void
     /// 工具条星星 → 翻译的触发信号：调用方同时传给工具条里的星星（点按 +1）
     /// 和本视图（.onChange 监听并走 tapTranslate）。
@@ -168,7 +168,7 @@ struct PinyinT9View<Toolbar: View>: View {
             syncMarkedText()
         }
         // 工具条星星（九宫格页）= 译：信号 +1 时走 tapTranslate
-        //（先把组字串上屏、再翻最后一句，与旧顶行“译”按钮同一路径）。
+        //（先把组字串上屏、再翻光标前全部内容，与旧顶行“译”按钮同一路径）。
         .onChange(of: translateSignal.count) { _, _ in
             tapTranslate()
         }
@@ -571,7 +571,7 @@ struct PinyinT9View<Toolbar: View>: View {
         }
     }
 
-    /// 译：先把正在组字的整句上屏（否则翻译读到的是旧文本），再交给外层。
+    /// 译：先把正在组字的内容上屏（否则翻译读到的是旧文本），再交给外层。
     private func tapTranslate() {
         commitFirstIfNeeded()
         onTranslate()

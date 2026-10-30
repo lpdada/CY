@@ -81,11 +81,10 @@ final class KeyboardTextProcessor {
         }
     }
 
-    /// 把光标前最后一句翻成日语，并原位替换这一句。
+    /// 把光标前全部内容翻成日语，并原位替换（2026-10-30 起不再只翻最后一句）。
     ///
-    /// 与 ``processText(proxy:mode:presetId:dictationState:)`` 的唯一区别是读取范围：
-    /// 那边读“选中文本，否则光标前全部文本”，整段草稿会被一起换掉；这里只取最后
-    /// 一个句末标点之后的片段，译文也只覆盖这一句。
+    /// 与 ``processText(proxy:mode:presetId:dictationState:)`` 的区别只剩走 AppGroup
+    /// 通知等主 App 回结果；读取范围与那边一致：选中文本优先，否则光标前全部文本。
     func translateCurrentSentence(
         proxy: UITextDocumentProxy,
         mode: VivaMode,
@@ -105,7 +104,7 @@ final class KeyboardTextProcessor {
             return
         }
 
-        guard let target = readSentenceTarget(from: proxy, dictationState: dictationState) else { return }
+        guard let target = readTranslateTarget(from: proxy, dictationState: dictationState) else { return }
 
         cancel()
 
@@ -136,11 +135,13 @@ final class KeyboardTextProcessor {
         }
     }
 
-    /// 键盘端直译（九宫格「译」键专用）：不走“发通知等主 App 回结果”，
+    /// 键盘端直译（九宫格星星「译」专用）：不走“发通知等主 App 回结果”，
     /// 直接拿 App Group 快照里的模型和 Key 调接口。主 App 没在后台活着
     /// 也能翻；代价是键盘联网要求“允许完全访问”，没开时请求失败会进
     /// error 分支给一句人话提示，不再静默转圈。目标固定日语。
-    func translateCurrentSentenceDirectly(
+    /// 翻译目标是光标前全部内容（2026-10-30 起不再只翻最后一句）；
+    /// 选中文本时只翻选中的部分。
+    func translateCurrentTextDirectly(
         proxy: UITextDocumentProxy,
         dictationState: KeyboardDictationState
     ) {
@@ -149,11 +150,11 @@ final class KeyboardTextProcessor {
             return
         }
 
-        guard let target = readSentenceTarget(from: proxy, dictationState: dictationState) else { return }
+        guard let target = readTranslateTarget(from: proxy, dictationState: dictationState) else { return }
 
         guard target.text.count >= 2 else {
             HapticManager.error()
-            dictationState.textProcessingPhase = .error("句子太短，没什么可翻的")
+            dictationState.textProcessingPhase = .error("内容太短，没什么可翻的")
             autoDismissError(dictationState: dictationState)
             return
         }
@@ -199,57 +200,35 @@ final class KeyboardTextProcessor {
         }
     }
 
-    /// 只取“最后一句”作为翻译目标：选中文本优先，否则光标前文本的最后一句。
-    private func readSentenceTarget(
+    /// 翻译目标：选中文本优先（翻选中的全部），否则光标前全部文本。
+    /// 2026-10-30 前这里只取“最后一句”（按 。！？ 等句末标点切分），
+    /// 用户要求整框内容都翻，改成全量。替换时按目标字数往前删，字数
+    /// 必须与原文一致，因此这里不 trim 原文（只用 trim 判空），避免删错范围。
+    private func readTranslateTarget(
         from proxy: UITextDocumentProxy,
         dictationState: KeyboardDictationState
     ) -> Target? {
         switch TextDocumentProxyReader.readText(from: proxy) {
         case .selectedText(let text):
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                return noSentenceError(dictationState: dictationState)
+                return noTextError(dictationState: dictationState)
             }
             return Target(text: text, isSelection: true)
         case .textBeforeCursor(let text):
-            guard let sentence = Self.lastSentence(in: text) else {
-                return noSentenceError(dictationState: dictationState)
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return noTextError(dictationState: dictationState)
             }
-            logger.logInfo("📝 [TextProcessor] Translating last sentence (\(sentence.count) chars): \(sentence)")
-            return Target(text: sentence, isSelection: false)
+            logger.logInfo("📝 [TextProcessor] Translating full text before cursor (\(text.count) chars)")
+            return Target(text: text, isSelection: false)
         case .empty:
-            return noSentenceError(dictationState: dictationState)
+            return noTextError(dictationState: dictationState)
         }
     }
 
-    private func noSentenceError(dictationState: KeyboardDictationState) -> Target? {
+    private func noTextError(dictationState: KeyboardDictationState) -> Target? {
         HapticManager.error()
-        dictationState.textProcessingPhase = .error("没有可翻译的句子")
+        dictationState.textProcessingPhase = .error("没有可翻译的内容")
         autoDismissError(dictationState: dictationState)
-        return nil
-    }
-
-    /// 取最后一句（含句末标点）。分隔符：。！？!?；;… 与换行。
-    /// "你好。今天天气不错" → "今天天气不错"；"hello. 你好。" → "你好。"
-    static func lastSentence(in text: String) -> String? {
-        let separators: Set<Character> = ["。", "！", "？", "!", "?", "；", ";", "…", "\n", "\r"]
-        var segments: [Substring] = []
-        var start = text.startIndex
-        var index = text.startIndex
-        while index < text.endIndex {
-            let ch = text[index]
-            index = text.index(after: index)
-            if separators.contains(ch) {
-                segments.append(text[start..<index])
-                start = index
-            }
-        }
-        if start < text.endIndex {
-            segments.append(text[start...])
-        }
-        for segment in segments.reversed() {
-            let trimmed = String(segment).trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
         return nil
     }
 

@@ -252,7 +252,7 @@ struct KeyboardTabToggle: View {
             HapticManager.selectionChanged()
             // 九宫格页：星星 = 译。工具条在 PinyinT9View 体外，点星星只把
             // 信号 +1，由 PinyinT9View 的 .onChange 走 tapTranslate
-            //（先上屏整句、再翻最后一句，与旧顶行“译”按钮同一路径）。
+            //（先上屏组字串、再翻光标前全部内容）。
             // 只在键盘页生效：英文模式或文本处理/最近页仍走原来的切标签页。
             if let translateSignal, dictationState.isPinyinMode,
                dictationState.activeTab == .keyboard {
