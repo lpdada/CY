@@ -53,7 +53,7 @@ struct PinyinT9View<Toolbar: View>: View {
     @State private var selectedSyllable: String?
     /// 整句候选缓存：只在数字串变化时重算，不放进 body 的 computed property。
     /// 解码一次约 10–40ms，放进 body 会在每次重绘时重复跑，键盘会卡。
-    @State private var sentenceCandidates: [String] = []
+    @State private var sentenceCandidates: [PinyinSentenceCandidate] = []
     @State private var candidatePage: Int = 0
     @State private var symbolMode: Bool = false
     /// 数字键盘模式：与符号页同机制，键阵换成 1–9、0，直接输数字本身
@@ -103,7 +103,7 @@ struct PinyinT9View<Toolbar: View>: View {
     /// 整句候选由 PinyinSentenceDecoder 用一元+二元语言模型解码得到，
     /// 不会出现“只给单字”的情况，也不会自动补用户没按的音节。
     private var displayCandidates: [String] {
-        var result = sentenceCandidates
+        var result = sentenceCandidates.map(\.text)
         var seen = Set(result)
         for word in wordCandidates where !seen.contains(word) {
             seen.insert(word)
@@ -120,7 +120,7 @@ struct PinyinT9View<Toolbar: View>: View {
     private func refreshSentences() {
         sentenceCandidates = digits.isEmpty
             ? []
-            : PinyinSentenceDecoder.decode(digits).map(\.text)
+            : PinyinSentenceDecoder.decode(digits)
     }
 
     private var pageCount: Int {
@@ -168,7 +168,6 @@ struct PinyinT9View<Toolbar: View>: View {
                     Text(digits)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                        .frame(width: 40, alignment: .leading)
                         .lineLimit(1)
 
                     ForEach(syllables.dropFirst(), id: \.self) { syllable in
@@ -191,6 +190,7 @@ struct PinyinT9View<Toolbar: View>: View {
                 Spacer(minLength: 4)
 
                 // 译：中文 → 日语。组字串先上屏，翻译只作用于光标前最后一句。
+                // 没可用凭据时按钮变淡（点下去也会弹一句人话提示，不再静默无反应）。
                 Button {
                     tapTranslate()
                 } label: {
@@ -202,36 +202,44 @@ struct PinyinT9View<Toolbar: View>: View {
                         .background(Color.secondary.opacity(0.15), in: Capsule())
                 }
                 .buttonStyle(.plain)
+                .opacity(SharedAIConfig.isConfigured ? 1 : 0.5)
                 .accessibilityLabel("翻译成日语")
             }
             .frame(height: 28)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // 下行：当页候选（全局首选高亮，多段时首位是整词）+ 换页
+            // 下行：当页候选（全局首选高亮，多段时首位是整词）+ 换页。
+            // 候选横向滚动、每个候选按文字自然宽度显示：整句再长也不压成 …，
+            // 滑不动的旧问题（固定 HStack 里 6 个长句互相挤压截断）不再出现。
             HStack(spacing: 6) {
                 if !digits.isEmpty {
-                    ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
-                        let globalIndex = candidatePage * candidatePageSize + offset
-                        Button {
-                            commitDisplay(char)
-                        } label: {
-                            Text(char)
-                                .font(.system(size: 18))
-                                .lineLimit(1)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
-                                .background(
-                                    globalIndex == 0
-                                        ? Color.primary
-                                        : Color.clear,
-                                    in: RoundedRectangle(cornerRadius: 13)
-                                )
-                                .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(Array(pageChars.enumerated()), id: \.offset) { offset, char in
+                                let globalIndex = candidatePage * candidatePageSize + offset
+                                Button {
+                                    commitDisplay(char)
+                                } label: {
+                                    Text(char)
+                                        .font(.system(size: 18))
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            globalIndex == 0
+                                                ? Color.primary
+                                                : Color.clear,
+                                            in: RoundedRectangle(cornerRadius: 13)
+                                        )
+                                        .foregroundStyle(globalIndex == 0 ? Color(uiColor: .systemBackground) : .primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
 
-                    // 换页：多页时出现，末页点“首页”回到第一页
+                    // 换页：多页时出现，末页点“首页”回到第一页（固定在行尾，不跟滚动走）
                     if pageCount > 1 {
                         Button {
                             nextPage()
@@ -576,7 +584,7 @@ struct PinyinT9View<Toolbar: View>: View {
     private func commitDisplay(_ item: String) {
         // 整句和整词都覆盖全部数字：一次上屏、清空输入。
         // 单字只覆盖首段音节，走 commit(_:) 扣掉首段编码。
-        if sentenceCandidates.contains(item) || wordCandidates.contains(item) {
+        if sentenceCandidates.contains(where: { $0.text == item }) || wordCandidates.contains(item) {
             proxy.insertText(item)
             HapticManager.lightImpact()
             digits = ""
@@ -595,11 +603,16 @@ struct PinyinT9View<Toolbar: View>: View {
         onTranslate()
     }
 
-    /// 把首选候选同步为文档里的 marked text（组字串），让宿主像真输入法
-    /// 一样显示正在组字的词；不支持 marked text 的宿主会忽略它，选字流程不受影响。
+    /// 组字串同步为文档里的 marked text：有整句候选时显示它的拼音
+    /// （如 "ni he shui"，空格分隔），中文只出现在候选区、点选后才上屏；
+    /// 没有整句候选时回落到旧行为（显示首选中文）。不支持 marked text 的
+    /// 宿主会忽略它，选字流程不受影响。
     private func syncMarkedText() {
         if digits.isEmpty || displayCandidates.isEmpty {
             proxy.unmarkText()
+        } else if let top = sentenceCandidates.first, !top.syllables.isEmpty {
+            let pinyin = top.syllables.joined(separator: " ")
+            proxy.setMarkedText(pinyin, selectedRange: NSRange(location: pinyin.utf16.count, length: 0))
         } else if let top = displayCandidates.first {
             proxy.setMarkedText(top, selectedRange: NSRange(location: top.utf16.count, length: 0))
         }

@@ -136,6 +136,61 @@ final class KeyboardTextProcessor {
         }
     }
 
+    /// 键盘端直译（九宫格「译」键专用）：不走“发通知等主 App 回结果”，
+    /// 直接拿 App Group 快照里的模型和 Key 调接口。主 App 没在后台活着
+    /// 也能翻；代价是键盘联网要求“允许完全访问”，没开时请求失败会进
+    /// error 分支给一句人话提示，不再静默转圈。目标固定日语。
+    func translateCurrentSentenceDirectly(
+        proxy: UITextDocumentProxy,
+        dictationState: KeyboardDictationState
+    ) {
+        guard !isProcessing else {
+            logger.logInfo("📝 [TextProcessor] Ignoring duplicate direct translate — already processing")
+            return
+        }
+
+        guard let target = readSentenceTarget(from: proxy, dictationState: dictationState) else { return }
+
+        guard target.text.count >= 2 else {
+            HapticManager.error()
+            dictationState.textProcessingPhase = .error("句子太短，没什么可翻的")
+            autoDismissError(dictationState: dictationState)
+            return
+        }
+
+        guard SharedAIConfig.isConfigured else {
+            HapticManager.error()
+            dictationState.textProcessingPhase = .error(SharedAIConfig.unavailableHint)
+            autoDismissError(dictationState: dictationState)
+            return
+        }
+
+        cancel()
+
+        isProcessing = true
+        currentTask = Task {
+            defer { isProcessing = false }
+            do {
+                dictationState.textProcessingPhase = .waitingForResult(
+                    modeName: SharedAIConfig.snapshot()?.model ?? "翻译"
+                )
+
+                guard let translated = await SentenceTranslator.shared.translate(target.text) else {
+                    throw TextProcessingError.processingFailed("翻译失败：请检查网络、完全访问权限与模型配置")
+                }
+
+                try Task.checkCancellation()
+                replace(target: target, with: translated, in: proxy, dictationState: dictationState)
+            } catch is CancellationError {
+                dictationState.textProcessingPhase = .idle
+            } catch {
+                HapticManager.error()
+                dictationState.textProcessingPhase = .error(error.localizedDescription)
+                autoDismissError(dictationState: dictationState)
+            }
+        }
+    }
+
     /// 只取“最后一句”作为翻译目标：选中文本优先，否则光标前文本的最后一句。
     private func readSentenceTarget(
         from proxy: UITextDocumentProxy,
@@ -352,6 +407,18 @@ final class KeyboardTextProcessor {
                 self?.logger.logInfo("📝 [TextProcessor] Session expired during text processing")
                 self?.resultContinuation?.resume(throwing: TextProcessingError.processingFailed("Session expired. Open Changyan and try again."))
                 self?.resultContinuation = nil
+            }
+
+            // 超时：Darwin 通知唤不醒已杀掉的主 App——主 App 没在后台活着时，
+            // 请求永远没人接，之前这里会一直停在“Processing: 畅言...”不动。
+            // 60 秒没回音就主动报错，告诉用户先打开主 App 再点译；已先拿到
+            // 结果时 continuation 已是 nil，这支 Task 是空转，不会重复 resume。
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(60))
+                guard let self, let continuation = self.resultContinuation else { return }
+                self.resultContinuation = nil
+                self.logger.logInfo("📝 [TextProcessor] Text processing timed out — main app did not answer")
+                continuation.resume(throwing: TextProcessingError.processingFailed("主 App 长时间没有响应：请先打开畅言 App，让它留在后台，再点译"))
             }
 
             request()

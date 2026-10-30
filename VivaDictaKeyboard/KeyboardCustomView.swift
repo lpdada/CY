@@ -219,9 +219,10 @@ struct KeyboardCustomView: View {
                                 onSwitchToAlphabet: { dictationState.isPinyinMode = false },
                                 onTranslate: {
                                     guard let vc = keyboardVC else { return }
-                                    vc.textProcessor.translateCurrentSentence(
+                                    // 九宫格「译」键走键盘端直译：直接拿主 App 同步到
+                                    // App Group 的快照调模型，不再等主 App 回结果。
+                                    vc.textProcessor.translateCurrentSentenceDirectly(
                                         proxy: vc.textDocumentProxy,
-                                        mode: dictationState.vivaModeManager.selectedVivaMode,
                                         dictationState: dictationState
                                     )
                                 }
