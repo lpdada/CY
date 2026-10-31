@@ -9,7 +9,7 @@ import Testing
 /// Soniox retires `api_key` in the first WebSocket message on 2027-01-15; from
 /// then on the key must be sent with the connection. The start/config message
 /// should omit it (a different key there is rejected). These tests fail
-/// if either client drifts back to the legacy payload field, or if the header
+/// if the client drifts back to the legacy payload field, or if the header
 /// goes missing from the upgrade request.
 /// https://soniox.com/docs/guides/websocket-authentication
 struct SonioxWebSocketAuthTests {
@@ -36,14 +36,6 @@ struct SonioxWebSocketAuthTests {
         #expect(request.url == SonioxRealtimeSTTClient.endpoint)
         #expect(request.url?.absoluteString == "wss://stt-rt.soniox.com/transcribe-websocket")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer k1")
-    }
-
-    @Test func ttsUpgradeRequestTargetsTtsEndpointWithBearer() {
-        let request = SonioxRealtimeTTSClient.makeUpgradeRequest(apiKey: "k2")
-
-        #expect(request.url == SonioxRealtimeTTSClient.endpoint)
-        #expect(request.url?.absoluteString == "wss://tts-rt.soniox.com/tts-websocket")
-        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer k2")
     }
 
     @Test(arguments: [
@@ -73,19 +65,4 @@ struct SonioxWebSocketAuthTests {
         }
     }
 
-    @Test func ttsConfigMessageHasNoAPIKey() {
-        let payload = SonioxRealtimeTTSClient.makeConfigPayload(
-            language: .english,
-            voice: "test-voice",
-            streamID: "vivadicta-test"
-        )
-
-        #expect(payload["api_key"] == nil)
-        #expect(payload["model"] as? String == "tts-rt-v1-preview")
-        #expect(payload["language"] as? String == "en")
-        #expect(payload["voice"] as? String == "test-voice")
-        #expect(payload["audio_format"] as? String == "pcm_s16le")
-        #expect(payload["sample_rate"] as? Int == Int(SonioxRealtimeTTSClient.outputSampleRate))
-        #expect(payload["stream_id"] as? String == "vivadicta-test")
-    }
 }

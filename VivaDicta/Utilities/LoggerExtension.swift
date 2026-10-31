@@ -50,6 +50,8 @@ public enum LogCategory: String {
     case geminiLiveRealtimeDictation = "GeminiLiveRealtimeDictation"
     case streamingAudioCapture = "StreamingAudioCapture"
 
+    // Used by the Soniox realtime STT client (realtime dictation infrastructure).
+    case liveTranslationSTT = "LiveTranslationSTT"
     case selfHostedTranslation = "SelfHostedTranslation"
 
     // MARK: - Services - Other
