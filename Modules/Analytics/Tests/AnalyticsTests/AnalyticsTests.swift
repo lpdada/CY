@@ -51,9 +51,8 @@ struct MockAnalyticsServiceTests {
         let sut = MockAnalyticsService()
 
         sut.track(.onboardingCompleted)
-        sut.track(.liveTranslationOpened)
 
-        #expect(sut.trackedEvents.count == 2)
-        #expect(sut.trackedEventNames == ["onboarding_completed", "live_translation_opened"])
+        #expect(sut.trackedEvents.count == 1)
+        #expect(sut.trackedEventNames == ["onboarding_completed"])
     }
 }

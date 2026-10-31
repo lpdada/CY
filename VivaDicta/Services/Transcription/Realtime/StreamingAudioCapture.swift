@@ -309,8 +309,7 @@ final class StreamingAudioCapture {
         // and an isolated closure trips _dispatch_assert_queue_fail.
         //
         // This is the one deliberate exception to the repo's no-GCD rule, and
-        // it matches what `LiveTranslationAudio.configureEngine` and
-        // `AudioPrewarmManager` already do for the same reason. A structured
+        // it matches what `AudioPrewarmManager` already does for the same reason. A structured
         // alternative that reliably strips the isolation from a closure handed
         // to a C-level realtime callback does not exist today; swapping in a
         // Task here reintroduces the crash those two call sites solved.
@@ -327,7 +326,7 @@ final class StreamingAudioCapture {
 }
 
 /// Hardware-side teardown, wrapped in an `@unchecked Sendable` class so it can
-/// run off MainActor. Mirrors `LiveTranslationAudio`'s teardown, including its
+/// run off MainActor. Mirrors the audio engine teardown, including its
 /// hard-won detail: deactivate the session WITHOUT
 /// `.notifyOthersOnDeactivation`, which fires synchronous notifications to
 /// other apps and has been observed to take seconds.

@@ -106,7 +106,6 @@ public enum UserDefaultsStorage {
         // Advanced settings
         public static let appendWithVoiceStyle = "appendWithVoiceStyle"
         public static let isChatEnabled = "isChatEnabled"
-        public static let isLiveTranslationEnabled = "isLiveTranslationEnabled"
         public static let isStripTrailingPeriodEnabled = "isStripTrailingPeriodEnabled"
         public static let isFillerRemovalEnabled = "isFillerRemovalEnabled"
 
@@ -146,12 +145,6 @@ public enum UserDefaultsStorage {
         /// Entry template used by the append / prepend write modes.
         public static let folderExportEntryTemplate = "folderExportEntryTemplate"
 
-        // Live Translation
-        public static let liveTranslationSourceLanguage = "liveTranslation.sourceLanguage"
-        public static let liveTranslationTargetLanguage = "liveTranslation.targetLanguage"
-        public static let liveTranslationTTSEnabled = "liveTranslation.ttsEnabled"
-        public static let liveTranslationTTSRate = "liveTranslation.ttsRate"
-        public static let liveTranslationTTSVoice = "liveTranslation.ttsVoice"
     }
 
     // MARK: - Integrations defaults

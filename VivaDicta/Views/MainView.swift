@@ -23,7 +23,6 @@ struct MainView: View {
 
     @State private var showingRecordingSheet = false
     @State private var showingSettings = false
-    @State private var showingLiveTranslation = false
     @State private var showingSelfHostedTranslation = false
     @State private var showingMeetingNotes = false
     @State private var showingNotesFilter = false
@@ -56,9 +55,6 @@ struct MainView: View {
 
     @AppStorage(UserDefaultsStorage.Keys.isChatEnabled)
     private var isChatEnabled: Bool = true
-
-    @AppStorage(UserDefaultsStorage.Keys.isLiveTranslationEnabled)
-    private var isLiveTranslationEnabled: Bool = false
 
     private let logger = Logger(category: .mainView)
 
@@ -265,10 +261,6 @@ struct MainView: View {
             SettingsView()
                 .interactiveDismissDisabled(true)
                 .navigationTransition(.zoom(sourceID: "SettingsSheetTransition", in: sheetTransitions))
-        }
-        .fullScreenCover(isPresented: $showingLiveTranslation) {
-            LiveTranslationView()
-                .navigationTransition(.zoom(sourceID: "LiveTranslationSheetTransition", in: sheetTransitions))
         }
         .fullScreenCover(isPresented: $showingSelfHostedTranslation) {
             SelfHostedTranslationView()
@@ -533,62 +525,53 @@ struct MainView: View {
                 .matchedTransitionSource(id: "NotesFilterSheetTransition", in: sheetTransitions)
             }
 
-            if isLiveTranslationEnabled {
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        HapticManager.lightImpact()
-                        showingLiveTranslation = true
-                        Task { await LiveTranslationDiscoveryTip.liveTranslationOpenedEvent.donate() }
-                    } label: {
-                        Image(systemName: "globe.americas.fill")
-                    }
-                    .accessibilityLabel("实时翻译")
-                    .matchedTransitionSource(id: "LiveTranslationSheetTransition", in: sheetTransitions)
-                    .popoverTip(LiveTranslationDiscoveryTip())
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    HapticManager.lightImpact()
-                    showingSelfHostedTranslation = true
-                } label: {
-                    Image(systemName: "translate")
-                }
-                .accessibilityLabel("自建翻译")
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    HapticManager.lightImpact()
-                    showingMeetingNotes = true
-                } label: {
-                    Image(systemName: "list.clipboard")
-                }
-                .accessibilityLabel("会议记录")
-            }
-
             if #available(iOS 26.0, *) {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
             }
 
+            // 固定胶囊：翻译 + 会议记录，不再随设置开关增减；
+            // 右上角 ••• 就是设置入口，不再走系统溢出菜单。
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    HapticManager.lightImpact()
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                }
-                .accessibilityLabel("设置")
-                .matchedTransitionSource(id: "SettingsSheetTransition", in: sheetTransitions)
-                .popoverTip(selectTranscriptionModelTipMainView) { action in
-                    if action.id == "go-to-models" {
+                HStack(spacing: 10) {
+                    HStack(spacing: 0) {
+                        Button {
+                            HapticManager.lightImpact()
+                            showingSelfHostedTranslation = true
+                        } label: {
+                            Image(systemName: "translate")
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("自建翻译")
+                        .buttonStyle(.plain)
+                        Divider()
+                            .frame(height: 22)
+                        Button {
+                            HapticManager.lightImpact()
+                            showingMeetingNotes = true
+                        } label: {
+                            Image(systemName: "list.clipboard")
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("会议记录")
+                        .buttonStyle(.plain)
+                    }
+                    .background(Capsule().fill(.ultraThinMaterial))
+                    Button {
+                        HapticManager.lightImpact()
                         showingSettings = true
-                        appState.shouldNavigateToModels = true
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("设置")
+                    .buttonStyle(.plain)
+                    .background(Circle().fill(.ultraThinMaterial))
+                    .matchedTransitionSource(id: "SettingsSheetTransition", in: sheetTransitions)
+                    .popoverTip(selectTranscriptionModelTipMainView) { action in
+                        if action.id == "go-to-models" {
+                            showingSettings = true
+                            appState.shouldNavigateToModels = true
+                        }
                     }
                 }
             }

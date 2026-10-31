@@ -66,37 +66,6 @@ public enum AnalyticsEvent: Sendable {
         outputLength: Int
     )
 
-    // MARK: - Live Translation
-
-    /// Fires when the Live Translation screen appears, regardless of whether
-    /// a Soniox API key is configured. Captures discovery / globe-icon taps.
-    case liveTranslationOpened
-
-    /// Fires when a session successfully transitions to .running (after mic
-    /// permission + WS connect). Counts real engagement, not intent.
-    case liveTranslationStarted(
-        sourceLanguage: String,
-        targetLanguage: String,
-        ttsEnabled: Bool,
-        voice: String
-    )
-
-    /// Fires when the user stops a running session (or it ends naturally).
-    /// Skipped when a session never reached .running.
-    case liveTranslationStopped(
-        durationSeconds: Double,
-        originalTokenCount: Int,
-        translatedTokenCount: Int,
-        ttsEnabled: Bool
-    )
-
-    /// Fires when the user taps "Save as note" after a session.
-    case liveTranslationSavedAsNote
-
-    /// Fires when a session fails (missing key, mic denied, WS error, etc.).
-    /// `reason` is a stable category identifier, not the localized message.
-    case liveTranslationFailed(reason: String)
-
     // MARK: - Performance Monitoring (MetricKit, passive)
 
     /// Daily MetricKit launch-time report: bucket-weighted average time to first
@@ -137,11 +106,6 @@ extension AnalyticsEvent {
         case .watchRecordingReceived: "watch_recording_received"
         case .transcriptionCompleted: "transcription_completed"
         case .variationGenerated: "variation_generated"
-        case .liveTranslationOpened: "live_translation_opened"
-        case .liveTranslationStarted: "live_translation_started"
-        case .liveTranslationStopped: "live_translation_stopped"
-        case .liveTranslationSavedAsNote: "live_translation_saved_as_note"
-        case .liveTranslationFailed: "live_translation_failed"
         case .appLaunchMetric: "app_launch_metric"
         case .appHangMetric: "app_hang_metric"
         case .appMemoryMetric: "app_memory_metric"
@@ -238,31 +202,6 @@ extension AnalyticsEvent {
                 "duration_seconds": durationSeconds,
                 "output_length": outputLength
             ]
-
-        case .liveTranslationOpened:
-            return nil
-
-        case .liveTranslationStarted(let sourceLanguage, let targetLanguage, let ttsEnabled, let voice):
-            return [
-                "source_language": sourceLanguage,
-                "target_language": targetLanguage,
-                "tts_enabled": ttsEnabled,
-                "voice": voice
-            ]
-
-        case .liveTranslationStopped(let durationSeconds, let originalTokenCount, let translatedTokenCount, let ttsEnabled):
-            return [
-                "duration_seconds": durationSeconds,
-                "original_token_count": originalTokenCount,
-                "translated_token_count": translatedTokenCount,
-                "tts_enabled": ttsEnabled
-            ]
-
-        case .liveTranslationSavedAsNote:
-            return nil
-
-        case .liveTranslationFailed(let reason):
-            return ["reason": reason]
 
         case .appLaunchMetric(let averageMs, let sampleCount):
             return ["average_ms": averageMs, "sample_count": sampleCount]

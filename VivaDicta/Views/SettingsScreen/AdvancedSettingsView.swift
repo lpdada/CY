@@ -32,9 +32,6 @@ struct AdvancedSettingsView: View {
     @AppStorage(UserDefaultsStorage.Keys.isChatEnabled)
     private var isChatEnabled: Bool = true
 
-    @AppStorage(UserDefaultsStorage.Keys.isLiveTranslationEnabled)
-    private var isLiveTranslationEnabled: Bool = false
-
     @AppStorage(UserDefaultsStorage.Keys.isAutoShareAfterRecordingEnabled)
     private var isAutoShareAfterRecordingEnabled: Bool = false
 
@@ -134,16 +131,6 @@ struct AdvancedSettingsView: View {
                             HapticManager.selectionChanged()
                         }
                     Text("在主屏和笔记详情里显示对话按钮。关掉后整个 App 都不显示对话按钮。Siri 快捷指令和深链仍可打开对话。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Toggle("实时翻译", isOn: $isLiveTranslationEnabled)
-                        .onChange(of: isLiveTranslationEnabled) { _, _ in
-                            HapticManager.selectionChanged()
-                        }
-                    Text("在主屏工具栏显示实时翻译按钮。不用实时翻译的话关掉隐藏它。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

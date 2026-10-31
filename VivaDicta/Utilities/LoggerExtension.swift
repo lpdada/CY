@@ -50,11 +50,6 @@ public enum LogCategory: String {
     case geminiLiveRealtimeDictation = "GeminiLiveRealtimeDictation"
     case streamingAudioCapture = "StreamingAudioCapture"
 
-    // MARK: - Services - Live Translation
-    case liveTranslationService = "LiveTranslationService"
-    case liveTranslationSTT = "LiveTranslationSTT"
-    case liveTranslationTTS = "LiveTranslationTTS"
-    case liveTranslationAudio = "LiveTranslationAudio"
     case selfHostedTranslation = "SelfHostedTranslation"
 
     // MARK: - Services - Other
